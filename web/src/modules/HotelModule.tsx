@@ -6,6 +6,9 @@ import { IconArea, IconBed, IconPhone, IconPin } from '../components/Icons';
 interface Props { loc: Location; content: HotelContent }
 
 export function HotelModule({ loc, content }: Props) {
+  const rooms = content.rooms ?? [];
+  const facts = content.facts ?? [];
+  const contact = content.contact ?? { phone: '', email: '', address: loc.address };
   const [room, setRoom] = useState<number | null>(null);
   const [checkin, setCheckin] = useState('2026-05-10');
   const [checkout, setCheckout] = useState('2026-05-12');
@@ -24,7 +27,7 @@ export function HotelModule({ loc, content }: Props) {
           </div>
 
           <div className="facts-grid">
-            {content.facts.map((f, i) => (
+            {facts.map((f, i) => (
               <div className="fact" key={i}>
                 <div className="fact-num">
                   {f.num}{f.em && <em>{f.em}</em>}
@@ -38,7 +41,7 @@ export function HotelModule({ loc, content }: Props) {
             <div className="section-label">Sobe</div>
             <h2 className="section-title">Izaberite smeštaj</h2>
             <div className="rooms-grid">
-              {content.rooms.map((r, i) => (
+              {rooms.map((r, i) => (
                 <div
                   key={i}
                   className="room-card"
@@ -90,9 +93,9 @@ export function HotelModule({ loc, content }: Props) {
                   lineHeight: 1.5,
                 }}
               >
-                <strong style={{ color: 'var(--navy)' }}>{content.rooms[room].name}</strong>
+                <strong style={{ color: 'var(--navy)' }}>{rooms[room].name}</strong>
                 <br />
-                2 noćenja × {content.rooms[room].price} din
+                2 noćenja × {rooms[room].price} din
                 <br />
                 <div
                   style={{
@@ -106,7 +109,7 @@ export function HotelModule({ loc, content }: Props) {
                 >
                   <span>Ukupno</span>
                   <strong style={{ color: 'var(--gold-2)', fontFamily: 'Fraunces, serif' }}>
-                    {(parseFloat(content.rooms[room].price.replace('.', '')) * 2).toLocaleString('sr-RS')} din
+                    {(parseFloat(rooms[room].price.replace('.', '')) * 2).toLocaleString('sr-RS')} din
                   </strong>
                 </div>
               </div>
@@ -121,14 +124,14 @@ export function HotelModule({ loc, content }: Props) {
               <div className="info-icon"><IconPhone /></div>
               <div>
                 <div className="info-row-label">Recepcija</div>
-                <div className="info-row-val">{content.contact.phone}</div>
+                <div className="info-row-val">{contact.phone}</div>
               </div>
             </div>
             <div className="info-row">
               <div className="info-icon"><IconPin /></div>
               <div>
                 <div className="info-row-label">Adresa</div>
-                <div className="info-row-val">{content.contact.address}</div>
+                <div className="info-row-val">{contact.address}</div>
               </div>
             </div>
           </div>

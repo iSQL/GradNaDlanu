@@ -14,6 +14,7 @@ import { PublicModule } from './PublicModule';
 import { LandmarkModule } from './LandmarkModule';
 import { HotelModule } from './HotelModule';
 import { SchoolModule } from './SchoolModule';
+import { EmptyContent, isEmptyContent } from './EmptyContent';
 
 export function ModulePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -48,6 +49,8 @@ export function ModulePage() {
   }
 
   if (!data) return <div className="module-page" />;
+
+  if (isEmptyContent(data.content)) return <EmptyContent loc={data} />;
 
   switch (data.catId) {
     case 'cafe':     return <CafeModule     loc={data} content={data.content as CafeContent} />;

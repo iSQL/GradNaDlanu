@@ -533,6 +533,93 @@ button { font-family: inherit; }
 }
 
 /* ============================================
+   ADD-OBJECT DIALOG (long-press on map)
+   ============================================ */
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(11, 27, 43, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.dialog-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 22px 24px 24px;
+  box-shadow: var(--shadow-lg);
+  animation: dialogIn 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes dialogIn {
+  from { transform: translateY(8px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.dialog-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.dialog-coords {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-2);
+  opacity: 0.65;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dialog-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.dialog-close:hover { background: var(--paper-2); color: var(--ink); }
+
+/* Long-press hint that shows when admin is on the map */
+.long-press-hint {
+  position: absolute;
+  z-index: 1000;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(11, 27, 43, 0.85);
+  color: var(--paper);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  padding: 8px 14px;
+  border-radius: 999px;
+  pointer-events: none;
+  box-shadow: var(--shadow);
+}
+
+/* ============================================
    PANEL TOGGLE (hide/show hero overlays)
    ============================================ */
 
@@ -1153,6 +1240,24 @@ button { font-family: inherit; }
 }
 .admin-row .row-status.draft::before { background: var(--gold-2); }
 
+.row-action {
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--navy);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.row-action:hover { background: var(--navy); color: var(--paper); border-color: var(--navy); }
+
+.row-action.danger { color: var(--rust); border-color: rgba(181, 83, 42, 0.4); }
+.row-action.danger:hover { background: var(--rust); color: var(--paper); border-color: var(--rust); }
+
 .cat-picker {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1180,6 +1285,18 @@ button { font-family: inherit; }
 .cat-chip:hover { border-color: var(--navy); }
 .cat-chip.selected { background: var(--navy); color: var(--paper); border-color: var(--navy); }
 .cat-chip.selected svg .pin-base { stroke: var(--paper); }
+
+/* Edit-location page */
+.edit-grid {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 32px;
+  align-items: start;
+}
+.edit-grid .admin-card { position: relative; }
+@media (max-width: 900px) {
+  .edit-grid { grid-template-columns: 1fr; }
+}
 
 /* Admin login */
 .login-shell {

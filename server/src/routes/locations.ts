@@ -51,11 +51,11 @@ export async function locationsRoutes(app: FastifyInstance) {
   });
 
   // Admin: create
-  app.post<{ Body: { name: string; address: string; catId: string; lat?: number; lng?: number; subtitle?: string } }>(
+  app.post<{ Body: { name: string; address: string; catId: string; lat?: number; lng?: number; subtitle?: string; status?: 'draft' | 'published' } }>(
     '/api/admin/locations',
     { preHandler: requireAdmin },
     async (req, reply) => {
-      const { name, address, catId, lat, lng, subtitle } = req.body;
+      const { name, address, catId, lat, lng, subtitle, status } = req.body;
       if (!name || !address || !catId) {
         return reply.code(400).send({ error: 'name, address, catId are required' });
       }
@@ -71,7 +71,7 @@ export async function locationsRoutes(app: FastifyInstance) {
             subtitle: subtitle ?? null,
             lat: lat ?? 44.3567,
             lng: lng ?? 21.2161,
-            status: 'draft',
+            status: status === 'published' ? 'published' : 'draft',
           })
           .returning();
         await db.insert(moduleContent).values({ locationId: row.id, content: {} });
@@ -86,15 +86,54 @@ export async function locationsRoutes(app: FastifyInstance) {
     }
   );
 
-  // Admin: update status / fields
-  app.patch<{ Params: { id: string }; Body: Partial<{ name: string; address: string; subtitle: string; status: 'draft' | 'published'; lat: number; lng: number }> }>(
+  // Admin: update location fields and/or content
+  app.patch<{
+    Params: { id: string };
+    Body: Partial<{
+      name: string;
+      address: string;
+      subtitle: string;
+      status: 'draft' | 'published';
+      lat: number;
+      lng: number;
+      content: unknown;
+    }>;
+  }>(
     '/api/admin/locations/:id',
     { preHandler: requireAdmin },
     async (req, reply) => {
       const id = Number(req.params.id);
-      const [row] = await db.update(locations).set(req.body).where(eq(locations.id, id)).returning();
-      if (!row) return reply.code(404).send({ error: 'Not found' });
+      const { content, ...locFields } = req.body;
+
+      let row;
+      if (Object.keys(locFields).length > 0) {
+        [row] = await db.update(locations).set(locFields).where(eq(locations.id, id)).returning();
+        if (!row) return reply.code(404).send({ error: 'Not found' });
+      } else {
+        [row] = await db.select().from(locations).where(eq(locations.id, id)).limit(1);
+        if (!row) return reply.code(404).send({ error: 'Not found' });
+      }
+
+      if (content !== undefined) {
+        await db
+          .insert(moduleContent)
+          .values({ locationId: id, content })
+          .onConflictDoUpdate({ target: moduleContent.locationId, set: { content } });
+      }
+
       return row;
+    }
+  );
+
+  // Admin: delete (module_content cascades via FK)
+  app.delete<{ Params: { id: string } }>(
+    '/api/admin/locations/:id',
+    { preHandler: requireAdmin },
+    async (req, reply) => {
+      const id = Number(req.params.id);
+      const [row] = await db.delete(locations).where(eq(locations.id, id)).returning({ id: locations.id });
+      if (!row) return reply.code(404).send({ error: 'Not found' });
+      return { ok: true, id: row.id };
     }
   );
 }

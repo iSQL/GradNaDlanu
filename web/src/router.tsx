@@ -4,6 +4,7 @@ import { Hero } from './components/Hero';
 import { ModulePage } from './modules/ModulePage';
 import { AdminLogin } from './admin/AdminLogin';
 import { AdminPanel } from './admin/AdminPanel';
+import { EditLocation } from './admin/EditLocation';
 import { RequireAuth } from './admin/RequireAuth';
 
 export const router = createBrowserRouter([
@@ -19,6 +20,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <AdminPanel />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'admin/objekat/:slug',
+        element: (
+          <RequireAuth>
+            <EditLocation />
           </RequireAuth>
         ),
       },

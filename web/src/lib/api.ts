@@ -26,10 +26,23 @@ export const api = {
   },
   getLocation: (slug: string) => request<LocationWithContent>(`/api/locations/${slug}`),
   adminListLocations: () => request<Location[]>('/api/admin/locations'),
-  adminCreateLocation: (body: { name: string; address: string; catId: string; subtitle?: string; lat?: number; lng?: number }) =>
+  adminCreateLocation: (body: { name: string; address: string; catId: string; subtitle?: string; lat?: number; lng?: number; status?: 'draft' | 'published' }) =>
     request<Location>('/api/admin/locations', { method: 'POST', body: JSON.stringify(body) }),
-  adminUpdateLocation: (id: number, patch: Partial<{ status: 'draft' | 'published'; name: string; address: string; subtitle: string; lat: number; lng: number }>) =>
+  adminUpdateLocation: (
+    id: number,
+    patch: Partial<{
+      status: 'draft' | 'published';
+      name: string;
+      address: string;
+      subtitle: string;
+      lat: number;
+      lng: number;
+      content: unknown;
+    }>,
+  ) =>
     request<Location>(`/api/admin/locations/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  adminDeleteLocation: (id: number) =>
+    request<{ ok: true; id: number }>(`/api/admin/locations/${id}`, { method: 'DELETE' }),
   login: (username: string, password: string) =>
     request<{ token: string; user: { id: number; username: string } }>('/api/auth/login', {
       method: 'POST',

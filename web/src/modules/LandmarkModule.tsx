@@ -7,6 +7,8 @@ interface Props { loc: Location; content: LandmarkContent }
 
 export function LandmarkModule({ loc, content }: Props) {
   const navigate = useNavigate();
+  const facts = content.facts ?? [];
+  const story = content.story ?? [];
   return (
     <div className="module-page">
       <ModuleHero loc={loc} tagline={content.tagline} />
@@ -20,7 +22,7 @@ export function LandmarkModule({ loc, content }: Props) {
           </div>
 
           <div className="facts-grid">
-            {content.facts.map((f, i) => (
+            {facts.map((f, i) => (
               <div className="fact" key={i}>
                 <div className="fact-num">
                   {f.num}{f.em && <em>{f.em}</em>}
@@ -33,7 +35,7 @@ export function LandmarkModule({ loc, content }: Props) {
           <div className="prose" style={{ marginTop: 32 }}>
             <div className="section-label">Istorijat</div>
             <p className="prose-lead">{content.tagline}</p>
-            {content.story.map((p, i) => <p key={i}>{p}</p>)}
+            {story.map((p, i) => <p key={i}>{p}</p>)}
           </div>
 
           <div

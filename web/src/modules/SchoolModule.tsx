@@ -12,13 +12,16 @@ const EVENTS: [string, string, string][] = [
 interface Props { loc: Location; content: SchoolContent }
 
 export function SchoolModule({ loc, content }: Props) {
+  const facts = content.facts ?? [];
+  const programs = content.programs ?? [];
+  const contact = content.contact ?? { phone: '', email: '', address: loc.address };
   return (
     <div className="module-page">
       <ModuleHero loc={loc} tagline={content.tagline} />
       <div className="module-body">
         <div>
           <div className="facts-grid">
-            {content.facts.map((f, i) => (
+            {facts.map((f, i) => (
               <div className="fact" key={i}>
                 <div className="fact-num">
                   {f.num}{f.em && <em>{f.em}</em>}
@@ -32,7 +35,7 @@ export function SchoolModule({ loc, content }: Props) {
             <div className="section-label">Program</div>
             <h2 className="section-title">Šta nudimo</h2>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {content.programs.map((p) => (
+              {programs.map((p) => (
                 <div
                   key={p}
                   style={{
@@ -78,7 +81,7 @@ export function SchoolModule({ loc, content }: Props) {
           </div>
         </div>
 
-        <InfoCard loc={loc} contact={content.contact} />
+        <InfoCard loc={loc} contact={contact} />
       </div>
     </div>
   );

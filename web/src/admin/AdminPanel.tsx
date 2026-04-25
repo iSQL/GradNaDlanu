@@ -43,6 +43,30 @@ export function AdminPanel() {
     }
   };
 
+  const toggleStatus = async (loc: Location) => {
+    const next = loc.status === 'published' ? 'draft' : 'published';
+    setError(null);
+    try {
+      await api.adminUpdateLocation(loc.id, { status: next });
+      await reload();
+      await ctx.reloadLocations();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const deleteLocation = async (loc: Location) => {
+    if (!window.confirm(`Obrisati "${loc.name}"? Ova radnja je trajna.`)) return;
+    setError(null);
+    try {
+      await api.adminDeleteLocation(loc.id);
+      await reload();
+      await ctx.reloadLocations();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
   const logout = () => {
     clearToken();
     navigate('/admin/login');
@@ -191,7 +215,11 @@ export function AdminPanel() {
                 <div />
               </div>
               {allObjects.map((loc) => (
-                <div className="admin-row" key={loc.id} onClick={() => navigate(`/objekat/${loc.slug}`)}>
+                <div
+                  className="admin-row"
+                  key={loc.id}
+                  onClick={() => navigate(`/admin/objekat/${loc.slug}`)}
+                >
                   <div className="swatch"><PinGlyph cat={loc.catId} size={22} /></div>
                   <div>
                     <div className="row-name">{loc.name}</div>
@@ -202,7 +230,23 @@ export function AdminPanel() {
                   <div className={`row-status ${loc.status === 'draft' ? 'draft' : ''}`}>
                     {loc.status === 'draft' ? 'nacrt' : 'objavljen'}
                   </div>
-                  <div style={{ color: 'var(--ink-2)', opacity: 0.5 }}>›</div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      className="row-action"
+                      onClick={(e) => { e.stopPropagation(); toggleStatus(loc); }}
+                      title={loc.status === 'published' ? 'Vrati u nacrt' : 'Objavi'}
+                    >
+                      {loc.status === 'published' ? 'Vrati u nacrt' : 'Objavi'}
+                    </button>
+                    <button
+                      className="row-action danger"
+                      onClick={(e) => { e.stopPropagation(); deleteLocation(loc); }}
+                      title="Obriši"
+                      aria-label={`Obriši ${loc.name}`}
+                    >
+                      Obriši
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

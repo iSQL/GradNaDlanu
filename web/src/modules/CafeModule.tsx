@@ -23,6 +23,9 @@ interface Props { loc: Location; content: CafeContent }
 
 export function CafeModule({ loc, content }: Props) {
   const tagline = content.tagline ?? `Mesto u srcu Žabara — sa sigurno najboljom kafom u opštini.`;
+  const menu = content.menu ?? [];
+  const hours = content.hours ?? [];
+  const contact = content.contact ?? {};
 
   const [seats, setSeats] = useState(2);
   const [date, setDate] = useState('2026-04-26');
@@ -127,7 +130,7 @@ export function CafeModule({ loc, content }: Props) {
             <div className="section-label">Meni i ponuda</div>
             <h2 className="section-title">Posebnosti kuće</h2>
             <div className="menu-list">
-              {content.menu.map((group) => (
+              {menu.map((group) => (
                 <Fragment key={group.cat}>
                   <div className="menu-cat-title">{group.cat}</div>
                   {group.items.map((item) => (
@@ -145,7 +148,7 @@ export function CafeModule({ loc, content }: Props) {
           </div>
         </div>
 
-        <InfoCard loc={loc} hours={content.hours} contact={content.contact} />
+        <InfoCard loc={loc} hours={hours} contact={contact} />
       </div>
     </div>
   );

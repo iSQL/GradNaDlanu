@@ -2,8 +2,10 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { CATEGORY_LABELS, type CategoryId, type Location } from '../types';
+import { isAuthed } from '../lib/auth';
 import { CityMap } from './CityMap';
 import { PinGlyph } from './PinGlyph';
+import { AddObjectDialog } from './AddObjectDialog';
 import { IconArrow, IconEye, IconEyeOff } from './Icons';
 
 export function Hero() {
@@ -13,6 +15,8 @@ export function Hero() {
   const [hovered, setHovered] = useState<Location | null>(null);
   const [pos, setPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [panelsVisible, setPanelsVisible] = useState(true);
+  const [pendingCoords, setPendingCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const canEdit = isAuthed();
 
   const { categories, locations, activeFilter, setActiveFilter, search } = ctx;
 
@@ -82,6 +86,7 @@ export function Hero() {
             setHovered(loc);
             if (loc && pt) setPos(pt);
           }}
+          onLongPress={canEdit ? (latlng) => setPendingCoords(latlng) : undefined}
         />
 
         {hovered && (
@@ -102,6 +107,23 @@ export function Hero() {
           </div>
         )}
       </div>
+
+      {canEdit && panelsVisible && (
+        <div className="long-press-hint">Dugi klik na mapu — dodaj objekat</div>
+      )}
+
+      {pendingCoords && (
+        <AddObjectDialog
+          categories={categories}
+          lat={pendingCoords.lat}
+          lng={pendingCoords.lng}
+          onClose={() => setPendingCoords(null)}
+          onCreated={async () => {
+            await ctx.reloadLocations();
+            setPendingCoords(null);
+          }}
+        />
+      )}
 
       {panelsVisible && (
       <div className="map-legend">

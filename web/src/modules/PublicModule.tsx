@@ -13,15 +13,19 @@ const FALLBACK_FORMS: [string, string][] = [
 ];
 
 export function PublicModule({ loc, content }: Props) {
+  const services = content.services ?? [];
+  const hours = content.hours ?? [];
+  const contact = content.contact ?? { phone: '', email: '', address: loc.address };
+  const tagline = content.tagline ?? 'Javna služba u opštini Žabari.';
   return (
     <div className="module-page">
-      <ModuleHero loc={loc} tagline={content.tagline} />
+      <ModuleHero loc={loc} tagline={tagline} />
       <div className="module-body">
         <div>
           <div className="module-section">
             <div className="section-label">O ustanovi</div>
             <div className="prose">
-              <p className="prose-lead">{content.tagline}</p>
+              <p className="prose-lead">{tagline}</p>
               <p>
                 Ustanova obavlja svoju delatnost u skladu sa važećim zakonskim okvirima i odlukama
                 Skupštine opštine Žabari. Šalter za građane je otvoren u radno vreme navedeno u
@@ -34,12 +38,12 @@ export function PublicModule({ loc, content }: Props) {
             </div>
           </div>
 
-          {content.services?.length > 0 && (
+          {services?.length > 0 && (
             <div className="module-section">
               <div className="section-label">Usluge i nadležnosti</div>
               <h2 className="section-title">Šta možete obaviti ovde</h2>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16 }}>
-                {content.services.map((s) => (
+                {services.map((s) => (
                   <div
                     key={s}
                     style={{
@@ -116,7 +120,7 @@ export function PublicModule({ loc, content }: Props) {
           </div>
         </div>
 
-        <InfoCard loc={loc} hours={content.hours} contact={content.contact} />
+        <InfoCard loc={loc} hours={hours} contact={contact} />
       </div>
     </div>
   );

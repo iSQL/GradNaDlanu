@@ -1,0 +1,127 @@
+import { useEffect, useState } from 'react';
+import { api } from '../lib/api';
+import type { Category, CategoryId } from '../types';
+import { PinGlyph } from './PinGlyph';
+
+interface Props {
+  categories: Category[];
+  lat: number;
+  lng: number;
+  onClose: () => void;
+  onCreated: () => void;
+}
+
+export function AddObjectDialog({ categories, lat, lng, onClose, onCreated }: Props) {
+  const [catId, setCatId] = useState<CategoryId>('cafe');
+  const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
+  const [publishNow, setPublishNow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !address || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.adminCreateLocation({
+        name,
+        address,
+        catId,
+        lat,
+        lng,
+        status: publishNow ? 'published' : 'draft',
+      });
+      onCreated();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg.includes('401') ? 'Sesija je istekla — prijavite se ponovo.' : msg);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="dialog-backdrop" onClick={onClose}>
+      <form className="dialog-card" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+        <div className="dialog-head">
+          <div>
+            <div className="section-label" style={{ margin: 0 }}>Novi objekat</div>
+            <div className="dialog-coords">{lat.toFixed(5)}, {lng.toFixed(5)}</div>
+          </div>
+          <button type="button" className="dialog-close" onClick={onClose} aria-label="Zatvori">×</button>
+        </div>
+
+        <div className="field-label">Kategorija</div>
+        <div className="cat-picker">
+          {categories.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className={`cat-chip ${catId === c.id ? 'selected' : ''}`}
+              onClick={() => setCatId(c.id)}
+            >
+              <PinGlyph cat={c.id} size={22} />
+              {c.short}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ marginTop: 12 }}>
+          <div className="field-label">Naziv objekta</div>
+          <input
+            className="field-input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="npr. Kafić Lipa"
+            autoFocus
+          />
+        </div>
+
+        <div style={{ marginTop: 12 }}>
+          <div className="field-label">Adresa</div>
+          <input
+            className="field-input"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="npr. Kralja Petra 7"
+          />
+        </div>
+
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginTop: 16,
+            fontSize: 13,
+            color: 'var(--ink-2)',
+            cursor: 'pointer',
+            userSelect: 'none',
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={publishNow}
+            onChange={(e) => setPublishNow(e.target.checked)}
+            style={{ width: 16, height: 16, accentColor: 'var(--navy)' }}
+          />
+          Objavi odmah (ne kao nacrt)
+        </label>
+
+        <button className="btn-primary" style={{ marginTop: 14 }} disabled={!name || !address || busy} type="submit">
+          {busy ? 'Čuvanje…' : publishNow ? 'Sačuvaj i objavi' : 'Sačuvaj kao nacrt'}
+        </button>
+
+        {error && <div className="login-error">{error}</div>}
+      </form>
+    </div>
+  );
+}
