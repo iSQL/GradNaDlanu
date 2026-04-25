@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "*",
+      "Bash(npm install *)",
+      "Bash(npm --workspace web run typecheck)",
+      "Bash(npm --workspace server exec -- tsc --noEmit)",
+      "Bash(docker --version)",
+      "Bash(docker compose *)",
+      "Bash(npm run *)",
+      "Bash(npm --workspace server run dev)",
+      "Bash(tee /tmp/server.log)",
+      "Bash(curl -fsS http://localhost:3000/api/health)",
+      "Bash(curl -fsS http://localhost:3000/api/locations)",
+      "Bash(python -c \"import sys, json; print\\(len\\(json.load\\(sys.stdin\\)\\)\\)\")",
+      "Bash(curl -fsS http://localhost:3000/api/locations/hotel-morava)",
+      "Bash(python -c \"import sys, json; d = json.load\\(sys.stdin\\); print\\('name:', d['name']\\); print\\('rooms:', len\\(d['content']['rooms']\\)\\)\")",
+      "Bash(curl -fsS -X POST http://localhost:3000/api/auth/login -H 'Content-Type: application/json' -d '{\"username\":\"admin\",\"password\":\"admin\"}')",
+      "Bash(python -c \"import sys, json; d = json.load\\(sys.stdin\\); print\\('token len:', len\\(d['token']\\), 'user:', d['user']\\)\")",
+      "Bash(git init *)",
+      "Bash(git branch *)"
+    ]
+  },
+  "defaultMode": "bypassPermissions"
+}

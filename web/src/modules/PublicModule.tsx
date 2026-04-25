@@ -1,0 +1,123 @@
+import type { Location, PublicContent } from '../types';
+import { ModuleHero } from './ModuleHero';
+import { InfoCard } from './InfoCard';
+import { IconCheck } from '../components/Icons';
+
+interface Props { loc: Location; content: PublicContent }
+
+const FALLBACK_FORMS: [string, string][] = [
+  ['Zahtev za izdavanje izvoda iz matične knjige rođenih', 'PDF · 64 kB'],
+  ['Prijava prebivališta', 'PDF · 48 kB'],
+  ['Zahtev za parcelaciju zemljišta', 'PDF · 88 kB'],
+  ['Obrazac za lokalni komunalni porez', 'PDF · 56 kB'],
+];
+
+export function PublicModule({ loc, content }: Props) {
+  return (
+    <div className="module-page">
+      <ModuleHero loc={loc} tagline={content.tagline} />
+      <div className="module-body">
+        <div>
+          <div className="module-section">
+            <div className="section-label">O ustanovi</div>
+            <div className="prose">
+              <p className="prose-lead">{content.tagline}</p>
+              <p>
+                Ustanova obavlja svoju delatnost u skladu sa važećim zakonskim okvirima i odlukama
+                Skupštine opštine Žabari. Šalter za građane je otvoren u radno vreme navedeno u
+                bočnoj kartici.
+              </p>
+              <p>
+                Za hitne slučajeve van radnog vremena pozovite glavnu liniju opštine:{' '}
+                <strong>+381 12 250 130</strong>, ili pišite na <strong>info@zabari.rs</strong>.
+              </p>
+            </div>
+          </div>
+
+          {content.services?.length > 0 && (
+            <div className="module-section">
+              <div className="section-label">Usluge i nadležnosti</div>
+              <h2 className="section-title">Šta možete obaviti ovde</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16 }}>
+                {content.services.map((s) => (
+                  <div
+                    key={s}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 10,
+                      padding: '14px 16px',
+                      background: 'var(--paper-2)',
+                      border: '1px solid var(--line)',
+                      borderRadius: 8,
+                      fontSize: 14,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: '50%',
+                        background: 'var(--navy)',
+                        color: 'var(--paper)',
+                        display: 'grid',
+                        placeItems: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <IconCheck />
+                    </div>
+                    <div>{s}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="module-section">
+            <div className="section-label">Obrasci i dokumenti</div>
+            <h2 className="section-title">Najčešće preuzimano</h2>
+            <div style={{ border: '1px solid var(--line)', borderRadius: 8 }}>
+              {FALLBACK_FORMS.map(([n, s], i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '14px 18px',
+                    borderBottom: i < 3 ? '1px solid var(--line)' : 'none',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span
+                      style={{
+                        fontFamily: 'JetBrains Mono, monospace',
+                        fontSize: 10,
+                        padding: '3px 6px',
+                        background: 'var(--paper-2)',
+                        border: '1px solid var(--line)',
+                        borderRadius: 3,
+                        color: 'var(--ink-2)',
+                        letterSpacing: 1,
+                      }}
+                    >
+                      PDF
+                    </span>
+                    {n}
+                  </div>
+                  <span style={{ color: 'var(--ink-2)', opacity: 0.6, fontSize: 12 }}>{s}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <InfoCard loc={loc} hours={content.hours} contact={content.contact} />
+      </div>
+    </div>
+  );
+}
