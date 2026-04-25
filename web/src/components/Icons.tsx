@@ -70,6 +70,21 @@ export const IconSearch = () => (
   </svg>
 );
 
+export const IconEye = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+    <path d="M1.5 9C3.5 4.5 6 3 9 3C12 3 14.5 4.5 16.5 9C14.5 13.5 12 15 9 15C6 15 3.5 13.5 1.5 9Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+    <circle cx="9" cy="9" r="2.4" stroke="currentColor" strokeWidth="1.4"/>
+  </svg>
+);
+
+export const IconEyeOff = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+    <path d="M3 3L15 15" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+    <path d="M7 5.2C7.6 5.07 8.27 5 9 5C12 5 14.5 6.5 16.5 11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M5 7.4C3.5 8.4 2.4 10 1.5 11C3.5 13.5 6 15 9 15C10.1 15 11.13 14.79 12.06 14.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 export const IconAdmin = () => (
   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
     <circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" strokeWidth="1.3"/>

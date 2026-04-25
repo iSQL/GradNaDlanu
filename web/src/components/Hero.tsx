@@ -4,7 +4,7 @@ import type { AppContext } from '../App';
 import { CATEGORY_LABELS, type CategoryId, type Location } from '../types';
 import { CityMap } from './CityMap';
 import { PinGlyph } from './PinGlyph';
-import { IconArrow } from './Icons';
+import { IconArrow, IconEye, IconEyeOff } from './Icons';
 
 export function Hero() {
   const ctx = useOutletContext<AppContext>();
@@ -12,6 +12,7 @@ export function Hero() {
 
   const [hovered, setHovered] = useState<Location | null>(null);
   const [pos, setPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [panelsVisible, setPanelsVisible] = useState(true);
 
   const { categories, locations, activeFilter, setActiveFilter, search } = ctx;
 
@@ -30,6 +31,16 @@ export function Hero() {
 
   return (
     <div className="hero">
+      <button
+        className={`panel-toggle ${panelsVisible ? 'active' : ''}`}
+        onClick={() => setPanelsVisible((v) => !v)}
+        title={panelsVisible ? 'Sakrij panele' : 'Prikaži panele'}
+        aria-label={panelsVisible ? 'Sakrij panele' : 'Prikaži panele'}
+      >
+        {panelsVisible ? <IconEyeOff /> : <IconEye />}
+      </button>
+
+      {panelsVisible && (
       <div className="hero-info">
         <div className="hero-title">
           <div className="hero-eyebrow">Opština Žabari · 12374</div>
@@ -60,6 +71,7 @@ export function Hero() {
           </div>
         </div>
       </div>
+      )}
 
       <div className="map-canvas">
         <CityMap
@@ -91,6 +103,7 @@ export function Hero() {
         )}
       </div>
 
+      {panelsVisible && (
       <div className="map-legend">
         <div className="map-legend-title">Slojevi mape</div>
         <div
@@ -121,6 +134,7 @@ export function Hero() {
           );
         })}
       </div>
+      )}
     </div>
   );
 }
