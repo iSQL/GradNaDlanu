@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import type { Category, CategoryId } from '../types';
+import type { CurrentUser } from '../lib/api';
 import { IconAdmin, IconSearch } from './Icons';
 
 interface Props {
@@ -10,6 +11,13 @@ interface Props {
   search: string;
   onSearchChange: (next: string) => void;
   onHome: () => void;
+  currentUser: CurrentUser | null;
+}
+
+function homeRouteFor(user: CurrentUser): string {
+  if (user.role === 'admin') return '/admin';
+  if (user.role === 'business') return '/poslovni';
+  return '/nalog';
 }
 
 export function Nav({
@@ -20,6 +28,7 @@ export function Nav({
   search,
   onSearchChange,
   onHome,
+  currentUser,
 }: Props) {
   const navigate = useNavigate();
 
@@ -60,9 +69,15 @@ export function Nav({
             onChange={(e) => onSearchChange(e.target.value)}
           />
         </label>
-        <button className="nav-btn" onClick={() => navigate('/admin')}>
-          <IconAdmin /> Admin
-        </button>
+        {currentUser ? (
+          <button className="nav-btn" onClick={() => navigate(homeRouteFor(currentUser))}>
+            <IconAdmin /> {currentUser.displayName}
+          </button>
+        ) : (
+          <button className="nav-btn" onClick={() => navigate('/prijava')}>
+            Prijava
+          </button>
+        )}
       </div>
     </nav>
   );

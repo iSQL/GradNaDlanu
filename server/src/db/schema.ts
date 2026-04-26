@@ -74,9 +74,54 @@ export const objectOwners = pgTable(
   (t) => ({ pk: primaryKey({ columns: [t.userId, t.locationId] }) }),
 );
 
+export const favorites = pgTable(
+  'favorites',
+  {
+    userId: integer('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    locationId: integer('location_id')
+      .references(() => locations.id, { onDelete: 'cascade' })
+      .notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.userId, t.locationId] }) }),
+);
+
+export const comments = pgTable('comments', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  locationId: integer('location_id')
+    .references(() => locations.id, { onDelete: 'cascade' })
+    .notNull(),
+  body: text('body').notNull(),
+  rating: integer('rating'),
+  status: text('status', { enum: ['visible', 'hidden', 'flagged'] })
+    .default('visible')
+    .notNull(),
+  parentId: integer('parent_id'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const checkins = pgTable('checkins', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  locationId: integer('location_id')
+    .references(() => locations.id, { onDelete: 'cascade' })
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export type Category = typeof categories.$inferSelect;
 export type Location = typeof locations.$inferSelect;
 export type ModuleContentRow = typeof moduleContent.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type ObjectOwner = typeof objectOwners.$inferSelect;
+export type Favorite = typeof favorites.$inferSelect;
+export type Comment = typeof comments.$inferSelect;
+export type Checkin = typeof checkins.$inferSelect;
 export type Role = User['role'];

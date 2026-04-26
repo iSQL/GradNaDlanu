@@ -63,6 +63,32 @@ export type ModuleContent =
 
 export interface LocationWithContent extends Location {
   content: ModuleContent | Record<string, never>;
+  favoritedByMe: boolean;
+  checkinsLast24h: number;
+  commentSummary: { count: number; avgRating: number | null };
+}
+
+export interface CommentNode {
+  id: number;
+  body: string;
+  rating: number | null;
+  createdAt: string;
+  author: { id: number; displayName: string };
+  replies: CommentNode[];
+}
+
+export interface FavoriteRow extends Location {
+  favoritedAt: string;
+}
+
+export interface MyComment {
+  id: number;
+  body: string;
+  rating: number | null;
+  createdAt: string;
+  locationId: number;
+  locationSlug: string;
+  locationName: string;
 }
 
 export const CATEGORY_LABELS: Record<CategoryId, string> = {

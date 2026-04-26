@@ -79,6 +79,7 @@ export function App() {
         onHome={() => {
           if (!isHome) navigate('/');
         }}
+        currentUser={currentUser}
       />
 
       <Outlet

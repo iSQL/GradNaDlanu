@@ -5,6 +5,7 @@ import { env } from './env.js';
 import { categoriesRoutes } from './routes/categories.js';
 import { locationsRoutes } from './routes/locations.js';
 import { authRoutes } from './routes/auth.js';
+import { socialRoutes } from './routes/social.js';
 
 async function main() {
   const app = Fastify({ logger: true });
@@ -17,6 +18,7 @@ async function main() {
   await app.register(categoriesRoutes);
   await app.register(locationsRoutes);
   await app.register(authRoutes);
+  await app.register(socialRoutes);
 
   await app.listen({ port: env.port, host: '0.0.0.0' });
 }

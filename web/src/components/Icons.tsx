@@ -91,3 +91,25 @@ export const IconAdmin = () => (
     <path d="M6.5 4V9M4 6.5H9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
   </svg>
 );
+
+export const IconHeart = ({ filled = false }: { filled?: boolean }) => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill={filled ? 'currentColor' : 'none'}>
+    <path
+      d="M8 13.5C8 13.5 1.5 9.5 1.5 5.5C1.5 3.57 3.07 2 5 2C6.2 2 7.27 2.6 8 3.55C8.73 2.6 9.8 2 11 2C12.93 2 14.5 3.57 14.5 5.5C14.5 9.5 8 13.5 8 13.5Z"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export const IconStar = ({ filled = false }: { filled?: boolean }) => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill={filled ? 'currentColor' : 'none'}>
+    <path
+      d="M7 1.5L8.85 5.25L13 5.85L10 8.75L10.7 12.85L7 10.92L3.3 12.85L4 8.75L1 5.85L5.15 5.25L7 1.5Z"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      strokeLinejoin="round"
+    />
+  </svg>
+);

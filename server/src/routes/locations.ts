@@ -1,22 +1,9 @@
 import type { FastifyInstance } from 'fastify';
-import { and, eq, ilike } from 'drizzle-orm';
+import { and, avg, count, eq, gte, ilike } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { locations, moduleContent } from '../db/schema.js';
-import { requireAdmin } from '../lib/auth.js';
-
-function slugify(s: string): string {
-  const map: Record<string, string> = {
-    č: 'c', ć: 'c', š: 's', ž: 'z', đ: 'dj',
-    Č: 'c', Ć: 'c', Š: 's', Ž: 'z', Đ: 'dj',
-  };
-  return s
-    .split('')
-    .map((ch) => map[ch] ?? ch)
-    .join('')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
+import { checkins, comments, favorites, locations, moduleContent } from '../db/schema.js';
+import { requireAdmin, getOptionalUser } from '../lib/auth.js';
+import { slugify } from '../lib/locations.js';
 
 export async function locationsRoutes(app: FastifyInstance) {
   // Public list
@@ -33,7 +20,7 @@ export async function locationsRoutes(app: FastifyInstance) {
     }
   );
 
-  // Public single
+  // Public single — augmented with social aggregates and (when authed) favoritedByMe.
   app.get<{ Params: { slug: string } }>('/api/locations/:slug', async (req, reply) => {
     const [loc] = await db.select().from(locations).where(eq(locations.slug, req.params.slug)).limit(1);
     if (!loc) return reply.code(404).send({ error: 'Not found' });
@@ -42,7 +29,42 @@ export async function locationsRoutes(app: FastifyInstance) {
       .from(moduleContent)
       .where(eq(moduleContent.locationId, loc.id))
       .limit(1);
-    return { ...loc, content: mc?.content ?? {} };
+
+    const user = await getOptionalUser(req);
+
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [checkinAgg] = await db
+      .select({ n: count() })
+      .from(checkins)
+      .where(and(eq(checkins.locationId, loc.id), gte(checkins.createdAt, dayAgo)));
+
+    const [commentAgg] = await db
+      .select({ n: count(), avg: avg(comments.rating) })
+      .from(comments)
+      .where(and(eq(comments.locationId, loc.id), eq(comments.status, 'visible')));
+
+    let favoritedByMe = false;
+    if (user) {
+      const [fav] = await db
+        .select()
+        .from(favorites)
+        .where(and(eq(favorites.userId, user.sub), eq(favorites.locationId, loc.id)))
+        .limit(1);
+      favoritedByMe = !!fav;
+    }
+
+    return {
+      ...loc,
+      content: mc?.content ?? {},
+      favoritedByMe,
+      checkinsLast24h: Number(checkinAgg?.n ?? 0),
+      commentSummary: {
+        count: Number(commentAgg?.n ?? 0),
+        avgRating: commentAgg?.avg !== null && commentAgg?.avg !== undefined
+          ? Number(commentAgg.avg)
+          : null,
+      },
+    };
   });
 
   // Admin: list with drafts

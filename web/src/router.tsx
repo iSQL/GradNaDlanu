@@ -7,6 +7,7 @@ import { EditLocation } from './admin/EditLocation';
 import { RequireAuth } from './admin/RequireAuth';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+import { Account } from './pages/Account';
 
 export const router = createBrowserRouter([
   {
@@ -17,6 +18,14 @@ export const router = createBrowserRouter([
       { path: 'objekat/:slug', element: <ModulePage /> },
       { path: 'prijava', element: <Login /> },
       { path: 'registracija', element: <Register /> },
+      {
+        path: 'nalog',
+        element: (
+          <RequireAuth>
+            <Account />
+          </RequireAuth>
+        ),
+      },
       // Legacy alias — same flow, role-aware redirect after login.
       { path: 'admin/login', element: <Login /> },
       {

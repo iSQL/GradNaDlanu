@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
+import type { AppContext } from '../App';
 import { api } from '../lib/api';
 import type {
   CafeContent,
@@ -15,22 +16,28 @@ import { LandmarkModule } from './LandmarkModule';
 import { HotelModule } from './HotelModule';
 import { SchoolModule } from './SchoolModule';
 import { EmptyContent, isEmptyContent } from './EmptyContent';
+import { SocialActions } from '../components/SocialActions';
+import { CommentsSection } from '../components/CommentsSection';
 
 export function ModulePage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const ctx = useOutletContext<AppContext>();
   const [data, setData] = useState<LocationWithContent | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    if (!slug) return;
+    const loc = await api.getLocation(slug);
+    setData(loc);
+  }, [slug]);
 
   useEffect(() => {
     if (!slug) return;
     setData(null);
     setError(null);
-    api
-      .getLocation(slug)
-      .then(setData)
-      .catch((err: Error) => setError(err.message));
-  }, [slug]);
+    reload().catch((err: Error) => setError(err.message));
+  }, [slug, reload]);
 
   if (error) {
     return (
@@ -52,12 +59,27 @@ export function ModulePage() {
 
   if (isEmptyContent(data.content)) return <EmptyContent loc={data} />;
 
+  const isOwner = !!ctx.currentUser?.ownedLocationIds.includes(data.id);
+  const isAdmin = ctx.currentUser?.role === 'admin';
+
+  let module: React.ReactNode = null;
   switch (data.catId) {
-    case 'cafe':     return <CafeModule     loc={data} content={data.content as CafeContent} />;
-    case 'public':   return <PublicModule   loc={data} content={data.content as PublicContent} />;
-    case 'landmark': return <LandmarkModule loc={data} content={data.content as LandmarkContent} />;
-    case 'hotel':    return <HotelModule    loc={data} content={data.content as HotelContent} />;
-    case 'school':   return <SchoolModule   loc={data} content={data.content as SchoolContent} />;
-    default:         return null;
+    case 'cafe':     module = <CafeModule     loc={data} content={data.content as CafeContent} />; break;
+    case 'public':   module = <PublicModule   loc={data} content={data.content as PublicContent} />; break;
+    case 'landmark': module = <LandmarkModule loc={data} content={data.content as LandmarkContent} />; break;
+    case 'hotel':    module = <HotelModule    loc={data} content={data.content as HotelContent} />; break;
+    case 'school':   module = <SchoolModule   loc={data} content={data.content as SchoolContent} />; break;
   }
+
+  return (
+    <>
+      {module}
+      <div className="module-page-extras">
+        <div className="module-page-extras-inner">
+          <SocialActions loc={data} onChanged={() => reload().catch(console.error)} />
+          <CommentsSection slug={data.slug} canReply={isOwner || !!isAdmin} />
+        </div>
+      </div>
+    </>
+  );
 }

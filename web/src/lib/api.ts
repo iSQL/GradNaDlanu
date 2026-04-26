@@ -1,4 +1,11 @@
-import type { Category, Location, LocationWithContent } from '../types';
+import type {
+  Category,
+  CommentNode,
+  FavoriteRow,
+  Location,
+  LocationWithContent,
+  MyComment,
+} from '../types';
 import { getToken, type Role } from './auth';
 
 export interface CurrentUser {
@@ -73,4 +80,22 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(patch),
     }),
+  favorite: (slug: string) =>
+    request<{ favorited: true }>(`/api/locations/${slug}/favorite`, { method: 'POST' }),
+  unfavorite: (slug: string) =>
+    request<{ favorited: false }>(`/api/locations/${slug}/favorite`, { method: 'DELETE' }),
+  myFavorites: () => request<FavoriteRow[]>('/api/me/favorites'),
+  listComments: (slug: string) => request<CommentNode[]>(`/api/locations/${slug}/comments`),
+  postComment: (slug: string, body: { body: string; rating?: number; parentId?: number }) =>
+    request<{
+      id: number;
+      body: string;
+      rating: number | null;
+      parentId: number | null;
+      createdAt: string;
+      author: { id: number; displayName: string };
+    }>(`/api/locations/${slug}/comments`, { method: 'POST', body: JSON.stringify(body) }),
+  myComments: () => request<MyComment[]>('/api/me/comments'),
+  checkin: (slug: string) =>
+    request<{ id: number; createdAt: string }>(`/api/locations/${slug}/checkin`, { method: 'POST' }),
 };

@@ -53,6 +53,17 @@ export function requireOwner(locationParam = 'id'): preHandlerHookHandler {
 // Backwards-compat alias used by v1 admin routes. Equivalent to requireRole('admin').
 export const requireAdmin = requireRole('admin');
 
+// Best-effort JWT verification for endpoints that work both anonymously and authenticated.
+// Returns the decoded user, or null when no/invalid token is present.
+export async function getOptionalUser(req: FastifyRequest) {
+  try {
+    await req.jwtVerify();
+    return req.user;
+  } catch {
+    return null;
+  }
+}
+
 declare module '@fastify/jwt' {
   interface FastifyJWT {
     payload: { sub: number; email: string; role: Role };
