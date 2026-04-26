@@ -22,11 +22,7 @@
       "Bash(netstat -ano)",
       "Bash(grep -E \"LISTENING\\\\s+[0-9]+$\")",
       "Bash(tasklist /FI \"PID eq 31080\")",
-      "Bash(taskkill //PID 31080 //F)",
-      "Bash(npm --workspace server run typecheck)",
-      "Bash(npx tsc *)",
-      "Bash(npm --workspace server run db:migrate)",
-      "Bash(npm --workspace server run db:seed)"
+      "Bash(taskkill //PID 31080 //F)"
     ]
   },
   "defaultMode": "bypassPermissions"

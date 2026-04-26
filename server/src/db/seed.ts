@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { db, sql } from './client.js';
-import { categories, locations, moduleContent, adminUsers } from './schema.js';
+import { categories, locations, moduleContent, adminUsers, users } from './schema.js';
 import { CATEGORIES, LOCATIONS, buildModuleContent } from './seed-data.js';
 import { env } from '../env.js';
 
@@ -41,16 +41,28 @@ async function main() {
     modCount++;
   }
 
-  // Admin user
+  // Admin user — seeded into both v1 admin_users (kept for one release) and v2 users.
   const passwordHash = await bcrypt.hash(env.adminPassword, 10);
-  const inserted = await db
+  const adminEmail = `${env.adminUsername}@local`;
+
+  await db
     .insert(adminUsers)
     .values({ username: env.adminUsername, passwordHash })
-    .onConflictDoNothing({ target: adminUsers.username })
-    .returning({ id: adminUsers.id });
+    .onConflictDoNothing({ target: adminUsers.username });
+
+  const insertedUser = await db
+    .insert(users)
+    .values({
+      email: adminEmail,
+      passwordHash,
+      displayName: env.adminUsername,
+      role: 'admin',
+    })
+    .onConflictDoNothing({ target: users.email })
+    .returning({ id: users.id });
 
   console.log(
-    `Seeded ${CATEGORIES.length} categories, ${locCount} locations, ${modCount} module_content rows, ${inserted.length} admin user.`
+    `Seeded ${CATEGORIES.length} categories, ${locCount} locations, ${modCount} module_content rows, ${insertedUser.length} admin user (email: ${adminEmail}).`,
   );
   await sql.end();
 }

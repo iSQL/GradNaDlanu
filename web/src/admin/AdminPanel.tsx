@@ -67,8 +67,9 @@ export function AdminPanel() {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     clearToken();
+    await ctx.reloadCurrentUser();
     navigate('/admin/login');
   };
 

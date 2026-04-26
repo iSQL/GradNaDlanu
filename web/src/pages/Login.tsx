@@ -1,11 +1,23 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+import type { AppContext } from '../App';
 import { api } from '../lib/api';
-import { setToken } from '../lib/auth';
+import { setToken, type Role } from '../lib/auth';
 
-export function AdminLogin() {
+function defaultRouteFor(role: Role): string {
+  if (role === 'admin') return '/admin';
+  if (role === 'business') return '/poslovni';
+  return '/';
+}
+
+export function Login() {
   const navigate = useNavigate();
-  const [username, setUsername] = useState('admin');
+  const location = useLocation();
+  const ctx = useOutletContext<AppContext>();
+
+  const fromState = (location.state as { from?: string } | null)?.from;
+
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -15,12 +27,13 @@ export function AdminLogin() {
     setError(null);
     setSubmitting(true);
     try {
-      const { token } = await api.login(username, password);
+      const { token, user } = await api.login(email, password);
       setToken(token);
-      navigate('/admin');
+      await ctx.reloadCurrentUser();
+      navigate(fromState ?? defaultRouteFor(user.role));
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      setError(message.includes('401') ? 'Pogrešno korisničko ime ili lozinka.' : message);
+      setError(message.includes('401') ? 'Pogrešna e-pošta ili lozinka.' : message);
     } finally {
       setSubmitting(false);
     }
@@ -29,14 +42,15 @@ export function AdminLogin() {
   return (
     <div className="login-shell">
       <form className="login-card" onSubmit={submit}>
-        <h1>Administracija</h1>
+        <h1>Prijava</h1>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
-            <div className="field-label">Korisničko ime</div>
+            <div className="field-label">E-pošta</div>
             <input
               className="field-input"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               autoFocus
             />
           </div>
@@ -49,10 +63,13 @@ export function AdminLogin() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-          <button className="btn-primary" type="submit" disabled={submitting || !password}>
+          <button className="btn-primary" type="submit" disabled={submitting || !email || !password}>
             {submitting ? 'Prijava…' : 'Prijavi se'}
           </button>
           {error && <div className="login-error">{error}</div>}
+          <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 6 }}>
+            Nemate nalog? <Link to="/registracija">Registrujte se</Link>
+          </div>
         </div>
       </form>
     </div>

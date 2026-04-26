@@ -1,5 +1,15 @@
 const KEY = 'gnd.token';
 
+export type Role = 'admin' | 'business' | 'user';
+
+export interface TokenPayload {
+  sub: number;
+  email: string;
+  role: Role;
+  iat?: number;
+  exp?: number;
+}
+
 export function getToken(): string | null {
   return localStorage.getItem(KEY);
 }
@@ -14,4 +24,20 @@ export function clearToken(): void {
 
 export function isAuthed(): boolean {
   return !!getToken();
+}
+
+// Best-effort JWT payload decode for client-side UI gating.
+// Server is the source of truth — never trust this for authorization.
+export function decodeToken(token: string | null = getToken()): TokenPayload | null {
+  if (!token) return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const json = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
+    const payload = JSON.parse(json);
+    if (payload.exp && Date.now() / 1000 > payload.exp) return null;
+    return payload as TokenPayload;
+  } catch {
+    return null;
+  }
 }

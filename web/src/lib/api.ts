@@ -1,5 +1,19 @@
 import type { Category, Location, LocationWithContent } from '../types';
-import { getToken } from './auth';
+import { getToken, type Role } from './auth';
+
+export interface CurrentUser {
+  id: number;
+  email: string;
+  displayName: string;
+  role: Role;
+  emailVerifiedAt: string | null;
+  ownedLocationIds: number[];
+}
+
+export interface AuthResponse {
+  token: string;
+  user: { id: number; email: string; displayName: string; role: Role };
+}
 
 async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
@@ -43,9 +57,20 @@ export const api = {
     request<Location>(`/api/admin/locations/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   adminDeleteLocation: (id: number) =>
     request<{ ok: true; id: number }>(`/api/admin/locations/${id}`, { method: 'DELETE' }),
-  login: (username: string, password: string) =>
-    request<{ token: string; user: { id: number; username: string } }>('/api/auth/login', {
+  login: (email: string, password: string) =>
+    request<AuthResponse>('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ email, password }),
+    }),
+  register: (email: string, password: string, displayName: string) =>
+    request<AuthResponse>('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, displayName }),
+    }),
+  getMe: () => request<CurrentUser>('/api/me'),
+  updateMe: (patch: { displayName: string }) =>
+    request<{ id: number; email: string; displayName: string; role: Role }>('/api/me', {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
     }),
 };
