@@ -40,13 +40,6 @@ export const moduleContent = pgTable('module_content', {
   content: jsonb('content').notNull(),
 });
 
-// Legacy v1 admin store. Kept for one release after v2 migration; dropped in Phase 4.
-export const adminUsers = pgTable('admin_users', {
-  id: serial('id').primaryKey(),
-  username: text('username').notNull().unique(),
-  passwordHash: text('password_hash').notNull(),
-});
-
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   email: text('email').notNull().unique(),
@@ -116,6 +109,14 @@ export const checkins = pgTable('checkins', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const objectMaps = pgTable('object_maps', {
+  locationId: integer('location_id')
+    .primaryKey()
+    .references(() => locations.id, { onDelete: 'cascade' }),
+  layout: jsonb('layout').notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 export const reservations = pgTable('reservations', {
   id: serial('id').primaryKey(),
   userId: integer('user_id')
@@ -143,4 +144,5 @@ export type Comment = typeof comments.$inferSelect;
 export type Checkin = typeof checkins.$inferSelect;
 export type Reservation = typeof reservations.$inferSelect;
 export type ReservationStatus = Reservation['status'];
+export type ObjectMap = typeof objectMaps.$inferSelect;
 export type Role = User['role'];

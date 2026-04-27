@@ -23,11 +23,6 @@ const statements = [
     location_id INTEGER PRIMARY KEY REFERENCES locations(id) ON DELETE CASCADE,
     content     JSONB NOT NULL
   )`,
-  `CREATE TABLE IF NOT EXISTS admin_users (
-    id            SERIAL PRIMARY KEY,
-    username      TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL
-  )`,
   `CREATE TABLE IF NOT EXISTS users (
     id                SERIAL PRIMARY KEY,
     email             TEXT NOT NULL UNIQUE,
@@ -66,6 +61,11 @@ const statements = [
     location_id INTEGER NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
     created_at  TIMESTAMP NOT NULL DEFAULT NOW()
   )`,
+  `CREATE TABLE IF NOT EXISTS object_maps (
+    location_id INTEGER PRIMARY KEY REFERENCES locations(id) ON DELETE CASCADE,
+    layout      JSONB NOT NULL,
+    updated_at  TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
   `CREATE TABLE IF NOT EXISTS reservations (
     id                   SERIAL PRIMARY KEY,
     user_id              INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -91,10 +91,18 @@ const statements = [
   `CREATE INDEX IF NOT EXISTS reservations_user_created_idx ON reservations(user_id, created_at DESC)`,
   // One-shot mirror: copy any v1 admin_users rows into users with role='admin'.
   // Idempotent via ON CONFLICT on email — the synthesised email key stays stable.
-  `INSERT INTO users (email, password_hash, display_name, role)
-     SELECT username || '@local', password_hash, username, 'admin'
-     FROM admin_users
-   ON CONFLICT (email) DO NOTHING`,
+  // Wrapped so it's a no-op once admin_users has been dropped.
+  `DO $$
+   BEGIN
+     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'admin_users') THEN
+       INSERT INTO users (email, password_hash, display_name, role)
+         SELECT username || '@local', password_hash, username, 'admin'
+         FROM admin_users
+       ON CONFLICT (email) DO NOTHING;
+     END IF;
+   END $$`,
+  // Phase 4: legacy v1 table is no longer referenced by any code path. Drop it now.
+  `DROP TABLE IF EXISTS admin_users`,
 ];
 
 async function main() {

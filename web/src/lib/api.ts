@@ -4,6 +4,7 @@ import type {
   Category,
   CommentNode,
   FavoriteRow,
+  FloorPlanLayout,
   Location,
   LocationWithContent,
   MyComment,
@@ -172,4 +173,15 @@ export const api = {
       `/api/admin/users/${userId}/grant-ownership/${locationId}`,
       { method: 'DELETE' },
     ),
+
+  // Floor plan
+  getFloorPlan: (slug: string) =>
+    request<{ layout: FloorPlanLayout; updatedAt: string }>(`/api/locations/${slug}/map`),
+  ownerSaveFloorPlan: (locationId: number, layout: FloorPlanLayout) =>
+    request<{ layout: FloorPlanLayout; updatedAt: string }>(
+      `/api/owner/locations/${locationId}/map`,
+      { method: 'PUT', body: JSON.stringify({ layout }) },
+    ),
+  ownerDeleteFloorPlan: (locationId: number) =>
+    request<{ ok: true }>(`/api/owner/locations/${locationId}/map`, { method: 'DELETE' }),
 };

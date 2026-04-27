@@ -9,6 +9,7 @@ import { socialRoutes } from './routes/social.js';
 import { reservationsRoutes } from './routes/reservations.js';
 import { ownerRoutes } from './routes/owner.js';
 import { adminUsersRoutes } from './routes/admin-users.js';
+import { objectMapsRoutes } from './routes/object-maps.js';
 
 async function main() {
   const app = Fastify({ logger: true });
@@ -25,6 +26,7 @@ async function main() {
   await app.register(reservationsRoutes);
   await app.register(ownerRoutes);
   await app.register(adminUsersRoutes);
+  await app.register(objectMapsRoutes);
 
   await app.listen({ port: env.port, host: '0.0.0.0' });
 }

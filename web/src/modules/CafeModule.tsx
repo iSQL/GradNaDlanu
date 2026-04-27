@@ -6,10 +6,12 @@ import type {
   AvailabilityRow,
   CafeContent,
   CafeReservationPayload,
+  FloorPlanLayout,
   Location,
 } from '../types';
 import { ModuleHero } from './ModuleHero';
 import { InfoCard } from './InfoCard';
+import { FloorPlanView } from '../components/floorplan/FloorPlanView';
 
 const TIMES = ['12:00', '13:00', '14:00', '18:00', '19:00', '20:00', '21:00', '22:00'];
 const TABLES = [
@@ -57,6 +59,7 @@ export function CafeModule({ loc, content }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const [availability, setAvailability] = useState<AvailabilityRow[]>([]);
+  const [floorPlan, setFloorPlan] = useState<FloorPlanLayout | null>(null);
 
   useEffect(() => {
     if (!date) return;
@@ -65,6 +68,13 @@ export function CafeModule({ loc, content }: Props) {
       .then(setAvailability)
       .catch(() => setAvailability([]));
   }, [date, loc.slug, confirmed]);
+
+  useEffect(() => {
+    api
+      .getFloorPlan(loc.slug)
+      .then((res) => setFloorPlan(res.layout))
+      .catch(() => setFloorPlan(null));
+  }, [loc.slug]);
 
   // Tables fully blocked when ANY active reservation overlaps the picked time slot.
   const takenTableIds = useMemo(() => {
@@ -193,37 +203,46 @@ export function CafeModule({ loc, content }: Props) {
 
               <div>
                 <div className="field-label" style={{ marginBottom: 8 }}>Raspored sala</div>
-                <div className="cafe-floorplan">
-                  <svg className="cafe-floorplan-svg" viewBox="0 0 280 280">
-                    <rect x="2" y="2" width="276" height="276" fill="none" stroke="#5B6878" strokeWidth="2" rx="4" />
-                    <line x1="2" y1="190" x2="180" y2="190" stroke="#5B6878" strokeWidth="1.5" strokeDasharray="4 3" />
-                    <text x="90" y="210" fontSize="9" textAnchor="middle" fill="#5B6878" fontFamily="Inter" letterSpacing="1">UNUTRA</text>
-                    <text x="220" y="270" fontSize="9" textAnchor="middle" fill="#5B6878" fontFamily="Inter" letterSpacing="1">BAŠTA</text>
-                    <rect x="20" y="10" width="240" height="18" fill="#E5D4B5" stroke="#5B6878" strokeWidth="1" />
-                    <text x="140" y="22" fontSize="9" textAnchor="middle" fill="#5B6878" fontFamily="Inter" letterSpacing="2">B A R</text>
-                    {TABLES.map((t) => {
-                      const taken = takenTableIds.has(t.id);
-                      return (
-                        <g
-                          key={t.id}
-                          className={`cafe-table ${taken ? 'taken' : ''} ${tableId === t.id ? 'selected' : ''}`}
-                          onClick={() => !taken && !confirmed && setTableId(t.id)}
-                        >
-                          <circle className="table-circle" cx={t.x} cy={t.y} r="16" />
-                          <text className="table-num" x={t.x} y={t.y}>{t.id}</text>
-                        </g>
-                      );
-                    })}
-                    <g transform="translate(8, 258)" fontSize="8" fontFamily="Inter" fill="#5B6878">
-                      <circle cx="6" cy="0" r="5" fill="#E0D6C0" stroke="#5B6878" strokeWidth="1" />
-                      <text x="16" y="2.5">slobodan</text>
-                      <circle cx="78" cy="0" r="5" fill="#C8B8B0" stroke="#5B6878" strokeWidth="1" opacity="0.6" />
-                      <text x="88" y="2.5">zauzet</text>
-                      <circle cx="138" cy="0" r="5" fill="#C9A961" stroke="#0B1B2B" strokeWidth="1" />
-                      <text x="148" y="2.5">odabran</text>
-                    </g>
-                  </svg>
-                </div>
+                {floorPlan ? (
+                  <FloorPlanView
+                    layout={floorPlan}
+                    unavailable={takenTableIds}
+                    selectedKey={tableId}
+                    onSelect={(key) => !confirmed && setTableId(key)}
+                  />
+                ) : (
+                  <div className="cafe-floorplan">
+                    <svg className="cafe-floorplan-svg" viewBox="0 0 280 280">
+                      <rect x="2" y="2" width="276" height="276" fill="none" stroke="#5B6878" strokeWidth="2" rx="4" />
+                      <line x1="2" y1="190" x2="180" y2="190" stroke="#5B6878" strokeWidth="1.5" strokeDasharray="4 3" />
+                      <text x="90" y="210" fontSize="9" textAnchor="middle" fill="#5B6878" fontFamily="Inter" letterSpacing="1">UNUTRA</text>
+                      <text x="220" y="270" fontSize="9" textAnchor="middle" fill="#5B6878" fontFamily="Inter" letterSpacing="1">BAŠTA</text>
+                      <rect x="20" y="10" width="240" height="18" fill="#E5D4B5" stroke="#5B6878" strokeWidth="1" />
+                      <text x="140" y="22" fontSize="9" textAnchor="middle" fill="#5B6878" fontFamily="Inter" letterSpacing="2">B A R</text>
+                      {TABLES.map((t) => {
+                        const taken = takenTableIds.has(t.id);
+                        return (
+                          <g
+                            key={t.id}
+                            className={`cafe-table ${taken ? 'taken' : ''} ${tableId === t.id ? 'selected' : ''}`}
+                            onClick={() => !taken && !confirmed && setTableId(t.id)}
+                          >
+                            <circle className="table-circle" cx={t.x} cy={t.y} r="16" />
+                            <text className="table-num" x={t.x} y={t.y}>{t.id}</text>
+                          </g>
+                        );
+                      })}
+                      <g transform="translate(8, 258)" fontSize="8" fontFamily="Inter" fill="#5B6878">
+                        <circle cx="6" cy="0" r="5" fill="#E0D6C0" stroke="#5B6878" strokeWidth="1" />
+                        <text x="16" y="2.5">slobodan</text>
+                        <circle cx="78" cy="0" r="5" fill="#C8B8B0" stroke="#5B6878" strokeWidth="1" opacity="0.6" />
+                        <text x="88" y="2.5">zauzet</text>
+                        <circle cx="138" cy="0" r="5" fill="#C9A961" stroke="#0B1B2B" strokeWidth="1" />
+                        <text x="148" y="2.5">odabran</text>
+                      </g>
+                    </svg>
+                  </div>
+                )}
               </div>
             </div>
           </div>

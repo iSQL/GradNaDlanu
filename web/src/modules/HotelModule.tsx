@@ -4,12 +4,14 @@ import type { AppContext } from '../App';
 import { api } from '../lib/api';
 import type {
   AvailabilityRow,
+  FloorPlanLayout,
   HotelContent,
   HotelReservationPayload,
   Location,
 } from '../types';
 import { ModuleHero } from './ModuleHero';
 import { IconArea, IconBed, IconPhone, IconPin } from '../components/Icons';
+import { FloorPlanView } from '../components/floorplan/FloorPlanView';
 
 interface Props { loc: Location; content: HotelContent }
 
@@ -48,6 +50,14 @@ export function HotelModule({ loc, content }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const [availability, setAvailability] = useState<AvailabilityRow[]>([]);
+  const [floorPlan, setFloorPlan] = useState<FloorPlanLayout | null>(null);
+
+  useEffect(() => {
+    api
+      .getFloorPlan(loc.slug)
+      .then((res) => setFloorPlan(res.layout))
+      .catch(() => setFloorPlan(null));
+  }, [loc.slug]);
 
   // Look ahead 60 days from check-in for the picker.
   useEffect(() => {
@@ -132,6 +142,20 @@ export function HotelModule({ loc, content }: Props) {
           <div className="module-section">
             <div className="section-label">Sobe</div>
             <h2 className="section-title">Izaberite smeštaj</h2>
+            {floorPlan && (
+              <div style={{ marginBottom: 18 }}>
+                <FloorPlanView
+                  layout={floorPlan}
+                  unavailable={takenRoomKeys}
+                  selectedKey={roomIdx !== null ? `r-${roomIdx}` : null}
+                  onSelect={(key) => {
+                    if (confirmed) return;
+                    const m = key.match(/^r-(\d+)$/);
+                    if (m) setRoomIdx(Number(m[1]));
+                  }}
+                />
+              </div>
+            )}
             <div className="rooms-grid">
               {rooms.map((r, i) => {
                 const taken = takenRoomKeys.has(`r-${i}`);

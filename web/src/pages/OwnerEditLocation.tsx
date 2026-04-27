@@ -92,9 +92,16 @@ export function OwnerEditLocation() {
                 Uredi: {loc.name}
               </h1>
             </div>
-            <button className="nav-btn" onClick={() => window.open(`/objekat/${loc.slug}`, '_blank')}>
-              Pregled →
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {(loc.catId === 'cafe' || loc.catId === 'hotel') && (
+                <button className="nav-btn" onClick={() => navigate(`/poslovni/objekti/${loc.slug}/mapa`)}>
+                  Plan prostora →
+                </button>
+              )}
+              <button className="nav-btn" onClick={() => window.open(`/objekat/${loc.slug}`, '_blank')}>
+                Pregled →
+              </button>
+            </div>
           </div>
         </div>
       </div>

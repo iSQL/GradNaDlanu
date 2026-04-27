@@ -132,6 +132,18 @@ export interface AvailabilityRow {
   status: ReservationStatus;
 }
 
+export type FloorPlanItem =
+  | { id: string; type: 'table'; x: number; y: number; w: number; h: number; label: string; capacity: number }
+  | { id: string; type: 'room';  x: number; y: number; w: number; h: number; label: string; roomKey: string; capacity: number }
+  | { id: string; type: 'wall';  x: number; y: number; w: number; h: number }
+  | { id: string; type: 'door';  x: number; y: number };
+
+export interface FloorPlanLayout {
+  width: number;
+  height: number;
+  items: FloorPlanItem[];
+}
+
 export interface AdminUserRow {
   id: number;
   email: string;

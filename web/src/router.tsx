@@ -10,6 +10,7 @@ import { Register } from './pages/Register';
 import { Account } from './pages/Account';
 import { OwnerDashboard } from './pages/OwnerDashboard';
 import { OwnerEditLocation } from './pages/OwnerEditLocation';
+import { FloorPlanEditPage } from './pages/FloorPlanEditPage';
 
 export const router = createBrowserRouter([
   {
@@ -41,6 +42,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth role="business">
             <OwnerEditLocation />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'poslovni/objekti/:slug/mapa',
+        element: (
+          <RequireAuth role="business">
+            <FloorPlanEditPage />
           </RequireAuth>
         ),
       },
