@@ -1568,6 +1568,74 @@ button { font-family: inherit; }
 .favorite-meta { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
 .account-comments { display: flex; flex-direction: column; gap: 12px; }
 
+/* Reservation rows (visitor + owner views) */
+.reservation-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  border-left: 3px solid var(--line-2);
+}
+.reservation-row.status-approved { border-left-color: var(--moss); }
+.reservation-row.status-declined,
+.reservation-row.status-cancelled { border-left-color: var(--rust); opacity: 0.85; }
+.reservation-main { min-width: 0; }
+.reservation-status {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--paper-2);
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+.reservation-status.status-pending  { color: var(--gold-2); border-color: var(--gold); background: rgba(201,169,97,0.1); }
+.reservation-status.status-approved { color: var(--moss); border-color: var(--moss); background: rgba(107,142,90,0.1); }
+.reservation-status.status-declined,
+.reservation-status.status-cancelled { color: var(--rust); border-color: var(--rust); background: rgba(181,83,42,0.08); }
+.reservation-actions { display: flex; gap: 6px; }
+.inbox-filter { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+
+/* AdminPanel tabs (dark hero) */
+.admin-tab { color: rgba(247,243,233,0.6); }
+.admin-tab.active { color: var(--paper); border-bottom-color: var(--gold); }
+
+/* Users tab */
+.users-tab { padding: 8px 0; }
+.users-list { display: flex; flex-direction: column; gap: 8px; }
+.user-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.user-owned {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.user-owned-x {
+  background: none;
+  border: none;
+  color: var(--rust);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0 4px;
+  margin-left: 2px;
+}
+.user-owned-x:hover { color: var(--ink); }
+
 /* Responsive */
 @media (max-width: 900px) {
   .module-body { grid-template-columns: 1fr; }
@@ -1589,4 +1657,7 @@ button { font-family: inherit; }
   .account-page { padding: 32px 20px 64px; }
   .social-bar { flex-direction: column; align-items: stretch; }
   .social-actions { justify-content: flex-end; flex-wrap: wrap; }
+  .reservation-row { grid-template-columns: 1fr; }
+  .reservation-status { justify-self: start; }
+  .user-row { grid-template-columns: 1fr; }
 }

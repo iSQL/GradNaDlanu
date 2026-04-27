@@ -91,6 +91,56 @@ export interface MyComment {
   locationName: string;
 }
 
+export type ReservationStatus = 'pending' | 'approved' | 'declined' | 'cancelled';
+
+export interface CafeReservationPayload {
+  tableId: string;
+  slotStart: string;
+  slotEnd: string;
+  guests: number;
+}
+
+export interface HotelReservationPayload {
+  roomKey: string;
+  dateFrom: string;
+  dateTo: string;
+  guests: number;
+}
+
+export type ReservationPayload = CafeReservationPayload | HotelReservationPayload;
+
+export interface MyReservation {
+  id: number;
+  payload: ReservationPayload;
+  status: ReservationStatus;
+  createdAt: string;
+  decidedAt: string | null;
+  locationId: number;
+  locationSlug: string;
+  locationName: string;
+  locationCatId: CategoryId;
+}
+
+export interface OwnerReservation extends MyReservation {
+  userId: number;
+  userDisplayName: string;
+  userEmail: string;
+}
+
+export interface AvailabilityRow {
+  payload: ReservationPayload;
+  status: ReservationStatus;
+}
+
+export interface AdminUserRow {
+  id: number;
+  email: string;
+  displayName: string;
+  role: 'admin' | 'business' | 'user';
+  createdAt: string;
+  ownedLocations: { id: number; slug: string; name: string }[];
+}
+
 export const CATEGORY_LABELS: Record<CategoryId, string> = {
   cafe: 'Kafić · restoran',
   public: 'Javna služba',

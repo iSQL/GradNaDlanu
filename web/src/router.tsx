@@ -8,6 +8,8 @@ import { RequireAuth } from './admin/RequireAuth';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Account } from './pages/Account';
+import { OwnerDashboard } from './pages/OwnerDashboard';
+import { OwnerEditLocation } from './pages/OwnerEditLocation';
 
 export const router = createBrowserRouter([
   {
@@ -23,6 +25,22 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <Account />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'poslovni',
+        element: (
+          <RequireAuth role="business">
+            <OwnerDashboard />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'poslovni/objekti/:slug',
+        element: (
+          <RequireAuth role="business">
+            <OwnerEditLocation />
           </RequireAuth>
         ),
       },

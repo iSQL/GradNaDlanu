@@ -1,0 +1,167 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
+import type { AppContext } from '../App';
+import { api } from '../lib/api';
+import type { AdminUserRow, Location } from '../types';
+import type { Role } from '../lib/auth';
+
+const ROLE_LABELS: Record<Role, string> = {
+  admin: 'admin',
+  business: 'vlasnik',
+  user: 'posetilac',
+};
+
+export function UsersTab() {
+  const ctx = useOutletContext<AppContext>();
+  const [users, setUsers] = useState<AdminUserRow[]>([]);
+  const [q, setQ] = useState('');
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [allObjects, setAllObjects] = useState<Location[]>([]);
+  const [grantPicker, setGrantPicker] = useState<{ userId: number; locationId: number } | null>(null);
+
+  const reload = async () => {
+    setUsers(await api.adminListUsers(q || undefined));
+  };
+
+  useEffect(() => {
+    reload().catch((e: Error) => setError(e.message));
+    api.adminListLocations().then(setAllObjects).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => reload().catch((e: Error) => setError(e.message)), 250);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
+
+  const setRole = async (u: AdminUserRow, role: Role) => {
+    setBusyId(u.id);
+    setError(null);
+    try {
+      await api.adminUpdateUser(u.id, { role });
+      await reload();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const grant = async (u: AdminUserRow, locationId: number) => {
+    setBusyId(u.id);
+    setError(null);
+    try {
+      await api.adminGrantOwnership(u.id, locationId);
+      setGrantPicker(null);
+      await reload();
+      await ctx.reloadCurrentUser();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const revoke = async (u: AdminUserRow, locationId: number) => {
+    if (!window.confirm('Ukinuti vlasništvo objekta?')) return;
+    setBusyId(u.id);
+    setError(null);
+    try {
+      await api.adminRevokeOwnership(u.id, locationId);
+      await reload();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const grantOptions = useMemo(() => {
+    if (!grantPicker) return [];
+    const owned = new Set(
+      users.find((u) => u.id === grantPicker.userId)?.ownedLocations.map((o) => o.id) ?? [],
+    );
+    return allObjects.filter((o) => !owned.has(o.id));
+  }, [grantPicker, allObjects, users]);
+
+  return (
+    <div className="users-tab">
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div className="section-label" style={{ margin: 0 }}>Korisnici · {users.length}</div>
+        <input
+          className="field-input"
+          placeholder="Pretraga po imenu ili e-pošti…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          style={{ maxWidth: 280 }}
+        />
+      </div>
+
+      {error && <div className="login-error">{error}</div>}
+
+      <div className="users-list">
+        {users.map((u) => (
+          <div className="user-row" key={u.id}>
+            <div>
+              <div className="favorite-name">{u.displayName}</div>
+              <div className="favorite-meta">{u.email} · od {new Date(u.createdAt).toLocaleDateString('sr-RS')}</div>
+              {u.ownedLocations.length > 0 && (
+                <div className="user-owned">
+                  Vlasnik:&nbsp;
+                  {u.ownedLocations.map((o, i) => (
+                    <span key={o.id}>
+                      {i > 0 && ', '}
+                      <span>{o.name}</span>
+                      <button className="user-owned-x" onClick={() => revoke(u, o.id)} title="Ukini">×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <select
+              className="field-select"
+              value={u.role}
+              disabled={busyId === u.id}
+              onChange={(e) => setRole(u, e.target.value as Role)}
+              style={{ maxWidth: 150 }}
+            >
+              {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
+                <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+              ))}
+            </select>
+            <div>
+              {grantPicker?.userId === u.id ? (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <select
+                    className="field-select"
+                    value={grantPicker.locationId || ''}
+                    onChange={(e) => setGrantPicker({ userId: u.id, locationId: Number(e.target.value) })}
+                  >
+                    <option value="">— odaberi objekat —</option>
+                    {grantOptions.map((o) => (
+                      <option key={o.id} value={o.id}>{o.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    className="row-action"
+                    disabled={!grantPicker.locationId || busyId === u.id}
+                    onClick={() => grant(u, grantPicker.locationId)}
+                  >
+                    OK
+                  </button>
+                  <button className="row-action" onClick={() => setGrantPicker(null)}>×</button>
+                </div>
+              ) : (
+                <button className="row-action" onClick={() => setGrantPicker({ userId: u.id, locationId: 0 })}>
+                  + Dodeli objekat
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

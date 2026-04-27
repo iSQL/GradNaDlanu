@@ -26,7 +26,12 @@
       "Bash(npm --workspace server run typecheck)",
       "Bash(npx tsc *)",
       "Bash(npm --workspace server run db:migrate)",
-      "Bash(npm --workspace server run db:seed)"
+      "Bash(npm --workspace server run db:seed)",
+      "Bash(bash /tmp/phase3-smoke.sh)",
+      "Read(//c/tmp/**)",
+      "Read(//c//**)",
+      "Bash(*)",
+      "Bash(bash c:/Git/GradNaDlanu/.tmp/phase3-smoke.sh)"
     ]
   },
   "defaultMode": "bypassPermissions"

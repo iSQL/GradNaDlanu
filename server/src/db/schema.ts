@@ -116,6 +116,23 @@ export const checkins = pgTable('checkins', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const reservations = pgTable('reservations', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  locationId: integer('location_id')
+    .references(() => locations.id, { onDelete: 'cascade' })
+    .notNull(),
+  payload: jsonb('payload').notNull(),
+  status: text('status', { enum: ['pending', 'approved', 'declined', 'cancelled'] })
+    .default('pending')
+    .notNull(),
+  decidedByOwnerId: integer('decided_by_owner_id').references(() => users.id),
+  decidedAt: timestamp('decided_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export type Category = typeof categories.$inferSelect;
 export type Location = typeof locations.$inferSelect;
 export type ModuleContentRow = typeof moduleContent.$inferSelect;
@@ -124,4 +141,6 @@ export type ObjectOwner = typeof objectOwners.$inferSelect;
 export type Favorite = typeof favorites.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
 export type Checkin = typeof checkins.$inferSelect;
+export type Reservation = typeof reservations.$inferSelect;
+export type ReservationStatus = Reservation['status'];
 export type Role = User['role'];

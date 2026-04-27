@@ -66,6 +66,17 @@ const statements = [
     location_id INTEGER NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
     created_at  TIMESTAMP NOT NULL DEFAULT NOW()
   )`,
+  `CREATE TABLE IF NOT EXISTS reservations (
+    id                   SERIAL PRIMARY KEY,
+    user_id              INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    location_id          INTEGER NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+    payload              JSONB NOT NULL,
+    status               TEXT NOT NULL DEFAULT 'pending'
+      CHECK (status IN ('pending','approved','declined','cancelled')),
+    decided_by_owner_id  INTEGER REFERENCES users(id),
+    decided_at           TIMESTAMP,
+    created_at           TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
   `CREATE INDEX IF NOT EXISTS locations_cat_id_idx ON locations(cat_id)`,
   `CREATE INDEX IF NOT EXISTS locations_status_idx ON locations(status)`,
   `CREATE INDEX IF NOT EXISTS users_role_idx ON users(role)`,
@@ -76,6 +87,8 @@ const statements = [
   `CREATE INDEX IF NOT EXISTS comments_parent_idx ON comments(parent_id)`,
   `CREATE INDEX IF NOT EXISTS checkins_loc_created_idx ON checkins(location_id, created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS checkins_user_idx ON checkins(user_id, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS reservations_loc_status_idx ON reservations(location_id, status)`,
+  `CREATE INDEX IF NOT EXISTS reservations_user_created_idx ON reservations(user_id, created_at DESC)`,
   // One-shot mirror: copy any v1 admin_users rows into users with role='admin'.
   // Idempotent via ON CONFLICT on email — the synthesised email key stays stable.
   `INSERT INTO users (email, password_hash, display_name, role)

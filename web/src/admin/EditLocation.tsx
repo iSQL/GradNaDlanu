@@ -2,15 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { api } from '../lib/api';
-import type {
-  CafeContent, HotelContent, LandmarkContent, Location, LocationWithContent,
-  PublicContent, SchoolContent,
-} from '../types';
-import { CafeForm } from './forms/CafeForm';
-import { PublicForm } from './forms/PublicForm';
-import { HotelForm } from './forms/HotelForm';
-import { LandmarkForm } from './forms/LandmarkForm';
-import { SchoolForm } from './forms/SchoolForm';
+import type { Location, LocationWithContent } from '../types';
+import { LocationContentEditor } from './LocationContentEditor';
 import { defaultContentFor } from './defaults';
 import { FieldRow, TextInput } from './forms/widgets';
 
@@ -104,17 +97,6 @@ export function EditLocation() {
     }
   };
 
-  const renderForm = () => {
-    const c = content as unknown;
-    const update = (v: unknown) => setContent(v as Record<string, unknown>);
-    switch (loc.catId) {
-      case 'cafe':     return <CafeForm     value={c as CafeContent}     onChange={update} />;
-      case 'public':   return <PublicForm   value={c as PublicContent}   onChange={update} />;
-      case 'hotel':    return <HotelForm    value={c as HotelContent}    onChange={update} />;
-      case 'landmark': return <LandmarkForm value={c as LandmarkContent} onChange={update} />;
-      case 'school':   return <SchoolForm   value={c as SchoolContent}   onChange={update} />;
-    }
-  };
 
   return (
     <div className="module-page">
@@ -203,7 +185,7 @@ export function EditLocation() {
 
           <div className="admin-card">
             <div className="section-label" style={{ margin: 0, marginBottom: 16 }}>Sadržaj modula</div>
-            {renderForm()}
+            <LocationContentEditor catId={loc.catId} value={content} onChange={setContent} />
           </div>
         </div>
       </div>

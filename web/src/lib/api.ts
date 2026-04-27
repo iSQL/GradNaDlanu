@@ -1,10 +1,15 @@
 import type {
+  AdminUserRow,
+  AvailabilityRow,
   Category,
   CommentNode,
   FavoriteRow,
   Location,
   LocationWithContent,
   MyComment,
+  MyReservation,
+  OwnerReservation,
+  ReservationPayload,
 } from '../types';
 import { getToken, type Role } from './auth';
 
@@ -98,4 +103,73 @@ export const api = {
   myComments: () => request<MyComment[]>('/api/me/comments'),
   checkin: (slug: string) =>
     request<{ id: number; createdAt: string }>(`/api/locations/${slug}/checkin`, { method: 'POST' }),
+
+  // Reservations — visitor side
+  createReservation: (slug: string, payload: ReservationPayload) =>
+    request<MyReservation>(`/api/locations/${slug}/reservations`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  myReservations: () => request<MyReservation[]>('/api/me/reservations'),
+  cancelReservation: (id: number) =>
+    request<MyReservation>(`/api/me/reservations/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'cancelled' }),
+    }),
+  availability: (slug: string, from: string, to: string) =>
+    request<AvailabilityRow[]>(
+      `/api/locations/${slug}/availability?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    ),
+
+  // Owner side
+  ownerLocations: () => request<Location[]>('/api/owner/locations'),
+  ownerReservations: (params: { status?: string; locationId?: number } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.status) qs.set('status', params.status);
+    if (params.locationId) qs.set('locationId', String(params.locationId));
+    const s = qs.toString();
+    return request<OwnerReservation[]>(`/api/owner/reservations${s ? `?${s}` : ''}`);
+  },
+  ownerDecideReservation: (id: number, status: 'approved' | 'declined') =>
+    request<OwnerReservation>(`/api/owner/reservations/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+  ownerUpdateLocation: (
+    id: number,
+    patch: Partial<{ name: string; subtitle: string; address: string; content: unknown }>,
+  ) =>
+    request<Location>(`/api/owner/locations/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  ownerComments: () =>
+    request<{
+      id: number;
+      body: string;
+      rating: number | null;
+      createdAt: string;
+      parentId: number | null;
+      locationId: number;
+      locationSlug: string;
+      locationName: string;
+      authorId: number;
+      authorName: string;
+    }[]>('/api/owner/comments'),
+
+  // Admin user management
+  adminListUsers: (q?: string) =>
+    request<AdminUserRow[]>(`/api/admin/users${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  adminUpdateUser: (id: number, patch: { role?: Role; displayName?: string }) =>
+    request<{ id: number; email: string; displayName: string; role: Role }>(
+      `/api/admin/users/${id}`,
+      { method: 'PATCH', body: JSON.stringify(patch) },
+    ),
+  adminGrantOwnership: (userId: number, locationId: number) =>
+    request<{ ok: true; userId: number; locationId: number }>(
+      `/api/admin/users/${userId}/grant-ownership`,
+      { method: 'POST', body: JSON.stringify({ locationId }) },
+    ),
+  adminRevokeOwnership: (userId: number, locationId: number) =>
+    request<{ ok: true }>(
+      `/api/admin/users/${userId}/grant-ownership/${locationId}`,
+      { method: 'DELETE' },
+    ),
 };

@@ -5,7 +5,7 @@ import { api } from '../lib/api';
 import { clearToken } from '../lib/auth';
 import { PinGlyph } from '../components/PinGlyph';
 import { IconStar } from '../components/Icons';
-import type { FavoriteRow, MyComment } from '../types';
+import type { FavoriteRow, MyComment, MyReservation } from '../types';
 
 type Tab = 'favorites' | 'comments' | 'reservations';
 
@@ -17,19 +17,48 @@ function formatDate(iso: string): string {
   });
 }
 
+const STATUS_LABELS: Record<MyReservation['status'], string> = {
+  pending: 'na čekanju',
+  approved: 'odobreno',
+  declined: 'odbijeno',
+  cancelled: 'otkazano',
+};
+
+function describeReservation(r: MyReservation): string {
+  const p = r.payload as unknown as Record<string, string | number>;
+  if (r.locationCatId === 'cafe') {
+    const start = new Date(String(p.slotStart));
+    const end = new Date(String(p.slotEnd));
+    return `Sto #${p.tableId} · ${start.toLocaleString('sr-RS', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} – ${end.toLocaleTimeString('sr-RS', { hour: '2-digit', minute: '2-digit' })} · ${p.guests} gostiju`;
+  }
+  if (r.locationCatId === 'hotel') {
+    return `Soba ${p.roomKey} · ${p.dateFrom} → ${p.dateTo} · ${p.guests} gostiju`;
+  }
+  return JSON.stringify(p);
+}
+
 export function Account() {
   const ctx = useOutletContext<AppContext>();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('favorites');
   const [favorites, setFavorites] = useState<FavoriteRow[] | null>(null);
   const [comments, setComments] = useState<MyComment[] | null>(null);
+  const [reservations, setReservations] = useState<MyReservation[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!ctx.currentUser) return;
     api.myFavorites().then(setFavorites).catch((e: Error) => setError(e.message));
     api.myComments().then(setComments).catch((e: Error) => setError(e.message));
+    api.myReservations().then(setReservations).catch((e: Error) => setError(e.message));
   }, [ctx.currentUser]);
+
+  const cancelReservation = async (id: number) => {
+    if (!window.confirm('Otkazati ovu rezervaciju?')) return;
+    await api.cancelReservation(id);
+    const next = await api.myReservations();
+    setReservations(next);
+  };
 
   if (!ctx.currentUser) {
     return (
@@ -75,7 +104,7 @@ export function Account() {
             Komentari {comments && `· ${comments.length}`}
           </button>
           <button className={`account-tab ${tab === 'reservations' ? 'active' : ''}`} onClick={() => setTab('reservations')}>
-            Rezervacije
+            Rezervacije {reservations && `· ${reservations.length}`}
           </button>
         </div>
 
@@ -134,8 +163,28 @@ export function Account() {
         )}
 
         {tab === 'reservations' && (
-          <div className="comments-empty">
-            Rezervacije stižu uskoro — moći ćete da pratite status svojih zahteva ovde.
+          <div className="account-comments">
+            {reservations === null ? (
+              <div className="comments-empty">Učitavanje…</div>
+            ) : reservations.length === 0 ? (
+              <div className="comments-empty">Niste još poslali nijedan zahtev za rezervaciju.</div>
+            ) : (
+              reservations.map((r) => (
+                <div className={`reservation-row status-${r.status}`} key={r.id}>
+                  <div className="reservation-main">
+                    <Link to={`/objekat/${r.locationSlug}`} className="comment-loc">{r.locationName}</Link>
+                    <div className="favorite-meta">{describeReservation(r)}</div>
+                    <div className="favorite-meta">poslato {formatDate(r.createdAt)}</div>
+                  </div>
+                  <div className={`reservation-status status-${r.status}`}>{STATUS_LABELS[r.status]}</div>
+                  {(r.status === 'pending' || r.status === 'approved') && (
+                    <div className="reservation-actions">
+                      <button className="row-action danger" onClick={() => cancelReservation(r.id)}>Otkaži</button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         )}
       </div>

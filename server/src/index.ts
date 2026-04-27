@@ -6,6 +6,9 @@ import { categoriesRoutes } from './routes/categories.js';
 import { locationsRoutes } from './routes/locations.js';
 import { authRoutes } from './routes/auth.js';
 import { socialRoutes } from './routes/social.js';
+import { reservationsRoutes } from './routes/reservations.js';
+import { ownerRoutes } from './routes/owner.js';
+import { adminUsersRoutes } from './routes/admin-users.js';
 
 async function main() {
   const app = Fastify({ logger: true });
@@ -19,6 +22,9 @@ async function main() {
   await app.register(locationsRoutes);
   await app.register(authRoutes);
   await app.register(socialRoutes);
+  await app.register(reservationsRoutes);
+  await app.register(ownerRoutes);
+  await app.register(adminUsersRoutes);
 
   await app.listen({ port: env.port, host: '0.0.0.0' });
 }
