@@ -16,7 +16,7 @@ cp .env.example .env
 npm install
 npm run db:up          # docker compose up -d db
 npm run db:migrate     # creates 4 tables (idempotent)
-npm run db:seed        # 5 categories + 18 locations + module_content + admin user
+npm run db:seed        # 5 categories + 5 starter locations (one per category) + admin user
 
 # Daily dev (parallel: web :5173, server :3000)
 npm run dev
@@ -46,7 +46,7 @@ Two npm workspaces, one Postgres container.
 - Routes: [categories.ts](server/src/routes/categories.ts), [locations.ts](server/src/routes/locations.ts) (public list/get + admin-gated create/update), [auth.ts](server/src/routes/auth.ts) (bcrypt + JWT).
 - Admin gate: `requireAdmin` in [server/src/lib/auth.ts](server/src/lib/auth.ts) — calls `req.jwtVerify()`, returns 401 on failure. JWT payload is `{ sub, username }`.
 - DB: [schema.ts](server/src/db/schema.ts) holds the Drizzle schema. The shape per location varies a lot per category, so per-location content lives in `module_content.content` (`jsonb`) — there's no flat column for menu/rooms/facts/etc. The 5 web module components know how to read each shape.
-- Migrations are hand-written DDL in [migrate.ts](server/src/db/migrate.ts) (no drizzle-kit at runtime). Seed reads from [seed-data.ts](server/src/db/seed-data.ts), which is the **source of truth** for the 18 starter locations + their content. If you change/expand the dataset, edit that file, then `npm run db:reset`.
+- Migrations are hand-written DDL in [migrate.ts](server/src/db/migrate.ts) (no drizzle-kit at runtime). Seed reads from [seed-data.ts](server/src/db/seed-data.ts), which is the **source of truth** for the starter locations (one per category — cafe/public/landmark/hotel/school) + their content. If you change/expand the dataset, edit that file, then `npm run db:reset`.
 - Env: [server/src/env.ts](server/src/env.ts) loads `.env` from the **repo root** (resolved via `import.meta.url`), not the workspace cwd — required because npm workspaces invoke scripts with the workspace as cwd.
 
 ### `web/` — Vite + React + TS, react-leaflet, react-router

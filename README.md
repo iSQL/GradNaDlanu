@@ -24,7 +24,7 @@ cp .env.example .env
 npm install
 npm run db:up          # start the bundled Postgres (dev profile)
 npm run db:migrate     # create tables (idempotent)
-npm run db:seed        # 5 categories + 18 locations + module content + admin user
+npm run db:seed        # 5 categories + 5 starter locations (one per category) + admin user
 ```
 
 ## Run (dev)
@@ -75,10 +75,10 @@ The floor-plan editor (`/poslovni/objekti/<slug>/mapa`) is an SVG canvas with dr
 ├── todo.md                    # ideas not yet built
 ├── web/                       # Vite + React + TS
 └── server/                    # Fastify + Drizzle + postgres-js
-    └── src/db/seed-data.ts    # source of truth for the 18 starter locations
+    └── src/db/seed-data.ts    # source of truth for the starter locations
 ```
 
-The starter dataset (locations, lat/lng, module content) lives in [server/src/db/seed-data.ts](server/src/db/seed-data.ts). To extend it, edit that file and run `npm run db:reset`.
+The starter dataset (one location per category — Stara Vodenica, Opština, Crkva Sv. Arhanđela, Hotel Morava, OŠ "Dositej Obradović") lives in [server/src/db/seed-data.ts](server/src/db/seed-data.ts). Real objects are added through the admin panel; to extend the seed itself, edit that file and run `npm run db:reset`.
 
 Production data flow on a single image: Fastify boots → runs migrations on boot (`RUN_MIGRATIONS_ON_BOOT=true` is the default in `NODE_ENV=production`) → registers `@fastify/static` against `web/dist` → falls back to `index.html` for non-`/api/*` requests so React Router's client-side routes work on hard refresh.
 
