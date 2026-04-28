@@ -1,4 +1,5 @@
-import { sql } from './client.js';
+import postgres from 'postgres';
+import { env } from '../env.js';
 
 const statements = [
   `CREATE TABLE IF NOT EXISTS categories (
@@ -90,7 +91,6 @@ const statements = [
   `CREATE INDEX IF NOT EXISTS reservations_loc_status_idx ON reservations(location_id, status)`,
   `CREATE INDEX IF NOT EXISTS reservations_user_created_idx ON reservations(user_id, created_at DESC)`,
   // One-shot mirror: copy any v1 admin_users rows into users with role='admin'.
-  // Idempotent via ON CONFLICT on email — the synthesised email key stays stable.
   // Wrapped so it's a no-op once admin_users has been dropped.
   `DO $$
    BEGIN
@@ -101,19 +101,34 @@ const statements = [
        ON CONFLICT (email) DO NOTHING;
      END IF;
    END $$`,
-  // Phase 4: legacy v1 table is no longer referenced by any code path. Drop it now.
   `DROP TABLE IF EXISTS admin_users`,
 ];
 
-async function main() {
-  for (const stmt of statements) {
-    await sql.unsafe(stmt);
+// Reusable migration function — opens its own short-lived connection so callers
+// (CLI runner + boot-time hook in index.ts) don't share state.
+export async function runMigrations(): Promise<void> {
+  const sql = postgres(env.databaseUrl);
+  try {
+    for (const stmt of statements) {
+      await sql.unsafe(stmt);
+    }
+  } finally {
+    await sql.end();
   }
-  console.log('Migrations applied.');
-  await sql.end();
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// CLI entry — allows `npm run db:migrate` and `node server/dist/db/migrate.js` to keep working.
+const isCli = import.meta.url === `file://${process.argv[1]}`
+           || process.argv[1]?.endsWith('migrate.js')
+           || process.argv[1]?.endsWith('migrate.ts');
+if (isCli) {
+  runMigrations()
+    .then(() => {
+      console.log('Migrations applied.');
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
+}

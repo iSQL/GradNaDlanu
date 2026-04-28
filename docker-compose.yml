@@ -1,21 +1,61 @@
 services:
+  # Bundled Postgres — only starts under the `dev` profile.
+  # In production (Coolify) we point at the externally-managed database via DATABASE_URL,
+  # so this service stays inert unless you opt-in with COMPOSE_PROFILES=dev.
   db:
     image: postgres:16-alpine
     container_name: gradnadlanu-db
     restart: unless-stopped
+    profiles: ["dev"]
     environment:
-      POSTGRES_USER: gradnadlanu
-      POSTGRES_PASSWORD: gradnadlanu
-      POSTGRES_DB: gradnadlanu
+      POSTGRES_USER: ${POSTGRES_USER:-gradnadlanu}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gradnadlanu}
+      POSTGRES_DB: ${POSTGRES_DB:-gradnadlanu}
     ports:
-      - "5433:5432"
+      - "${DB_HOST_PORT:-5433}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U gradnadlanu -d gradnadlanu"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gradnadlanu} -d ${POSTGRES_DB:-gradnadlanu}"]
       interval: 5s
       timeout: 3s
       retries: 10
+
+  app:
+    build: .
+    container_name: gradnadlanu-app
+    restart: unless-stopped
+    environment:
+      # Production: set this in Coolify's env panel to point at the managed Postgres,
+      # e.g. postgres://USER:PASS@yssskgs8o48cs08k0o48ss4s:5432/gradnadlanu
+      # Dev fallback: the bundled `db` service via the internal hostname.
+      DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-gradnadlanu}:${POSTGRES_PASSWORD:-gradnadlanu}@db:5432/${POSTGRES_DB:-gradnadlanu}}
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      PORT: 3000
+      NODE_ENV: production
+      RUN_MIGRATIONS_ON_BOOT: "true"
+      RUN_SEED_ON_BOOT: ${RUN_SEED_ON_BOOT:-false}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+    # Soft dependency — waits for db when COMPOSE_PROFILES=dev is set, ignored
+    # in production (Coolify) where the managed Postgres is reached over its own network.
+    depends_on:
+      db:
+        condition: service_healthy
+        required: false
+    # Coolify reads these to provision a domain + Let's Encrypt cert via Traefik.
+    # Set APP_DOMAIN in Coolify's env panel (e.g. gradnadlanu.example.com).
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gradnadlanu.rule=Host(`${APP_DOMAIN:-localhost}`)"
+      - "traefik.http.routers.gradnadlanu.entrypoints=websecure"
+      - "traefik.http.routers.gradnadlanu.tls=true"
+      - "traefik.http.routers.gradnadlanu.tls.certresolver=letsencrypt"
+      - "traefik.http.services.gradnadlanu.loadbalancer.server.port=3000"
+    # Local-only port mapping — comment out / remove on Coolify (Traefik handles routing).
+    ports:
+      - "${APP_HOST_PORT:-3000}:3000"
 
 volumes:
   pgdata:
