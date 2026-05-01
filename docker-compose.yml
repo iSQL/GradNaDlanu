@@ -56,6 +56,17 @@ services:
     # Local-only port mapping — comment out / remove on Coolify (Traefik handles routing).
     ports:
       - "${APP_HOST_PORT:-3000}:3000"
+    # Attach to Coolify's shared overlay network so the app can resolve the managed
+    # Postgres hostname. `default` is the implicit per-stack network; `coolify` is the
+    # external network created by Coolify when you provisioned the database.
+    networks:
+      - default
+      - coolify
 
 volumes:
   pgdata:
+
+networks:
+  coolify:
+    external: true
+    name: coolify
