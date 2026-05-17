@@ -13,9 +13,19 @@ interface Props {
   onPinClick: (loc: Location) => void;
   onPinHover: (loc: Location | null, point?: { x: number; y: number }) => void;
   onLongPress?: (latlng: { lat: number; lng: number }) => void;
+  // Called when the user wheels over the map without a modifier key. The page
+  // scroll proceeds naturally — this is just for the parent to show a hint.
+  onModifierlessWheel?: () => void;
 }
 
-export function CityMap({ locations, activeFilter, onPinClick, onPinHover, onLongPress }: Props) {
+export function CityMap({
+  locations,
+  activeFilter,
+  onPinClick,
+  onPinHover,
+  onLongPress,
+  onModifierlessWheel,
+}: Props) {
   const visible = useMemo(
     () => locations.filter((l) => activeFilter === 'all' || l.catId === activeFilter),
     [locations, activeFilter],
@@ -26,6 +36,7 @@ export function CityMap({ locations, activeFilter, onPinClick, onPinHover, onLon
       center={ZABARI_CENTER}
       zoom={DEFAULT_ZOOM}
       zoomControl={false}
+      scrollWheelZoom={false}
       className="leaflet-canvas"
     >
       <TileLayer
@@ -39,6 +50,7 @@ export function CityMap({ locations, activeFilter, onPinClick, onPinHover, onLon
         opacity={0.9}
       />
       <ZoomBottomRight />
+      <ModifierWheelZoom onModifierlessWheel={onModifierlessWheel} />
       {onLongPress && <LongPress onLongPress={onLongPress} />}
       {visible.map((loc) => (
         <Marker
@@ -76,6 +88,34 @@ function ZoomBottomRight() {
       ctrl.remove();
     };
   }, [map]);
+  return null;
+}
+
+// Replaces Leaflet's default scroll-wheel-zoom with a modifier-gated version:
+// - Ctrl/Cmd + wheel  → zoom map (page does not scroll)
+// - plain wheel       → page scrolls; parent gets a callback to show a hint
+function ModifierWheelZoom({ onModifierlessWheel }: { onModifierlessWheel?: () => void }) {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        // Browsers fire Ctrl+wheel as pinch-zoom (which we want), but they
+        // would also zoom the page itself unless we stop it.
+        e.preventDefault();
+        // Half-step per tick feels closer to native Leaflet smoothness than full step.
+        if (e.deltaY < 0) map.zoomIn(0.5, { animate: true });
+        else map.zoomOut(0.5, { animate: true });
+      } else {
+        onModifierlessWheel?.();
+      }
+    };
+    // passive: false because we may call preventDefault for the Ctrl branch.
+    container.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      container.removeEventListener('wheel', onWheel);
+    };
+  }, [map, onModifierlessWheel]);
   return null;
 }
 

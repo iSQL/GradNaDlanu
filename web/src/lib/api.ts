@@ -10,6 +10,7 @@ import type {
   MyComment,
   MyReservation,
   OwnerReservation,
+  RecentComment,
   ReservationPayload,
 } from '../types';
 import { getToken, type Role } from './auth';
@@ -43,13 +44,30 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
 
 export const api = {
   listCategories: () => request<Category[]>('/api/categories'),
-  listLocations: (params: { cat?: string; q?: string; includeDrafts?: boolean } = {}) => {
+  listLocations: (
+    params: {
+      cat?: string;
+      q?: string;
+      includeDrafts?: boolean;
+      sort?: 'recent' | 'popular';
+      limit?: number;
+    } = {},
+  ) => {
     const qs = new URLSearchParams();
     if (params.cat) qs.set('cat', params.cat);
     if (params.q) qs.set('q', params.q);
     if (params.includeDrafts) qs.set('includeDrafts', '1');
+    if (params.sort) qs.set('sort', params.sort);
+    if (params.limit !== undefined) qs.set('limit', String(params.limit));
     const s = qs.toString();
     return request<Location[]>(`/api/locations${s ? `?${s}` : ''}`);
+  },
+  recentComments: (params: { limit?: number; cat?: string } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.limit !== undefined) qs.set('limit', String(params.limit));
+    if (params.cat) qs.set('cat', params.cat);
+    const s = qs.toString();
+    return request<RecentComment[]>(`/api/comments/recent${s ? `?${s}` : ''}`);
   },
   getLocation: (slug: string) => request<LocationWithContent>(`/api/locations/${slug}`),
   adminListLocations: () => request<Location[]>('/api/admin/locations'),

@@ -84,6 +84,7 @@ const statements = [
   `CREATE INDEX IF NOT EXISTS object_owners_location_idx ON object_owners(location_id)`,
   `CREATE INDEX IF NOT EXISTS favorites_location_idx ON favorites(location_id)`,
   `CREATE INDEX IF NOT EXISTS comments_loc_status_created_idx ON comments(location_id, status, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS comments_status_created_idx ON comments(status, created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS comments_user_idx ON comments(user_id, created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS comments_parent_idx ON comments(parent_id)`,
   `CREATE INDEX IF NOT EXISTS checkins_loc_created_idx ON checkins(location_id, created_at DESC)`,

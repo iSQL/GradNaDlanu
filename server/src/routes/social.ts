@@ -22,6 +22,56 @@ interface CommentNode {
 }
 
 export async function socialRoutes(app: FastifyInstance) {
+  // Public — global feed of newest visible comments across all published locations.
+  // Powers the homepage "Pregled" dashboard. Filterable by category.
+  app.get<{ Querystring: { limit?: string; cat?: string } }>(
+    '/api/comments/recent',
+    async (req) => {
+      const rawLimit = Number(req.query.limit);
+      const limit = Number.isFinite(rawLimit)
+        ? Math.max(1, Math.min(30, Math.floor(rawLimit)))
+        : 12;
+      const cat = req.query.cat?.trim();
+      const conds = [
+        eq(comments.status, 'visible'),
+        eq(locations.status, 'published'),
+      ];
+      if (cat) conds.push(eq(locations.catId, cat));
+      const rows = await db
+        .select({
+          id: comments.id,
+          body: comments.body,
+          rating: comments.rating,
+          createdAt: comments.createdAt,
+          authorId: users.id,
+          authorName: users.displayName,
+          locationId: locations.id,
+          locationSlug: locations.slug,
+          locationName: locations.name,
+          locationCatId: locations.catId,
+        })
+        .from(comments)
+        .innerJoin(users, eq(comments.userId, users.id))
+        .innerJoin(locations, eq(comments.locationId, locations.id))
+        .where(and(...conds))
+        .orderBy(desc(comments.createdAt))
+        .limit(limit);
+      return rows.map((r) => ({
+        id: r.id,
+        body: r.body,
+        rating: r.rating,
+        createdAt: r.createdAt,
+        author: { id: r.authorId, displayName: r.authorName },
+        location: {
+          id: r.locationId,
+          slug: r.locationSlug,
+          name: r.locationName,
+          catId: r.locationCatId,
+        },
+      }));
+    },
+  );
+
   // Toggle favorite — POST adds, DELETE removes. Both idempotent.
   app.post<{ Params: { slug: string } }>(
     '/api/locations/:slug/favorite',

@@ -1,17 +1,16 @@
 import { useNavigate } from 'react-router-dom';
-import type { Category, CategoryId } from '../types';
+import type { HomeView } from '../App';
 import type { CurrentUser } from '../lib/api';
+import { getToken } from '../lib/auth';
 import { IconAdmin, IconSearch } from './Icons';
 
 interface Props {
-  categories: Category[];
-  counts: Partial<Record<CategoryId, number>>;
-  activeFilter: CategoryId | 'all';
-  onFilterChange: (next: CategoryId | 'all') => void;
   search: string;
   onSearchChange: (next: string) => void;
   onHome: () => void;
   currentUser: CurrentUser | null;
+  homeView: HomeView;
+  onHomeViewChange: (next: HomeView) => void;
 }
 
 function homeRouteFor(user: CurrentUser): string {
@@ -21,14 +20,12 @@ function homeRouteFor(user: CurrentUser): string {
 }
 
 export function Nav({
-  categories,
-  counts,
-  activeFilter,
-  onFilterChange,
   search,
   onSearchChange,
   onHome,
   currentUser,
+  homeView,
+  onHomeViewChange,
 }: Props) {
   const navigate = useNavigate();
 
@@ -42,22 +39,25 @@ export function Nav({
         </div>
       </div>
 
-      <div className="nav-links">
+      <div className="nav-view-toggle" role="tablist" aria-label="Prikaz">
         <button
-          className={`nav-link ${activeFilter === 'all' ? 'active' : ''}`}
-          onClick={() => { onFilterChange('all'); onHome(); }}
+          type="button"
+          role="tab"
+          aria-selected={homeView === 'map'}
+          className={`nav-view-btn ${homeView === 'map' ? 'active' : ''}`}
+          onClick={() => { onHomeViewChange('map'); onHome(); }}
         >
-          Mapa grada
+          Mapa
         </button>
-        {categories.map((c) => (
-          <button
-            key={c.id}
-            className={`nav-link ${activeFilter === c.id ? 'active' : ''}`}
-            onClick={() => { onFilterChange(activeFilter === c.id ? 'all' : c.id); onHome(); }}
-          >
-            {c.short} <span className="count">{counts[c.id] ?? 0}</span>
-          </button>
-        ))}
+        <button
+          type="button"
+          role="tab"
+          aria-selected={homeView === 'dashboard'}
+          className={`nav-view-btn ${homeView === 'dashboard' ? 'active' : ''}`}
+          onClick={() => { onHomeViewChange('dashboard'); onHome(); }}
+        >
+          Pregled
+        </button>
       </div>
 
       <div className="nav-right">
@@ -73,6 +73,11 @@ export function Nav({
           <button className="nav-btn" onClick={() => navigate(homeRouteFor(currentUser))}>
             <IconAdmin /> {currentUser.displayName}
           </button>
+        ) : getToken() ? (
+          // Token exists in localStorage but /api/me hasn't resolved yet.
+          // Render an invisible placeholder of the same width so the nav
+          // doesn't reflow (or flash "Prijava") once auth resolves.
+          <span className="nav-btn nav-btn-placeholder" aria-hidden="true" />
         ) : (
           <button className="nav-btn" onClick={() => navigate('/prijava')}>
             Prijava

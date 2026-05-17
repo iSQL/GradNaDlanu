@@ -1,6 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { App } from './App';
-import { Hero } from './components/Hero';
+import { HomePage } from './components/HomePage';
 import { ModulePage } from './modules/ModulePage';
 import { AdminPanel } from './admin/AdminPanel';
 import { EditLocation } from './admin/EditLocation';
@@ -17,7 +17,7 @@ export const router = createBrowserRouter([
     path: '/',
     element: <App />,
     children: [
-      { index: true, element: <Hero /> },
+      { index: true, element: <HomePage /> },
       { path: 'objekat/:slug', element: <ModulePage /> },
       { path: 'prijava', element: <Login /> },
       { path: 'registracija', element: <Register /> },

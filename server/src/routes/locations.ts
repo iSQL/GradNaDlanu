@@ -1,22 +1,70 @@
 import type { FastifyInstance } from 'fastify';
-import { and, avg, count, eq, gte, ilike } from 'drizzle-orm';
+import { and, avg, count, desc, eq, gte, ilike, sql as dsql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { checkins, comments, favorites, locations, moduleContent } from '../db/schema.js';
 import { requireAdmin, getOptionalUser } from '../lib/auth.js';
 import { slugify } from '../lib/locations.js';
 
+function clampLimit(raw: string | undefined): number | undefined {
+  if (raw === undefined) return undefined;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return undefined;
+  return Math.max(1, Math.min(50, Math.floor(n)));
+}
+
 export async function locationsRoutes(app: FastifyInstance) {
   // Public list
-  app.get<{ Querystring: { cat?: string; q?: string; includeDrafts?: string } }>(
+  app.get<{ Querystring: { cat?: string; q?: string; includeDrafts?: string; sort?: string; limit?: string } }>(
     '/api/locations',
     async (req) => {
-      const { cat, q, includeDrafts } = req.query;
+      const { cat, q, includeDrafts, sort, limit } = req.query;
       const conds = [];
       if (!includeDrafts) conds.push(eq(locations.status, 'published'));
       if (cat) conds.push(eq(locations.catId, cat));
       if (q)   conds.push(ilike(locations.name, `%${q}%`));
       const where = conds.length ? and(...conds) : undefined;
-      return db.select().from(locations).where(where);
+      const cap = clampLimit(limit);
+
+      if (sort === 'popular') {
+        // LEFT JOIN visible comments → aggregate count + avg rating per location.
+        // commentCount=0 locations still appear at the bottom.
+        const commentCount = dsql<number>`COUNT(${comments.id})`.as('comment_count');
+        const avgRating = avg(comments.rating).as('avg_rating');
+        const rows = await db
+          .select({
+            id: locations.id,
+            slug: locations.slug,
+            catId: locations.catId,
+            name: locations.name,
+            subtitle: locations.subtitle,
+            address: locations.address,
+            lat: locations.lat,
+            lng: locations.lng,
+            status: locations.status,
+            createdAt: locations.createdAt,
+            commentCount,
+            avgRating,
+          })
+          .from(locations)
+          .leftJoin(
+            comments,
+            and(eq(comments.locationId, locations.id), eq(comments.status, 'visible')),
+          )
+          .where(where)
+          .groupBy(locations.id)
+          .orderBy(desc(commentCount), dsql`avg_rating DESC NULLS LAST`)
+          .limit(cap ?? 50);
+        return rows.map((r) => ({
+          ...r,
+          commentCount: Number(r.commentCount ?? 0),
+          avgRating: r.avgRating !== null && r.avgRating !== undefined ? Number(r.avgRating) : null,
+        }));
+      }
+
+      const order = sort === 'recent' ? desc(locations.createdAt) : undefined;
+      const base = db.select().from(locations).where(where);
+      const ordered = order ? base.orderBy(order) : base;
+      return cap !== undefined ? ordered.limit(cap) : ordered;
     }
   );
 

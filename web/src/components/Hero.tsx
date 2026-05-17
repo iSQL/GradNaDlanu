@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { CATEGORY_LABELS, type CategoryId, type Location } from '../types';
@@ -16,7 +16,22 @@ export function Hero() {
   const [pos, setPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [panelsVisible, setPanelsVisible] = useState(true);
   const [pendingCoords, setPendingCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [wheelHintVisible, setWheelHintVisible] = useState(false);
+  const wheelHintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const canEdit = isAuthed();
+
+  useEffect(
+    () => () => {
+      if (wheelHintTimer.current) clearTimeout(wheelHintTimer.current);
+    },
+    [],
+  );
+
+  const showWheelHint = () => {
+    setWheelHintVisible(true);
+    if (wheelHintTimer.current) clearTimeout(wheelHintTimer.current);
+    wheelHintTimer.current = setTimeout(() => setWheelHintVisible(false), 1400);
+  };
 
   const { categories, locations, activeFilter, setActiveFilter, search } = ctx;
 
@@ -44,39 +59,6 @@ export function Hero() {
         {panelsVisible ? <IconEyeOff /> : <IconEye />}
       </button>
 
-      {panelsVisible && (
-      <div className="hero-info">
-        <div className="hero-title">
-          <div className="hero-eyebrow">Opština Žabari · 12374</div>
-          <h1 className="hero-h1">Naš grad <em>na dlanu</em></h1>
-          <p className="hero-sub">
-            Kompletan vodič kroz Žabare — od kafića u centru do škola, službi i znamenitosti.
-            Kliknite na bilo koju oznaku na mapi za više informacija.
-          </p>
-        </div>
-
-        <div className="hero-meta">
-          <div className="hero-pill">
-            <span className="dot" /> {locations.length} aktivnih objekata
-          </div>
-          <div className="hero-stat">
-            <div className="hero-stat-row">
-              <span className="hero-stat-label">Stanovnika</span>
-              <span className="hero-stat-val">~ 2 080</span>
-            </div>
-            <div className="hero-stat-row">
-              <span className="hero-stat-label">Površina</span>
-              <span className="hero-stat-val">405 km²</span>
-            </div>
-            <div className="hero-stat-row">
-              <span className="hero-stat-label">Naselja</span>
-              <span className="hero-stat-val">15</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      )}
-
       <div className="map-canvas">
         <CityMap
           locations={filtered}
@@ -87,7 +69,14 @@ export function Hero() {
             if (loc && pt) setPos(pt);
           }}
           onLongPress={canEdit ? (latlng) => setPendingCoords(latlng) : undefined}
+          onModifierlessWheel={showWheelHint}
         />
+
+        {wheelHintVisible && (
+          <div className="wheel-zoom-hint" role="status" aria-live="polite">
+            Drži <kbd>Ctrl</kbd> i pomeraj točkić da zumiraš
+          </div>
+        )}
 
         {hovered && (
           <div className="pin-card" style={{ left: pos.x, top: pos.y }}>

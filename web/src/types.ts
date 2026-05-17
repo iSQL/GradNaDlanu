@@ -18,6 +18,9 @@ export interface Location {
   lng: number;
   status: 'draft' | 'published';
   createdAt: string;
+  // Present when fetched via ?sort=popular
+  commentCount?: number;
+  avgRating?: number | null;
 }
 
 export interface CafeContent {
@@ -89,6 +92,15 @@ export interface MyComment {
   locationId: number;
   locationSlug: string;
   locationName: string;
+}
+
+export interface RecentComment {
+  id: number;
+  body: string;
+  rating: number | null;
+  createdAt: string;
+  author: { id: number; displayName: string };
+  location: { id: number; slug: string; name: string; catId: CategoryId };
 }
 
 export type ReservationStatus = 'pending' | 'approved' | 'declined' | 'cancelled';
