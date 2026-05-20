@@ -7,6 +7,7 @@ import {
   moduleContent,
   objectOwners,
   reservations,
+  serviceRequests,
   users,
 } from '../db/schema.js';
 import { requireRole } from '../lib/auth.js';
@@ -16,6 +17,11 @@ import {
   isCafePayload,
   isHotelPayload,
 } from '../lib/reservations.js';
+import {
+  canTransition,
+  validateQuote,
+  type ServiceRequestQuote,
+} from '../lib/serviceRequests.js';
 
 // Returns the list of location ids the caller can act on as owner.
 // Admin → all locations. Business/user → only their object_owners rows.
@@ -166,6 +172,120 @@ export async function ownerRoutes(app: FastifyInstance) {
         .where(eq(reservations.id, id))
         .returning();
       return updated;
+    },
+  );
+
+  // Service requests inbox for owned objects.
+  app.get<{ Querystring: { status?: string; locationId?: string } }>(
+    '/api/owner/service-requests',
+    { preHandler: requireRole('business') },
+    async (req) => {
+      const owned = await ownedLocationIds(req.user.sub, req.user.role);
+      if (owned !== 'ALL' && owned.length === 0) return [];
+
+      const conds = [];
+      if (req.query.status) {
+        conds.push(
+          eq(
+            serviceRequests.status,
+            req.query.status as 'pending' | 'quoted' | 'accepted' | 'declined' | 'cancelled' | 'completed',
+          ),
+        );
+      }
+      if (req.query.locationId) conds.push(eq(serviceRequests.locationId, Number(req.query.locationId)));
+      if (owned !== 'ALL') conds.push(inArray(serviceRequests.locationId, owned));
+      const where = conds.length ? and(...conds) : undefined;
+
+      const rows = await db
+        .select({
+          id: serviceRequests.id,
+          payload: serviceRequests.payload,
+          quote: serviceRequests.quote,
+          status: serviceRequests.status,
+          createdAt: serviceRequests.createdAt,
+          decidedAt: serviceRequests.decidedAt,
+          locationId: locations.id,
+          locationSlug: locations.slug,
+          locationName: locations.name,
+          locationCatId: locations.catId,
+          userId: users.id,
+          userDisplayName: users.displayName,
+          userEmail: users.email,
+        })
+        .from(serviceRequests)
+        .innerJoin(locations, eq(serviceRequests.locationId, locations.id))
+        .innerJoin(users, eq(serviceRequests.userId, users.id))
+        .where(where)
+        .orderBy(desc(serviceRequests.createdAt));
+      return rows;
+    },
+  );
+
+  // Quote / decline / complete a service request.
+  // Body accepts EITHER { quote: {...} } (transitions pending → quoted) OR
+  // { status: 'declined' | 'completed' }.
+  app.patch<{
+    Params: { id: string };
+    Body: { quote?: unknown; status?: 'declined' | 'completed' };
+  }>(
+    '/api/owner/service-requests/:id',
+    { preHandler: requireRole('business') },
+    async (req, reply) => {
+      const id = Number(req.params.id);
+      const [row] = await db
+        .select()
+        .from(serviceRequests)
+        .where(eq(serviceRequests.id, id))
+        .limit(1);
+      if (!row) return reply.code(404).send({ error: 'Not found' });
+
+      const owned = await ownedLocationIds(req.user.sub, req.user.role);
+      if (owned !== 'ALL' && !owned.includes(row.locationId)) {
+        return reply.code(403).send({ error: 'Forbidden' });
+      }
+
+      const body = req.body ?? {};
+
+      if (body.quote !== undefined) {
+        const v = validateQuote(body.quote);
+        if (!v.ok) return reply.code(400).send({ error: v.error });
+        if (!canTransition(row.status, 'quoted', 'owner', true)) {
+          return reply.code(400).send({ error: `Ponuda može da se posalje samo iz statusa 'pending', trenutno je '${row.status}'` });
+        }
+        const quote: ServiceRequestQuote = v.quote;
+        const [updated] = await db
+          .update(serviceRequests)
+          .set({
+            quote,
+            status: 'quoted',
+            decidedByOwnerId: req.user.sub,
+            decidedAt: new Date(),
+          })
+          .where(eq(serviceRequests.id, id))
+          .returning();
+        return updated;
+      }
+
+      if (body.status === 'declined' || body.status === 'completed') {
+        const hasQuote = row.quote !== null && row.quote !== undefined;
+        if (!canTransition(row.status, body.status, 'owner', hasQuote)) {
+          return reply.code(400).send({
+            error: `Nije moguće prebaciti iz '${row.status}' u '${body.status}'`,
+          });
+        }
+        const [updated] = await db
+          .update(serviceRequests)
+          .set({
+            status: body.status,
+            decidedByOwnerId: req.user.sub,
+            decidedAt: new Date(),
+          })
+          .where(eq(serviceRequests.id, id))
+          .returning();
+        return updated;
+      }
+
+      return reply.code(400).send({ error: 'Pošaljite quote ili status=declined|completed' });
     },
   );
 

@@ -46,5 +46,15 @@ export function defaultContentFor(catId: CategoryId): Record<string, unknown> {
         facts: [{ num: '', label: '' }],
         programs: [''],
       };
+    case 'vodoinstalater':
+    case 'elektricar':
+    case 'automehanicar':
+      return {
+        tagline: '',
+        contact: { phone: '', address: '' },
+        hours: [{ day: 'Ponedeljak — Petak', hours: '08 — 17' }],
+        services: [''],
+        note: '',
+      };
   }
 }

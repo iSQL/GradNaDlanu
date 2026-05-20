@@ -1,4 +1,18 @@
-export type CategoryId = 'cafe' | 'public' | 'landmark' | 'hotel' | 'school';
+export type CategoryId =
+  | 'cafe'
+  | 'public'
+  | 'landmark'
+  | 'hotel'
+  | 'school'
+  | 'vodoinstalater'
+  | 'elektricar'
+  | 'automehanicar';
+
+export type MajstorCategoryId = 'vodoinstalater' | 'elektricar' | 'automehanicar';
+
+export function isMajstorCategory(catId: CategoryId): catId is MajstorCategoryId {
+  return catId === 'vodoinstalater' || catId === 'elektricar' || catId === 'automehanicar';
+}
 
 export interface Category {
   id: CategoryId;
@@ -57,12 +71,21 @@ export interface SchoolContent {
   programs: string[];
 }
 
+export interface MajstorContent {
+  tagline?: string;
+  contact?: { phone?: string; address?: string };
+  hours?: { day: string; hours: string }[];
+  services?: string[];
+  note?: string;
+}
+
 export type ModuleContent =
   | CafeContent
   | PublicContent
   | HotelContent
   | LandmarkContent
-  | SchoolContent;
+  | SchoolContent
+  | MajstorContent;
 
 export interface LocationWithContent extends Location {
   content: ModuleContent | Record<string, never>;
@@ -165,10 +188,51 @@ export interface AdminUserRow {
   ownedLocations: { id: number; slug: string; name: string }[];
 }
 
+export type ServiceRequestStatus =
+  | 'pending'
+  | 'quoted'
+  | 'accepted'
+  | 'declined'
+  | 'cancelled'
+  | 'completed';
+
+export interface ServiceRequestPayload {
+  description: string;
+  photoIds: number[];
+}
+
+export interface ServiceRequestQuote {
+  priceRsd: number;
+  note: string;
+  availableDate: string;
+}
+
+export interface MyServiceRequest {
+  id: number;
+  payload: ServiceRequestPayload;
+  quote: ServiceRequestQuote | null;
+  status: ServiceRequestStatus;
+  createdAt: string;
+  decidedAt: string | null;
+  locationId: number;
+  locationSlug: string;
+  locationName: string;
+  locationCatId: CategoryId;
+}
+
+export interface OwnerServiceRequest extends MyServiceRequest {
+  userId: number;
+  userDisplayName: string;
+  userEmail: string;
+}
+
 export const CATEGORY_LABELS: Record<CategoryId, string> = {
   cafe: 'Kafić · restoran',
   public: 'Javna služba',
   landmark: 'Znamenitost',
   hotel: 'Smeštaj',
   school: 'Obrazovanje',
+  vodoinstalater: 'Vodoinstalater',
+  elektricar: 'Električar',
+  automehanicar: 'Automehaničar',
 };

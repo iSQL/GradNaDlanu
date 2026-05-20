@@ -38,6 +38,9 @@ services:
       RUN_MIGRATIONS_ON_BOOT: "true"
       RUN_SEED_ON_BOOT: ${RUN_SEED_ON_BOOT:-false}
       CORS_ORIGIN: ${CORS_ORIGIN:-}
+      # Where uploaded photos live. In Coolify, attach a Persistent Storage mount
+      # to this path so images survive image rebuilds.
+      UPLOAD_DIR: ${UPLOAD_DIR:-/data/uploads}
     # Soft dependency — waits for db when COMPOSE_PROFILES=dev is set, ignored
     # in production (Coolify) where the managed Postgres is reached over its own network.
     depends_on:
@@ -56,6 +59,10 @@ services:
     # Local-only port mapping — comment out / remove on Coolify (Traefik handles routing).
     ports:
       - "${APP_HOST_PORT:-3000}:3000"
+    # Persistent storage for uploaded photos. In dev this uses a named docker volume;
+    # in Coolify, add a Persistent Storage mount that maps to /data/uploads instead.
+    volumes:
+      - uploads:/data/uploads
     # Attach to Coolify's shared overlay network so the app can resolve the managed
     # Postgres hostname. `default` is the implicit per-stack network; `coolify` is the
     # external network created by Coolify when you provisioned the database.
@@ -65,6 +72,7 @@ services:
 
 volumes:
   pgdata:
+  uploads:
 
 networks:
   coolify:

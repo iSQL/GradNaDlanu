@@ -6,9 +6,10 @@ import { clearToken } from '../lib/auth';
 import { PinGlyph } from '../components/PinGlyph';
 import type { Location } from '../types';
 import { ReservationsInbox } from '../admin/ReservationsInbox';
+import { ServiceRequestsInbox } from '../admin/ServiceRequestsInbox';
 
 type OwnerComment = Awaited<ReturnType<typeof api.ownerComments>>[number];
-type Tab = 'objects' | 'reservations' | 'comments';
+type Tab = 'objects' | 'reservations' | 'service-requests' | 'comments';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString('sr-RS', {
@@ -59,6 +60,9 @@ export function OwnerDashboard() {
           <button className={`account-tab ${tab === 'reservations' ? 'active' : ''}`} onClick={() => setTab('reservations')}>
             Rezervacije
           </button>
+          <button className={`account-tab ${tab === 'service-requests' ? 'active' : ''}`} onClick={() => setTab('service-requests')}>
+            Zahtevi za uslugu
+          </button>
           <button className={`account-tab ${tab === 'comments' ? 'active' : ''}`} onClick={() => setTab('comments')}>
             Komentari {comments && `· ${comments.length}`}
           </button>
@@ -92,6 +96,8 @@ export function OwnerDashboard() {
         )}
 
         {tab === 'reservations' && <ReservationsInbox />}
+
+        {tab === 'service-requests' && <ServiceRequestsInbox />}
 
         {tab === 'comments' && (
           <div className="account-comments">

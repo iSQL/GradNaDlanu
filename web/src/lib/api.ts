@@ -9,9 +9,12 @@ import type {
   LocationWithContent,
   MyComment,
   MyReservation,
+  MyServiceRequest,
   OwnerReservation,
+  OwnerServiceRequest,
   RecentComment,
   ReservationPayload,
+  ServiceRequestQuote,
 } from '../types';
 import { getToken, type Role } from './auth';
 
@@ -40,6 +43,24 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
     throw new Error(`${res.status} ${res.statusText}: ${text}`);
   }
   return res.json();
+}
+
+// Sibling of `request` for multipart uploads — must NOT set Content-Type
+// (the browser sets it with the correct boundary).
+async function uploadRequest<T>(url: string, formData: FormData): Promise<T> {
+  const headers = new Headers();
+  const token = getToken();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  const res = await fetch(url, { method: 'POST', body: formData, headers });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`${res.status} ${res.statusText}: ${text}`);
+  }
+  return res.json();
+}
+
+export function mediaUrl(id: number): string {
+  return `/api/media/${id}`;
 }
 
 export const api = {
@@ -202,4 +223,53 @@ export const api = {
     ),
   ownerDeleteFloorPlan: (locationId: number) =>
     request<{ ok: true }>(`/api/owner/locations/${locationId}/map`, { method: 'DELETE' }),
+
+  // Media
+  uploadMedia: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file, file.name);
+    return uploadRequest<{ id: number }>(`/api/uploads`, fd);
+  },
+
+  // Service requests — visitor side
+  createServiceRequest: (slug: string, body: { description: string; photoIds: number[] }) =>
+    request<MyServiceRequest>(`/api/locations/${slug}/service-requests`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  myServiceRequests: () => request<MyServiceRequest[]>('/api/me/service-requests'),
+  acceptServiceRequest: (id: number) =>
+    request<MyServiceRequest>(`/api/me/service-requests/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'accepted' }),
+    }),
+  cancelServiceRequest: (id: number) =>
+    request<MyServiceRequest>(`/api/me/service-requests/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'cancelled' }),
+    }),
+
+  // Service requests — owner side
+  ownerServiceRequests: (params: { status?: string; locationId?: number } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.status) qs.set('status', params.status);
+    if (params.locationId) qs.set('locationId', String(params.locationId));
+    const s = qs.toString();
+    return request<OwnerServiceRequest[]>(`/api/owner/service-requests${s ? `?${s}` : ''}`);
+  },
+  ownerQuoteServiceRequest: (id: number, quote: ServiceRequestQuote) =>
+    request<OwnerServiceRequest>(`/api/owner/service-requests/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ quote }),
+    }),
+  ownerDeclineServiceRequest: (id: number) =>
+    request<OwnerServiceRequest>(`/api/owner/service-requests/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'declined' }),
+    }),
+  ownerCompleteServiceRequest: (id: number) =>
+    request<OwnerServiceRequest>(`/api/owner/service-requests/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'completed' }),
+    }),
 };

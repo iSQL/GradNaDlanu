@@ -6,6 +6,9 @@ const COLORS: Record<CategoryId, string> = {
   landmark: '#C9A961',
   hotel: '#6B8E5A',
   school: '#8B4A88',
+  vodoinstalater: '#3B82F6',
+  elektricar: '#F59E0B',
+  automehanicar: '#EF4444',
 };
 
 const CLS: Record<CategoryId, string> = {
@@ -14,6 +17,9 @@ const CLS: Record<CategoryId, string> = {
   landmark: 'pin-landmark',
   hotel: 'pin-hotel',
   school: 'pin-school',
+  vodoinstalater: 'pin-vodoinstalater',
+  elektricar: 'pin-elektricar',
+  automehanicar: 'pin-automehanicar',
 };
 
 export function PinGlyph({ cat, size = 32 }: { cat: CategoryId; size?: number }) {
@@ -76,6 +82,26 @@ function Glyph({ cat, color }: { cat: CategoryId; color: string }) {
       <circle cx="22" cy="14.4" r="0.7" fill={stroke}/>
     </g>
   );
+  if (cat === 'vodoinstalater') return (
+    <g>
+      <path d="M 9 6 L 11 6 L 11 9 L 15 9 L 15 6 L 17 6 L 17 12 L 13.8 12 L 13.8 18 L 12.2 18 L 12.2 12 L 9 12 Z" fill={color} stroke={stroke} strokeWidth="0.7" strokeLinejoin="round"/>
+      <circle cx="13" cy="19" r="1.4" fill={color} stroke={stroke} strokeWidth="0.6"/>
+    </g>
+  );
+  if (cat === 'elektricar') return (
+    <g>
+      <path d="M 14 6 L 9 14 L 12.5 14 L 11.5 19 L 17 11 L 13.5 11 Z" fill={color} stroke={stroke} strokeWidth="0.7" strokeLinejoin="round"/>
+    </g>
+  );
+  if (cat === 'automehanicar') return (
+    <g>
+      <path d="M 6.5 16 L 6.5 14 Q 6.5 12.5 8 12.2 L 9.2 10 Q 9.7 9 11 9 L 15 9 Q 16.3 9 16.8 10 L 18 12.2 Q 19.5 12.5 19.5 14 L 19.5 16 Z" fill={color} stroke={stroke} strokeWidth="0.7" strokeLinejoin="round"/>
+      <circle cx="9.3" cy="16.5" r="1.5" fill="#0B1B2B"/>
+      <circle cx="16.7" cy="16.5" r="1.5" fill="#0B1B2B"/>
+      <circle cx="9.3" cy="16.5" r="0.5" fill={color}/>
+      <circle cx="16.7" cy="16.5" r="0.5" fill={color}/>
+    </g>
+  );
   return null;
 }
 
@@ -109,6 +135,17 @@ export function pinSvgString(cat: CategoryId): string {
       <path d="M 8 13 L 8 16.5 Q 13 19 18 16.5 L 18 13" fill="${color}" stroke="${stroke}" stroke-width="0.7"/>
       <line x1="22" y1="11" x2="22" y2="14" stroke="${stroke}" stroke-width="0.7"/>
       <circle cx="22" cy="14.4" r="0.7" fill="${stroke}"/>` :
+    cat === 'vodoinstalater' ? `
+      <path d="M 9 6 L 11 6 L 11 9 L 15 9 L 15 6 L 17 6 L 17 12 L 13.8 12 L 13.8 18 L 12.2 18 L 12.2 12 L 9 12 Z" fill="${color}" stroke="${stroke}" stroke-width="0.7"/>
+      <circle cx="13" cy="19" r="1.4" fill="${color}" stroke="${stroke}" stroke-width="0.6"/>` :
+    cat === 'elektricar' ? `
+      <path d="M 14 6 L 9 14 L 12.5 14 L 11.5 19 L 17 11 L 13.5 11 Z" fill="${color}" stroke="${stroke}" stroke-width="0.7"/>` :
+    cat === 'automehanicar' ? `
+      <path d="M 6.5 16 L 6.5 14 Q 6.5 12.5 8 12.2 L 9.2 10 Q 9.7 9 11 9 L 15 9 Q 16.3 9 16.8 10 L 18 12.2 Q 19.5 12.5 19.5 14 L 19.5 16 Z" fill="${color}" stroke="${stroke}" stroke-width="0.7"/>
+      <circle cx="9.3" cy="16.5" r="1.5" fill="#0B1B2B"/>
+      <circle cx="16.7" cy="16.5" r="1.5" fill="#0B1B2B"/>
+      <circle cx="9.3" cy="16.5" r="0.5" fill="${color}"/>
+      <circle cx="16.7" cy="16.5" r="0.5" fill="${color}"/>` :
     '';
 
   return `

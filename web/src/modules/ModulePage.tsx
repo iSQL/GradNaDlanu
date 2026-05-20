@@ -7,6 +7,7 @@ import type {
   HotelContent,
   LandmarkContent,
   LocationWithContent,
+  MajstorContent,
   PublicContent,
   SchoolContent,
 } from '../types';
@@ -15,6 +16,7 @@ import { PublicModule } from './PublicModule';
 import { LandmarkModule } from './LandmarkModule';
 import { HotelModule } from './HotelModule';
 import { SchoolModule } from './SchoolModule';
+import { MajstorModule } from './MajstorModule';
 import { EmptyContent, isEmptyContent } from './EmptyContent';
 import { SocialActions } from '../components/SocialActions';
 import { CommentsSection } from '../components/CommentsSection';
@@ -64,11 +66,14 @@ export function ModulePage() {
 
   let module: React.ReactNode = null;
   switch (data.catId) {
-    case 'cafe':     module = <CafeModule     loc={data} content={data.content as CafeContent} />; break;
-    case 'public':   module = <PublicModule   loc={data} content={data.content as PublicContent} />; break;
-    case 'landmark': module = <LandmarkModule loc={data} content={data.content as LandmarkContent} />; break;
-    case 'hotel':    module = <HotelModule    loc={data} content={data.content as HotelContent} />; break;
-    case 'school':   module = <SchoolModule   loc={data} content={data.content as SchoolContent} />; break;
+    case 'cafe':           module = <CafeModule     loc={data} content={data.content as CafeContent} />; break;
+    case 'public':         module = <PublicModule   loc={data} content={data.content as PublicContent} />; break;
+    case 'landmark':       module = <LandmarkModule loc={data} content={data.content as LandmarkContent} />; break;
+    case 'hotel':          module = <HotelModule    loc={data} content={data.content as HotelContent} />; break;
+    case 'school':         module = <SchoolModule   loc={data} content={data.content as SchoolContent} />; break;
+    case 'vodoinstalater':
+    case 'elektricar':
+    case 'automehanicar':  module = <MajstorModule  loc={data} content={data.content as MajstorContent} />; break;
   }
 
   return (

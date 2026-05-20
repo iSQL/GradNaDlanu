@@ -2,6 +2,15 @@
 
 Roadmap of things worth building once v2 is settled. Ranked by user-perceived value.
 
+## Deploy note: majstori + service requests
+
+The tradesperson directory + repair-request feature uses local-disk photo uploads via `@fastify/multipart`. **Before deploying to Coolify**:
+
+1. In Coolify's app config, add a **Persistent Storage** mount pointing the container path `/data/uploads` to a persistent volume. Without this, every container rebuild wipes uploaded photos.
+2. The default `UPLOAD_DIR` env in [docker-compose.yml](docker-compose.yml) is `/data/uploads` — only change it if your persistent mount lives elsewhere.
+3. `RUN_MIGRATIONS_ON_BOOT=true` (already the prod default) will add the new `media` and `service_requests` tables automatically.
+4. For a fresh deploy you can flip `RUN_SEED_ON_BOOT=true` once to seed the three starter majstori (vodoinstalater Marko, elektro Stojan, auto-servis Žika), then turn it off.
+
 ## 1. Image uploads (recommended next)
 
 Every module currently shows ASCII placeholders (`[ recepcija ]`, `[ soba ]`, etc.). One real photo per location + a module gallery is the single biggest perceived-quality jump.

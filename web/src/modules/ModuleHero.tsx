@@ -9,6 +9,9 @@ const COLORS: Record<string, string> = {
   landmark: '#C9A961',
   hotel: '#6B8E5A',
   school: '#8B4A88',
+  vodoinstalater: '#3B82F6',
+  elektricar: '#F59E0B',
+  automehanicar: '#EF4444',
 };
 
 interface Props {

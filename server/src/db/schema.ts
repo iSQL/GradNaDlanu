@@ -134,6 +134,38 @@ export const reservations = pgTable('reservations', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const media = pgTable('media', {
+  id: serial('id').primaryKey(),
+  ownerUserId: integer('owner_user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  mimeType: text('mime_type').notNull(),
+  sizeBytes: integer('size_bytes').notNull(),
+  kind: text('kind').notNull(),
+  storagePath: text('storage_path').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const serviceRequests = pgTable('service_requests', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  locationId: integer('location_id')
+    .references(() => locations.id, { onDelete: 'cascade' })
+    .notNull(),
+  payload: jsonb('payload').notNull(),
+  quote: jsonb('quote'),
+  status: text('status', {
+    enum: ['pending', 'quoted', 'accepted', 'declined', 'cancelled', 'completed'],
+  })
+    .default('pending')
+    .notNull(),
+  decidedByOwnerId: integer('decided_by_owner_id').references(() => users.id),
+  decidedAt: timestamp('decided_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export type Category = typeof categories.$inferSelect;
 export type Location = typeof locations.$inferSelect;
 export type ModuleContentRow = typeof moduleContent.$inferSelect;
@@ -145,4 +177,7 @@ export type Checkin = typeof checkins.$inferSelect;
 export type Reservation = typeof reservations.$inferSelect;
 export type ReservationStatus = Reservation['status'];
 export type ObjectMap = typeof objectMaps.$inferSelect;
+export type Media = typeof media.$inferSelect;
+export type ServiceRequest = typeof serviceRequests.$inferSelect;
+export type ServiceRequestStatus = ServiceRequest['status'];
 export type Role = User['role'];

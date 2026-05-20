@@ -2,11 +2,14 @@
 // Add more by editing this file and running `npm run db:reset`.
 
 export const CATEGORIES = [
-  { id: 'cafe',     label: 'Kafići i restorani', short: 'Kafići',       color: '#B5532A' },
-  { id: 'public',   label: 'Javne službe',        short: 'Javne službe', color: '#1E3A5F' },
-  { id: 'landmark', label: 'Znamenitosti',        short: 'Znamenitosti', color: '#C9A961' },
-  { id: 'hotel',    label: 'Smeštaj',             short: 'Smeštaj',      color: '#6B8E5A' },
-  { id: 'school',   label: 'Obrazovanje',         short: 'Obrazovanje',  color: '#8B4A88' },
+  { id: 'cafe',           label: 'Kafići i restorani',  short: 'Kafići',         color: '#B5532A' },
+  { id: 'public',         label: 'Javne službe',         short: 'Javne službe',   color: '#1E3A5F' },
+  { id: 'landmark',       label: 'Znamenitosti',         short: 'Znamenitosti',   color: '#C9A961' },
+  { id: 'hotel',          label: 'Smeštaj',              short: 'Smeštaj',        color: '#6B8E5A' },
+  { id: 'school',         label: 'Obrazovanje',          short: 'Obrazovanje',    color: '#8B4A88' },
+  { id: 'vodoinstalater', label: 'Vodoinstalateri',      short: 'Vodoinst.',      color: '#3B82F6' },
+  { id: 'elektricar',     label: 'Električari',          short: 'Električ.',      color: '#F59E0B' },
+  { id: 'automehanicar',  label: 'Automehaničari',       short: 'Auto-mehan.',    color: '#EF4444' },
 ] as const;
 
 export type CategoryId = (typeof CATEGORIES)[number]['id'];
@@ -22,11 +25,14 @@ export interface SeedLocation {
 }
 
 export const LOCATIONS: SeedLocation[] = [
-  { slug: 'kafana-stara-vodenica', catId: 'cafe',     name: 'Stara Vodenica',     subtitle: 'Restoran · domaća kuhinja',  address: 'Karađorđeva 14', lat: 44.3563, lng: 21.2168 },
-  { slug: 'opstina',               catId: 'public',   name: 'Opština Žabari',     subtitle: 'Gradska uprava',             address: 'Karađorđeva 1',  lat: 44.3568, lng: 21.2160 },
-  { slug: 'crkva-sv-arhandjel',    catId: 'landmark', name: 'Crkva Sv. Arhanđela', subtitle: 'Pravoslavna crkva, XIX vek', address: 'Crkveni trg',    lat: 44.3580, lng: 21.2162 },
-  { slug: 'hotel-morava',          catId: 'hotel',    name: 'Hotel Morava',        subtitle: 'Smeštaj · 24 sobe',          address: 'Karađorđeva 30', lat: 44.3576, lng: 21.2185 },
-  { slug: 'os-dositej',            catId: 'school',   name: 'OŠ "Dositej Obradović"', subtitle: 'Osnovna škola',          address: 'Đure Jakšića 2', lat: 44.3574, lng: 21.2152 },
+  { slug: 'kafana-stara-vodenica', catId: 'cafe',           name: 'Stara Vodenica',          subtitle: 'Restoran · domaća kuhinja',   address: 'Karađorđeva 14', lat: 44.3563, lng: 21.2168 },
+  { slug: 'opstina',               catId: 'public',         name: 'Opština Žabari',          subtitle: 'Gradska uprava',              address: 'Karađorđeva 1',  lat: 44.3568, lng: 21.2160 },
+  { slug: 'crkva-sv-arhandjel',    catId: 'landmark',       name: 'Crkva Sv. Arhanđela',     subtitle: 'Pravoslavna crkva, XIX vek',  address: 'Crkveni trg',    lat: 44.3580, lng: 21.2162 },
+  { slug: 'hotel-morava',          catId: 'hotel',          name: 'Hotel Morava',            subtitle: 'Smeštaj · 24 sobe',           address: 'Karađorđeva 30', lat: 44.3576, lng: 21.2185 },
+  { slug: 'os-dositej',            catId: 'school',         name: 'OŠ "Dositej Obradović"',  subtitle: 'Osnovna škola',               address: 'Đure Jakšića 2', lat: 44.3574, lng: 21.2152 },
+  { slug: 'vodoinstalater-marko',  catId: 'vodoinstalater', name: 'Vodoinstalater Marko',    subtitle: 'Vodovod i kanalizacija',      address: 'Vojvode Mišića 7', lat: 44.3559, lng: 21.2175 },
+  { slug: 'elektro-stojan',        catId: 'elektricar',     name: 'Elektro Stojan',          subtitle: 'Elektroinstalacije i servis', address: 'Cara Lazara 12',  lat: 44.3571, lng: 21.2148 },
+  { slug: 'auto-servis-zika',      catId: 'automehanicar',  name: 'Auto-servis Žika',        subtitle: 'Mehanika i dijagnostika',     address: 'Industrijska 4',  lat: 44.3554, lng: 21.2192 },
 ];
 
 // Module content keyed by slug.
@@ -133,6 +139,63 @@ export const SCHOOL_BY_SLUG = {
   },
 };
 
+export const MAJSTOR_BY_SLUG = {
+  'vodoinstalater-marko': {
+    tagline: 'Vodoinstalaterske usluge — popravke, ugradnja i hitne intervencije.',
+    contact: { phone: '+381 63 123 4567', address: 'Vojvode Mišića 7' },
+    hours: [
+      { day: 'Ponedeljak — Petak', hours: '08 — 17' },
+      { day: 'Subota',              hours: '09 — 13' },
+      { day: 'Nedelja',             hours: 'po pozivu (hitne intervencije)' },
+    ],
+    services: [
+      'Popravka bojlera i grejača vode',
+      'Zamena cevi i ventila',
+      'Otpušavanje sudopere i kupatila',
+      'Ugradnja sanitarija (WC šolja, lavabo, tuš)',
+      'Renoviranje kupatila',
+      'Hitne intervencije 24/7',
+    ],
+    note: 'Iskustvo 15+ godina, koriste se proverene Geberit, Grohe i lokalne komponente.',
+  },
+  'elektro-stojan': {
+    tagline: 'Električarske usluge — kućne instalacije, servis bele tehnike, hitne popravke.',
+    contact: { phone: '+381 64 987 6543', address: 'Cara Lazara 12' },
+    hours: [
+      { day: 'Ponedeljak — Petak', hours: '08 — 18' },
+      { day: 'Subota',              hours: '09 — 14' },
+      { day: 'Nedelja',             hours: 'zatvoreno' },
+    ],
+    services: [
+      'Postavljanje i popravka električnih instalacija',
+      'Servis bele tehnike (frižider, veš mašina, šporet)',
+      'Ugradnja osvetljenja i LED rasvete',
+      'Zamena osigurača i razvodnih ormana',
+      'Pregled instalacija i atest',
+      'Hitne intervencije',
+    ],
+    note: 'Atestiran električar, garancija na ugrađene komponente 12 meseci.',
+  },
+  'auto-servis-zika': {
+    tagline: 'Automehaničarska radnja — mehanika, dijagnostika, sezonske provere.',
+    contact: { phone: '+381 65 222 3344', address: 'Industrijska 4' },
+    hours: [
+      { day: 'Ponedeljak — Petak', hours: '07 — 18' },
+      { day: 'Subota',              hours: '08 — 13' },
+      { day: 'Nedelja',             hours: 'zatvoreno' },
+    ],
+    services: [
+      'Kompjuterska dijagnostika OBD2',
+      'Zamena ulja i filtera',
+      'Servis kočnica i diskova',
+      'Zamena pločica, akumulatora i guma',
+      'Sezonske provere (klima, hladnjak, zimska oprema)',
+      'Pripreme za tehnički pregled',
+    ],
+    note: 'Specijalizacija za VW grupu i francuske marke — Renault, Peugeot, Citroën.',
+  },
+};
+
 /** Build the per-location module content blob for the DB. */
 export function buildModuleContent(slug: string, catId: CategoryId): unknown {
   if (catId === 'cafe') {
@@ -148,5 +211,8 @@ export function buildModuleContent(slug: string, catId: CategoryId): unknown {
   if (catId === 'hotel')    return (HOTEL_BY_SLUG as Record<string, unknown>)[slug] ?? {};
   if (catId === 'landmark') return (LANDMARK_BY_SLUG as Record<string, unknown>)[slug] ?? {};
   if (catId === 'school')   return (SCHOOL_BY_SLUG as Record<string, unknown>)[slug] ?? {};
+  if (catId === 'vodoinstalater' || catId === 'elektricar' || catId === 'automehanicar') {
+    return (MAJSTOR_BY_SLUG as Record<string, unknown>)[slug] ?? {};
+  }
   return {};
 }

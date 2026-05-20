@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
+import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import { env } from './env.js';
 import { categoriesRoutes } from './routes/categories.js';
@@ -14,6 +15,8 @@ import { reservationsRoutes } from './routes/reservations.js';
 import { ownerRoutes } from './routes/owner.js';
 import { adminUsersRoutes } from './routes/admin-users.js';
 import { objectMapsRoutes } from './routes/object-maps.js';
+import { mediaRoutes } from './routes/media.js';
+import { serviceRequestsRoutes } from './routes/service-requests.js';
 import { runMigrations } from './db/migrate.js';
 import { runSeed } from './db/seed.js';
 
@@ -45,6 +48,7 @@ async function main() {
 
   await app.register(cors, { origin: env.corsOrigin, credentials: true });
   await app.register(jwt, { secret: env.jwtSecret });
+  await app.register(multipart, { limits: { fileSize: 5 * 1024 * 1024, files: 1 } });
 
   app.get('/api/health', async () => ({ ok: true }));
 
@@ -56,6 +60,8 @@ async function main() {
   await app.register(ownerRoutes);
   await app.register(adminUsersRoutes);
   await app.register(objectMapsRoutes);
+  await app.register(mediaRoutes);
+  await app.register(serviceRequestsRoutes);
 
   // Static asset serving — production. In dev, the Vite dev server handles this on :5173
   // and proxies /api/* to us, so the directory simply won't exist and we skip registration.

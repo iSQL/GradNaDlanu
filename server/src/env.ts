@@ -31,4 +31,6 @@ export const env = {
   // workflows (`npm run dev`) keep using the explicit `npm run db:migrate` path.
   runMigrationsOnBoot: bool('RUN_MIGRATIONS_ON_BOOT', process.env.NODE_ENV === 'production'),
   runSeedOnBoot: bool('RUN_SEED_ON_BOOT', false),
+  uploadDir: process.env.UPLOAD_DIR
+    ?? (process.env.NODE_ENV === 'production' ? '/data/uploads' : './uploads'),
 };

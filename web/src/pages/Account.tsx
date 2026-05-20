@@ -1,13 +1,28 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import type { AppContext } from '../App';
-import { api } from '../lib/api';
+import { api, mediaUrl } from '../lib/api';
 import { clearToken } from '../lib/auth';
 import { PinGlyph } from '../components/PinGlyph';
 import { IconStar } from '../components/Icons';
-import type { FavoriteRow, MyComment, MyReservation } from '../types';
+import type {
+  FavoriteRow,
+  MyComment,
+  MyReservation,
+  MyServiceRequest,
+  ServiceRequestStatus,
+} from '../types';
 
-type Tab = 'favorites' | 'comments' | 'reservations';
+type Tab = 'favorites' | 'comments' | 'reservations' | 'service-requests';
+
+const SR_STATUS_LABELS: Record<ServiceRequestStatus, string> = {
+  pending: 'na čekanju',
+  quoted: 'stigla ponuda',
+  accepted: 'prihvaćeno',
+  declined: 'odbijeno',
+  cancelled: 'otkazano',
+  completed: 'završeno',
+};
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('sr-RS', {
@@ -44,6 +59,7 @@ export function Account() {
   const [favorites, setFavorites] = useState<FavoriteRow[] | null>(null);
   const [comments, setComments] = useState<MyComment[] | null>(null);
   const [reservations, setReservations] = useState<MyReservation[] | null>(null);
+  const [serviceRequests, setServiceRequests] = useState<MyServiceRequest[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -51,6 +67,7 @@ export function Account() {
     api.myFavorites().then(setFavorites).catch((e: Error) => setError(e.message));
     api.myComments().then(setComments).catch((e: Error) => setError(e.message));
     api.myReservations().then(setReservations).catch((e: Error) => setError(e.message));
+    api.myServiceRequests().then(setServiceRequests).catch((e: Error) => setError(e.message));
   }, [ctx.currentUser]);
 
   const cancelReservation = async (id: number) => {
@@ -58,6 +75,26 @@ export function Account() {
     await api.cancelReservation(id);
     const next = await api.myReservations();
     setReservations(next);
+  };
+
+  const acceptServiceRequest = async (id: number) => {
+    if (!window.confirm('Prihvatiti ovu ponudu?')) return;
+    try {
+      await api.acceptServiceRequest(id);
+      setServiceRequests(await api.myServiceRequests());
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const cancelServiceRequest = async (id: number) => {
+    if (!window.confirm('Otkazati ovaj zahtev?')) return;
+    try {
+      await api.cancelServiceRequest(id);
+      setServiceRequests(await api.myServiceRequests());
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
   };
 
   if (!ctx.currentUser) {
@@ -105,6 +142,9 @@ export function Account() {
           </button>
           <button className={`account-tab ${tab === 'reservations' ? 'active' : ''}`} onClick={() => setTab('reservations')}>
             Rezervacije {reservations && `· ${reservations.length}`}
+          </button>
+          <button className={`account-tab ${tab === 'service-requests' ? 'active' : ''}`} onClick={() => setTab('service-requests')}>
+            Moji zahtevi {serviceRequests && `· ${serviceRequests.length}`}
           </button>
         </div>
 
@@ -180,6 +220,60 @@ export function Account() {
                   {(r.status === 'pending' || r.status === 'approved') && (
                     <div className="reservation-actions">
                       <button className="row-action danger" onClick={() => cancelReservation(r.id)}>Otkaži</button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {tab === 'service-requests' && (
+          <div className="account-comments">
+            {serviceRequests === null ? (
+              <div className="comments-empty">Učitavanje…</div>
+            ) : serviceRequests.length === 0 ? (
+              <div className="comments-empty">Niste još poslali nijedan zahtev majstoru.</div>
+            ) : (
+              serviceRequests.map((r) => (
+                <div className={`service-request-card status-${r.status}`} key={r.id}>
+                  <div className="service-request-head">
+                    <div>
+                      <Link to={`/objekat/${r.locationSlug}`} className="comment-loc">{r.locationName}</Link>
+                      <div className="favorite-meta">zahtev #{r.id} · poslato {formatDate(r.createdAt)}</div>
+                    </div>
+                    <div className={`reservation-status status-${r.status}`}>{SR_STATUS_LABELS[r.status]}</div>
+                  </div>
+
+                  <div className="service-request-body">{r.payload.description}</div>
+
+                  {r.payload.photoIds.length > 0 && (
+                    <div className="service-request-thumbs">
+                      {r.payload.photoIds.map((id) => (
+                        <a key={id} href={mediaUrl(id)} target="_blank" rel="noreferrer">
+                          <img src={mediaUrl(id)} alt={`photo-${id}`} />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
+                  {r.quote && (
+                    <div className="service-request-quote">
+                      <div className="favorite-meta">Ponuda majstora:</div>
+                      <div><strong>{r.quote.priceRsd.toLocaleString('sr-RS')} RSD</strong> · termin {r.quote.availableDate}</div>
+                      {r.quote.note && <div className="favorite-meta">{r.quote.note}</div>}
+                    </div>
+                  )}
+
+                  {r.status === 'pending' && (
+                    <div className="reservation-actions">
+                      <button className="row-action danger" onClick={() => cancelServiceRequest(r.id)}>Otkaži zahtev</button>
+                    </div>
+                  )}
+                  {r.status === 'quoted' && (
+                    <div className="reservation-actions">
+                      <button className="row-action" onClick={() => acceptServiceRequest(r.id)}>Prihvati ponudu</button>
+                      <button className="row-action danger" onClick={() => cancelServiceRequest(r.id)}>Otkaži zahtev</button>
                     </div>
                   )}
                 </div>
