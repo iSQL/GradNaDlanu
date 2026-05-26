@@ -197,6 +197,73 @@ export const MAJSTOR_BY_SLUG = {
 };
 
 /** Build the per-location module content blob for the DB. */
+export interface SeedEvent {
+  slug: string;
+  title: string;
+  description?: string;
+  startsAt: string;
+  endsAt?: string;
+}
+
+// Sample upcoming events shipped with the seed so the Pregled panel and module
+// calendars have visible content out of the box. Dates are deliberately a few
+// months out from the seed date; if you re-seed in late 2026+ you should
+// refresh these or accept that includePast=1 is required to see them.
+export const EVENTS: SeedEvent[] = [
+  {
+    slug: 'os-dositej',
+    title: 'Otvoreni dan za buduće đake',
+    description: 'Roditelji i deca mogu da pogledaju učionice i razgovaraju sa nastavnicima.',
+    startsAt: '2026-06-08T08:00:00Z',
+    endsAt:   '2026-06-08T11:00:00Z',
+  },
+  {
+    slug: 'os-dositej',
+    title: 'Roditeljski sastanak (5—8 razred)',
+    startsAt: '2026-06-15T16:00:00Z',
+    endsAt:   '2026-06-15T18:00:00Z',
+  },
+  {
+    slug: 'os-dositej',
+    title: 'Završna priredba i izložba',
+    description: 'Predstava đaka i izložba radova iz likovne i muzičke sekcije.',
+    startsAt: '2026-06-22T15:30:00Z',
+  },
+  {
+    slug: 'os-dositej',
+    title: 'Svečana predaja svedočanstava',
+    startsAt: '2026-06-29T09:00:00Z',
+  },
+  {
+    slug: 'opstina',
+    title: 'Javna rasprava: budžet za 2027.',
+    description: 'Otvorena rasprava o predlogu lokalnog budžeta — sala opštine.',
+    startsAt: '2026-06-12T16:00:00Z',
+    endsAt:   '2026-06-12T18:00:00Z',
+  },
+  {
+    slug: 'opstina',
+    title: 'Plansko isključenje vode',
+    description: 'Centralni deo Žabara — radovi na vodovodnoj mreži.',
+    startsAt: '2026-06-04T06:00:00Z',
+    endsAt:   '2026-06-04T14:00:00Z',
+  },
+  {
+    slug: 'crkva-sv-arhandjel',
+    title: 'Hramska slava — Sv. Arhanđel Mihailo',
+    description: 'Liturgija i osvećenje slavskog kolača.',
+    startsAt: '2026-06-21T08:00:00Z',
+    endsAt:   '2026-06-21T11:00:00Z',
+  },
+  {
+    slug: 'kafana-stara-vodenica',
+    title: 'Letnja muzička večer',
+    description: 'Akustična svirka pred baštom, ulaz besplatan.',
+    startsAt: '2026-06-14T19:00:00Z',
+    endsAt:   '2026-06-14T23:00:00Z',
+  },
+];
+
 export function buildModuleContent(slug: string, catId: CategoryId): unknown {
   if (catId === 'cafe') {
     const o = CAFE_OVERRIDES[slug] ?? {};

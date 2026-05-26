@@ -3,6 +3,7 @@ import { Link, useOutletContext } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { api } from '../lib/api';
 import type { Location, RecentComment } from '../types';
+import { EventsPanel } from './EventsPanel';
 import { IconStar } from './Icons';
 import { PinGlyph } from './PinGlyph';
 
@@ -72,6 +73,8 @@ export function HomeDashboard() {
             {cat ? <> · kategorija <strong>{cat}</strong></> : null}
           </p>
         </header>
+
+        <EventsPanel cat={cat} limit={10} />
 
         <section className="home-section">
           <div className="home-section-head">

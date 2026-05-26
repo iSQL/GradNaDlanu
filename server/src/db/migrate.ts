@@ -30,9 +30,11 @@ const statements = [
     password_hash     TEXT NOT NULL,
     display_name      TEXT NOT NULL,
     role              TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin','business','user')),
+    token_version     INTEGER NOT NULL DEFAULT 0,
     created_at        TIMESTAMP NOT NULL DEFAULT NOW(),
     email_verified_at TIMESTAMP
   )`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0`,
   `CREATE TABLE IF NOT EXISTS object_owners (
     user_id              INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     location_id          INTEGER NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
@@ -87,6 +89,18 @@ const statements = [
     storage_path   TEXT NOT NULL,
     created_at     TIMESTAMP NOT NULL DEFAULT NOW()
   )`,
+  `CREATE TABLE IF NOT EXISTS events (
+    id                   SERIAL PRIMARY KEY,
+    location_id          INTEGER NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+    title                TEXT NOT NULL,
+    description          TEXT,
+    starts_at            TIMESTAMPTZ NOT NULL,
+    ends_at              TIMESTAMPTZ,
+    status               TEXT NOT NULL DEFAULT 'published'
+      CHECK (status IN ('published','cancelled')),
+    created_by_user_id   INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at           TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
   `CREATE TABLE IF NOT EXISTS service_requests (
     id                   SERIAL PRIMARY KEY,
     user_id              INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -113,6 +127,8 @@ const statements = [
   `CREATE INDEX IF NOT EXISTS reservations_loc_status_idx ON reservations(location_id, status)`,
   `CREATE INDEX IF NOT EXISTS reservations_user_created_idx ON reservations(user_id, created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS media_owner_idx ON media(owner_user_id)`,
+  `CREATE INDEX IF NOT EXISTS events_loc_starts_idx ON events(location_id, starts_at)`,
+  `CREATE INDEX IF NOT EXISTS events_status_starts_idx ON events(status, starts_at)`,
   `CREATE INDEX IF NOT EXISTS service_requests_loc_status_idx ON service_requests(location_id, status)`,
   `CREATE INDEX IF NOT EXISTS service_requests_user_created_idx ON service_requests(user_id, created_at DESC)`,
   // One-shot mirror: copy any v1 admin_users rows into users with role='admin'.

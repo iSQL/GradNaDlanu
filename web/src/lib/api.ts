@@ -2,10 +2,13 @@ import type {
   AdminUserRow,
   AvailabilityRow,
   Category,
+  CityEvent,
   CommentNode,
+  EventStatus,
   FavoriteRow,
   FloorPlanLayout,
   Location,
+  LocationEvent,
   LocationWithContent,
   MyComment,
   MyReservation,
@@ -272,4 +275,43 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ status: 'completed' }),
     }),
+
+  // Events
+  listEvents: (params: { cat?: string; limit?: number; includePast?: boolean } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.cat) qs.set('cat', params.cat);
+    if (params.limit !== undefined) qs.set('limit', String(params.limit));
+    if (params.includePast) qs.set('includePast', '1');
+    const s = qs.toString();
+    return request<CityEvent[]>(`/api/events${s ? `?${s}` : ''}`);
+  },
+  listLocationEvents: (slug: string, params: { includePast?: boolean } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.includePast) qs.set('includePast', '1');
+    const s = qs.toString();
+    return request<LocationEvent[]>(`/api/locations/${slug}/events${s ? `?${s}` : ''}`);
+  },
+  ownerListEvents: (params: { locationId?: number; includePast?: boolean } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.locationId !== undefined) qs.set('locationId', String(params.locationId));
+    if (params.includePast) qs.set('includePast', '1');
+    const s = qs.toString();
+    return request<CityEvent[]>(`/api/owner/events${s ? `?${s}` : ''}`);
+  },
+  ownerCreateEvent: (body: {
+    locationId: number;
+    title: string;
+    description?: string | null;
+    startsAt: string;
+    endsAt?: string | null;
+    status?: EventStatus;
+  }) =>
+    request<CityEvent>('/api/owner/events', { method: 'POST', body: JSON.stringify(body) }),
+  ownerUpdateEvent: (
+    id: number,
+    body: Partial<{ title: string; description: string | null; startsAt: string; endsAt: string | null; status: EventStatus }>,
+  ) =>
+    request<CityEvent>(`/api/owner/events/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  ownerDeleteEvent: (id: number) =>
+    request<{ ok: true }>(`/api/owner/events/${id}`, { method: 'DELETE' }),
 };

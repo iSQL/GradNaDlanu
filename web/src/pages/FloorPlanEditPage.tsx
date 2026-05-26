@@ -3,6 +3,7 @@ import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { api } from '../lib/api';
 import { FloorPlanEditor } from '../components/floorplan/FloorPlanEditor';
+import { defaultLayoutFor } from '../components/floorplan/defaults';
 import type { FloorPlanLayout, Location } from '../types';
 
 const EMPTY_LAYOUT: FloorPlanLayout = { width: 600, height: 400, items: [] };
@@ -106,11 +107,30 @@ export function FloorPlanEditPage() {
     setConflicts(null);
   };
 
+  const defaultLayout = defaultLayoutFor(loc.catId);
+
+  const loadDefault = () => {
+    if (!defaultLayout) return;
+    if (!window.confirm('Učitati podrazumevani plan? Trenutni raspored će biti zamenjen (još uvek nije snimljen).')) return;
+    setLayout(defaultLayout);
+    setDirty(true);
+    setSaved(false);
+    setConflicts(null);
+  };
+
   return (
     <div className="module-page">
       <div style={{ background: 'var(--ink)', color: 'var(--paper)', padding: '24px 48px', borderBottom: '1px solid var(--line)' }}>
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-          <button className="module-back" onClick={() => navigate(`/poslovni/objekti/${loc.slug}`)} style={{ marginBottom: 8 }}>
+          <button
+            className="module-back"
+            onClick={() => navigate(
+              ctx.currentUser?.role === 'admin'
+                ? `/admin/objekat/${loc.slug}`
+                : `/poslovni/objekti/${loc.slug}`,
+            )}
+            style={{ marginBottom: 8 }}
+          >
             ← Nazad na uređivanje objekta
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, justifyContent: 'space-between' }}>
@@ -121,6 +141,11 @@ export function FloorPlanEditPage() {
               </h1>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
+              {defaultLayout && (
+                <button className="nav-btn" disabled={busy} onClick={loadDefault} title="Učitaj podrazumevani raspored za ovu kategoriju">
+                  Podrazumevani
+                </button>
+              )}
               <button className="nav-btn" disabled={!dirty || busy} onClick={reset}>Odbaci</button>
               <button className="btn-primary" style={{ width: 'auto', padding: '10px 20px' }} disabled={!dirty || busy} onClick={save}>
                 {busy ? 'Čuvanje…' : 'Sačuvaj plan'}

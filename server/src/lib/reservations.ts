@@ -78,22 +78,46 @@ export async function findHotelConflicts(
   return rows.map((r) => r.id);
 }
 
+const PAST_TOLERANCE_MS = 5 * 60 * 1000;
+const MAX_CAFE_DURATION_MS = 8 * 60 * 60 * 1000;
+const MAX_HOTEL_DURATION_DAYS = 90;
+const MAX_LEAD_TIME_MS = 365 * 24 * 60 * 60 * 1000;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export function isDateOnly(s: string): boolean {
+  return DATE_ONLY_RE.test(s);
+}
+
 export function validateCafePayload(p: unknown): { ok: true; payload: CafePayload } | { ok: false; error: string } {
   if (!isCafePayload(p)) return { ok: false, error: 'invalid cafe payload (need tableId, slotStart, slotEnd, guests)' };
   const start = Date.parse(p.slotStart);
   const end = Date.parse(p.slotEnd);
   if (Number.isNaN(start) || Number.isNaN(end)) return { ok: false, error: 'slotStart/slotEnd must be ISO timestamps' };
   if (end <= start) return { ok: false, error: 'slotEnd must be after slotStart' };
+  const now = Date.now();
+  if (start < now - PAST_TOLERANCE_MS) return { ok: false, error: 'slotStart is in the past' };
+  if (start > now + MAX_LEAD_TIME_MS) return { ok: false, error: 'slotStart is more than a year out' };
+  if (end - start > MAX_CAFE_DURATION_MS) return { ok: false, error: 'reservation longer than 8 hours' };
+  if (p.tableId.length === 0 || p.tableId.length > 64) return { ok: false, error: 'tableId length out of range' };
   if (p.guests < 1 || p.guests > 20) return { ok: false, error: 'guests must be 1..20' };
   return { ok: true, payload: p };
 }
 
 export function validateHotelPayload(p: unknown): { ok: true; payload: HotelPayload } | { ok: false; error: string } {
   if (!isHotelPayload(p)) return { ok: false, error: 'invalid hotel payload (need roomKey, dateFrom, dateTo, guests)' };
-  const from = Date.parse(p.dateFrom);
-  const to = Date.parse(p.dateTo);
+  if (!isDateOnly(p.dateFrom) || !isDateOnly(p.dateTo)) return { ok: false, error: 'dateFrom/dateTo must be YYYY-MM-DD' };
+  const from = Date.parse(p.dateFrom + 'T00:00:00Z');
+  const to = Date.parse(p.dateTo + 'T00:00:00Z');
   if (Number.isNaN(from) || Number.isNaN(to)) return { ok: false, error: 'dateFrom/dateTo must be YYYY-MM-DD' };
   if (to <= from) return { ok: false, error: 'dateTo must be after dateFrom' };
+  const now = Date.now();
+  const todayStart = Math.floor(now / MS_PER_DAY) * MS_PER_DAY;
+  if (from < todayStart) return { ok: false, error: 'dateFrom is in the past' };
+  if (from > now + MAX_LEAD_TIME_MS) return { ok: false, error: 'dateFrom is more than a year out' };
+  if ((to - from) / MS_PER_DAY > MAX_HOTEL_DURATION_DAYS) return { ok: false, error: `stay longer than ${MAX_HOTEL_DURATION_DAYS} days` };
+  if (p.roomKey.length === 0 || p.roomKey.length > 64) return { ok: false, error: 'roomKey length out of range' };
   if (p.guests < 1 || p.guests > 20) return { ok: false, error: 'guests must be 1..20' };
   return { ok: true, payload: p };
 }

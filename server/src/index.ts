@@ -3,8 +3,10 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
+import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import { env } from './env.js';
 import { categoriesRoutes } from './routes/categories.js';
@@ -16,6 +18,7 @@ import { ownerRoutes } from './routes/owner.js';
 import { adminUsersRoutes } from './routes/admin-users.js';
 import { objectMapsRoutes } from './routes/object-maps.js';
 import { mediaRoutes } from './routes/media.js';
+import { eventsRoutes } from './routes/events.js';
 import { serviceRequestsRoutes } from './routes/service-requests.js';
 import { runMigrations } from './db/migrate.js';
 import { runSeed } from './db/seed.js';
@@ -33,7 +36,7 @@ function findWebDist(): string | null {
 }
 
 async function main() {
-  const app = Fastify({ logger: true });
+  const app = Fastify({ logger: true, trustProxy: env.isProduction });
 
   if (env.runMigrationsOnBoot) {
     app.log.info('Running migrations…');
@@ -46,7 +49,51 @@ async function main() {
     app.log.info({ result }, 'Seed applied.');
   }
 
-  await app.register(cors, { origin: env.corsOrigin, credentials: true });
+  // Security headers. CSP allows the Esri tile CDNs the map needs, plus inline
+  // styles for Leaflet's marker shadow CSS and SVG-as-img tiles.
+  await app.register(helmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: [
+          "'self'",
+          'data:',
+          'blob:',
+          'https://server.arcgisonline.com',
+        ],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'", 'data:'],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        upgradeInsecureRequests: env.isProduction ? [] : null,
+      },
+    },
+    crossOriginEmbedderPolicy: false, // Esri tiles set no CORP header
+    strictTransportSecurity: env.isProduction
+      ? { maxAge: 31536000, includeSubDomains: true, preload: false }
+      : false,
+  });
+
+  // Global rate limit — cheap defense against floods. Per-route hooks below
+  // tighten this further on auth and upload endpoints.
+  await app.register(rateLimit, {
+    global: true,
+    max: 300,
+    timeWindow: '1 minute',
+  });
+
+  // CORS: in production this is `false` unless an operator explicitly opts in
+  // with a single concrete https:// origin (validated in env.ts). The SPA is
+  // served same-origin in production, so CORS shouldn't be needed at all.
+  // `credentials: true` is removed — we use Bearer tokens, not cookies.
+  if (env.corsOrigin !== false) {
+    await app.register(cors, { origin: env.corsOrigin });
+  }
+
   await app.register(jwt, { secret: env.jwtSecret });
   await app.register(multipart, { limits: { fileSize: 5 * 1024 * 1024, files: 1 } });
 
@@ -61,6 +108,7 @@ async function main() {
   await app.register(adminUsersRoutes);
   await app.register(objectMapsRoutes);
   await app.register(mediaRoutes);
+  await app.register(eventsRoutes);
   await app.register(serviceRequestsRoutes);
 
   // Static asset serving — production. In dev, the Vite dev server handles this on :5173

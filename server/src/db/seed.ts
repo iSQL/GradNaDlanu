@@ -1,15 +1,17 @@
 import bcrypt from 'bcryptjs';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
+import { eq, and } from 'drizzle-orm';
 import * as schema from './schema.js';
-import { categories, locations, moduleContent, users } from './schema.js';
-import { CATEGORIES, LOCATIONS, buildModuleContent } from './seed-data.js';
+import { categories, events, locations, moduleContent, users } from './schema.js';
+import { CATEGORIES, EVENTS, LOCATIONS, buildModuleContent } from './seed-data.js';
 import { env } from '../env.js';
 
 export interface SeedResult {
   categoryCount: number;
   locationCount: number;
   moduleContentCount: number;
+  eventCount: number;
   adminInserted: boolean;
   adminEmail: string;
 }
@@ -55,7 +57,41 @@ export async function runSeed(): Promise<SeedResult> {
       modCount++;
     }
 
-    const passwordHash = await bcrypt.hash(env.adminPassword, 10);
+    // Match the cost used by the registration path (server/src/routes/auth.ts).
+    // env.ts already refuses weak/missing ADMIN_PASSWORD in production.
+    // Idempotent event seed: skip an event if one with the same (locationId, title, startsAt)
+    // already exists. No unique constraint on the table, so we look it up first.
+    let eventCount = 0;
+    for (const ev of EVENTS) {
+      const [loc] = await db
+        .select({ id: locations.id })
+        .from(locations)
+        .where(eq(locations.slug, ev.slug))
+        .limit(1);
+      if (!loc) continue;
+      const startsAt = new Date(ev.startsAt);
+      const existing = await db
+        .select({ id: events.id })
+        .from(events)
+        .where(and(
+          eq(events.locationId, loc.id),
+          eq(events.title, ev.title),
+          eq(events.startsAt, startsAt),
+        ))
+        .limit(1);
+      if (existing.length > 0) continue;
+      await db.insert(events).values({
+        locationId: loc.id,
+        title: ev.title,
+        description: ev.description ?? null,
+        startsAt,
+        endsAt: ev.endsAt ? new Date(ev.endsAt) : null,
+        status: 'published',
+      });
+      eventCount++;
+    }
+
+    const passwordHash = await bcrypt.hash(env.adminPassword, 12);
     const adminEmail = `${env.adminUsername}@local`;
     const insertedUser = await db
       .insert(users)
@@ -72,6 +108,7 @@ export async function runSeed(): Promise<SeedResult> {
       categoryCount: CATEGORIES.length,
       locationCount: locCount,
       moduleContentCount: modCount,
+      eventCount,
       adminInserted: insertedUser.length > 0,
       adminEmail,
     };
@@ -87,7 +124,7 @@ if (isCli) {
   runSeed()
     .then((r) => {
       console.log(
-        `Seeded ${r.categoryCount} categories, ${r.locationCount} locations, ${r.moduleContentCount} module_content rows, ${r.adminInserted ? 1 : 0} admin user (email: ${r.adminEmail}).`,
+        `Seeded ${r.categoryCount} categories, ${r.locationCount} locations, ${r.moduleContentCount} module_content rows, ${r.eventCount} events, ${r.adminInserted ? 1 : 0} admin user (email: ${r.adminEmail}).`,
       );
       process.exit(0);
     })

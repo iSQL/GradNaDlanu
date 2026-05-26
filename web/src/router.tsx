@@ -11,6 +11,8 @@ import { Account } from './pages/Account';
 import { OwnerDashboard } from './pages/OwnerDashboard';
 import { OwnerEditLocation } from './pages/OwnerEditLocation';
 import { FloorPlanEditPage } from './pages/FloorPlanEditPage';
+import { LegalNotice } from './pages/LegalNotice';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
 
 export const router = createBrowserRouter([
   {
@@ -21,6 +23,8 @@ export const router = createBrowserRouter([
       { path: 'objekat/:slug', element: <ModulePage /> },
       { path: 'prijava', element: <Login /> },
       { path: 'registracija', element: <Register /> },
+      { path: 'pravna-napomena', element: <LegalNotice /> },
+      { path: 'politika-privatnosti', element: <PrivacyPolicy /> },
       {
         path: 'nalog',
         element: (

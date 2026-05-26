@@ -32,12 +32,15 @@ Today, visitors only learn about approve/decline by refreshing `/nalog`. Owners 
 
 ## 3. City events calendar
 
-Žabari has festivals, market days, school programs. Currently nothing surfaces them on the map.
+Žabari has festivals, market days, school programs. Currently the Pregled tab aggregates upcoming events across all published locations and each location's module can render its own calendar — what's left below would extend the surface.
 
-- [ ] `events` table: `id`, `location_id` (nullable — some events are city-wide), `title`, `description`, `starts_at`, `ends_at`, `cat_id` nullable, `created_by`
-- [ ] Hero gains a date filter and renders date-bounded pins
-- [ ] New `/dogadjaji` route with month grid
-- [ ] Admin/owner can create events; visitors can favorite events the same way they favorite locations
+- [x] `events` table tied to `locations(id)` (no city-wide nullable variant yet)
+- [x] Owner/admin CRUD via `/api/owner/events`; public list via `/api/events` (filterable by category, cap 100)
+- [x] `EventsPanel` on home `Pregled`, calendar editor in `OwnerEditLocation`, `SchoolModule` reads events from API
+- [ ] Hero date filter + date-bounded pins
+- [ ] Dedicated `/dogadjaji` route with month grid (current Pregled panel is a 10-row list)
+- [ ] City-wide events (nullable `location_id`) for festivals / market days that don't tie to one object
+- [ ] Visitor "interested" / favorite-event action
 
 ## 4. Owner analytics
 

@@ -8,15 +8,19 @@ services:
     restart: unless-stopped
     profiles: ["dev"]
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-gradnadlanu}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gradnadlanu}
-      POSTGRES_DB: ${POSTGRES_DB:-gradnadlanu}
+      # Required — set these in .env. The compose file refuses to start the dev
+      # DB with a placeholder password to avoid shipping well-known creds.
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required in .env}
     ports:
-      - "${DB_HOST_PORT:-5433}:5432"
+      # Bound to localhost only — the bundled dev DB shouldn't be reachable
+      # from other hosts on the LAN.
+      - "127.0.0.1:${DB_HOST_PORT:-5433}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gradnadlanu} -d ${POSTGRES_DB:-gradnadlanu}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -29,10 +33,13 @@ services:
       # Production: set this in Coolify's env panel to point at the managed Postgres,
       # e.g. postgres://USER:PASS@yssskgs8o48cs08k0o48ss4s:5432/gradnadlanu
       # Dev fallback: the bundled `db` service via the internal hostname.
-      DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-gradnadlanu}:${POSTGRES_PASSWORD:-gradnadlanu}@db:5432/${POSTGRES_DB:-gradnadlanu}}
-      JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}}
+      # Fail-fast required env. Must be set in Coolify's env panel.
+      # JWT_SECRET: 32+ chars, not the .env.example placeholder (validated at boot).
+      # ADMIN_PASSWORD: required in production, 12+ chars, not a weak well-known value.
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required (12+ chars, not "admin")}
       PORT: 3000
       NODE_ENV: production
       RUN_MIGRATIONS_ON_BOOT: "true"

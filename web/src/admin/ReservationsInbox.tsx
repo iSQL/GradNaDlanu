@@ -40,7 +40,12 @@ function describePayload(r: OwnerReservation): string {
   return JSON.stringify(p);
 }
 
-export function ReservationsInbox() {
+interface Props {
+  // When set, scopes the inbox to a single location (used from per-object edit pages).
+  locationId?: number;
+}
+
+export function ReservationsInbox({ locationId }: Props = {}) {
   const [filter, setFilter] = useState<OwnerReservation['status'] | 'all'>('pending');
   const [rows, setRows] = useState<OwnerReservation[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +54,10 @@ export function ReservationsInbox() {
   const reload = async () => {
     setError(null);
     try {
-      const next = await api.ownerReservations(filter === 'all' ? {} : { status: filter });
+      const params: { status?: OwnerReservation['status']; locationId?: number } = {};
+      if (filter !== 'all') params.status = filter;
+      if (locationId !== undefined) params.locationId = locationId;
+      const next = await api.ownerReservations(params);
       setRows(next);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
@@ -59,7 +67,7 @@ export function ReservationsInbox() {
   useEffect(() => {
     reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter]);
+  }, [filter, locationId]);
 
   const decide = async (id: number, status: 'approved' | 'declined') => {
     setBusy(true);

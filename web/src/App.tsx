@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Nav } from './components/Nav';
 import { api, type CurrentUser } from './lib/api';
 import { clearToken, getToken } from './lib/auth';
@@ -111,7 +111,9 @@ export function App() {
 
       {!isAdmin && (
         <footer className="foot">
-          Grad na dlanu · Opština Žabari · {new Date().getFullYear()} ·  Pravna napomena · Politika privatnosti
+          Grad na dlanu · Opština Žabari · {new Date().getFullYear()} ·{' '}
+          <Link to="/pravna-napomena">Pravna napomena</Link> ·{' '}
+          <Link to="/politika-privatnosti">Politika privatnosti</Link>
         </footer>
       )}
     </>

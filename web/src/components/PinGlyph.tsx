@@ -105,8 +105,19 @@ function Glyph({ cat, color }: { cat: CategoryId; color: string }) {
   return null;
 }
 
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{3,8}$/;
+
+function safeColor(raw: string, fallback: string): string {
+  return HEX_COLOR_RE.test(raw) ? raw : fallback;
+}
+
 export function pinSvgString(cat: CategoryId): string {
-  const color = COLORS[cat];
+  // Defense-in-depth: pinSvgString interpolates `color` into an HTML/SVG string
+  // that Leaflet renders via L.divIcon({html}) (which uses innerHTML). The
+  // values currently flow from the static COLORS map, but a future change that
+  // makes per-category colors editable from the backend would otherwise create
+  // a stored-XSS sink. Reject anything that isn't a hex literal.
+  const color = safeColor(COLORS[cat], '#888');
   const stroke = '#0B1B2B';
   const glyph =
     cat === 'cafe' ? `

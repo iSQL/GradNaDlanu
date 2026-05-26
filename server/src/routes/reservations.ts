@@ -7,6 +7,7 @@ import { getLocationBySlug } from '../lib/locations.js';
 import {
   findCafeConflicts,
   findHotelConflicts,
+  isDateOnly,
   validateCafePayload,
   validateHotelPayload,
 } from '../lib/reservations.js';
@@ -87,9 +88,9 @@ export async function reservationsRoutes(app: FastifyInstance) {
         .from(reservations)
         .where(eq(reservations.id, id))
         .limit(1);
-      if (!row) return reply.code(404).send({ error: 'Not found' });
-      if (row.userId !== req.user.sub) return reply.code(403).send({ error: 'Forbidden' });
-      if (row.status === 'cancelled') return row;
+      // Use 404 for both "doesn't exist" and "not yours" so callers can't probe existence.
+      if (!row || row.userId !== req.user.sub) return reply.code(404).send({ error: 'Not found' });
+      if (row.status !== 'pending' && row.status !== 'approved') return row;
       const [updated] = await db
         .update(reservations)
         .set({ status: 'cancelled' })
@@ -109,6 +110,9 @@ export async function reservationsRoutes(app: FastifyInstance) {
     if (!loc) return reply.code(404).send({ error: 'Not found' });
     const { from, to } = req.query;
     if (!from || !to) return reply.code(400).send({ error: 'from and to are required' });
+    if (!isDateOnly(from) || !isDateOnly(to)) {
+      return reply.code(400).send({ error: 'from and to must be YYYY-MM-DD' });
+    }
 
     if (loc.catId === 'cafe') {
       const fromTs = `${from}T00:00:00Z`;

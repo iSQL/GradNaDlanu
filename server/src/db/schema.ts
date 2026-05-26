@@ -48,6 +48,9 @@ export const users = pgTable('users', {
   role: text('role', { enum: ['admin', 'business', 'user'] })
     .default('user')
     .notNull(),
+  // Bumped on role change / ownership revoke / forced logout so previously-issued
+  // JWTs (which carry the `tv` claim) are rejected by requireAuth.
+  tokenVersion: integer('token_version').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   emailVerifiedAt: timestamp('email_verified_at'),
 });
@@ -146,6 +149,22 @@ export const media = pgTable('media', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const events = pgTable('events', {
+  id: serial('id').primaryKey(),
+  locationId: integer('location_id')
+    .references(() => locations.id, { onDelete: 'cascade' })
+    .notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
+  endsAt: timestamp('ends_at', { withTimezone: true }),
+  status: text('status', { enum: ['published', 'cancelled'] })
+    .default('published')
+    .notNull(),
+  createdByUserId: integer('created_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const serviceRequests = pgTable('service_requests', {
   id: serial('id').primaryKey(),
   userId: integer('user_id')
@@ -178,6 +197,8 @@ export type Reservation = typeof reservations.$inferSelect;
 export type ReservationStatus = Reservation['status'];
 export type ObjectMap = typeof objectMaps.$inferSelect;
 export type Media = typeof media.$inferSelect;
+export type Event = typeof events.$inferSelect;
+export type EventStatus = Event['status'];
 export type ServiceRequest = typeof serviceRequests.$inferSelect;
 export type ServiceRequestStatus = ServiceRequest['status'];
 export type Role = User['role'];

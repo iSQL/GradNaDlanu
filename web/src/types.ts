@@ -226,6 +226,30 @@ export interface OwnerServiceRequest extends MyServiceRequest {
   userEmail: string;
 }
 
+export type EventStatus = 'published' | 'cancelled';
+
+export interface CityEvent {
+  id: number;
+  title: string;
+  description: string | null;
+  startsAt: string;
+  endsAt: string | null;
+  status: EventStatus;
+  locationId: number;
+  locationSlug: string;
+  locationName: string;
+  locationCatId: CategoryId;
+}
+
+export interface LocationEvent {
+  id: number;
+  title: string;
+  description: string | null;
+  startsAt: string;
+  endsAt: string | null;
+  status: EventStatus;
+}
+
 export const CATEGORY_LABELS: Record<CategoryId, string> = {
   cafe: 'Kafić · restoran',
   public: 'Javna služba',

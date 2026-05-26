@@ -1,13 +1,27 @@
-import type { Location, SchoolContent } from '../types';
+import { useEffect, useState } from 'react';
+import type { Location, LocationEvent, SchoolContent } from '../types';
+import { api } from '../lib/api';
 import { ModuleHero } from './ModuleHero';
 import { InfoCard } from './InfoCard';
 
-const EVENTS: [string, string, string][] = [
-  ['28. apr', 'Otvoreni dan za buduće đake', '10:00 — 13:00'],
-  ['12. maj', 'Roditeljski sastanak (5—8 razred)', '18:00'],
-  ['28. maj', 'Završna priredba i izložba', '17:30'],
-  ['10. jun', 'Svečana predaja svedočanstava', '11:00'],
-];
+const MONTHS_SR = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'avg', 'sep', 'okt', 'nov', 'dec'];
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getDate()}. ${MONTHS_SR[d.getMonth()]}`;
+}
+
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function formatRange(start: string, end: string | null): string {
+  if (!end) return formatTime(start);
+  const a = formatTime(start);
+  const b = formatTime(end);
+  return a === b ? a : `${a} — ${b}`;
+}
 
 interface Props { loc: Location; content: SchoolContent }
 
@@ -15,6 +29,16 @@ export function SchoolModule({ loc, content }: Props) {
   const facts = content.facts ?? [];
   const programs = content.programs ?? [];
   const contact = content.contact ?? { phone: '', email: '', address: loc.address };
+  const [events, setEvents] = useState<LocationEvent[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.listLocationEvents(loc.slug)
+      .then((rows) => { if (!cancelled) setEvents(rows); })
+      .catch(() => { if (!cancelled) setEvents([]); });
+    return () => { cancelled = true; };
+  }, [loc.slug]);
+
   return (
     <div className="module-page">
       <ModuleHero loc={loc} tagline={content.tagline} />
@@ -59,25 +83,42 @@ export function SchoolModule({ loc, content }: Props) {
           <div className="module-section">
             <div className="section-label">Kalendar</div>
             <h2 className="section-title">Najavljeni događaji</h2>
-            <div style={{ borderTop: '1px solid var(--line)' }}>
-              {EVENTS.map(([d, t, h], i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '70px 1fr auto',
-                    gap: 16,
-                    padding: '16px 0',
-                    borderBottom: '1px solid var(--line)',
-                    alignItems: 'baseline',
-                  }}
-                >
-                  <div style={{ fontFamily: 'Fraunces, serif', fontSize: 18, color: 'var(--gold-2)', fontWeight: 500 }}>{d}</div>
-                  <div style={{ fontSize: 14, color: 'var(--ink)' }}>{t}</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink-2)', opacity: 0.7, fontVariantNumeric: 'tabular-nums' }}>{h}</div>
-                </div>
-              ))}
-            </div>
+            {events === null ? (
+              <div style={{ fontSize: 13, color: 'var(--ink-2)', padding: '12px 0' }}>Učitavanje…</div>
+            ) : events.length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--ink-2)', padding: '12px 0' }}>
+                Trenutno nema najavljenih događaja.
+              </div>
+            ) : (
+              <div style={{ borderTop: '1px solid var(--line)' }}>
+                {events.map((ev) => (
+                  <div
+                    key={ev.id}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '70px 1fr auto',
+                      gap: 16,
+                      padding: '16px 0',
+                      borderBottom: '1px solid var(--line)',
+                      alignItems: 'baseline',
+                    }}
+                  >
+                    <div style={{ fontFamily: 'Fraunces, serif', fontSize: 18, color: 'var(--gold-2)', fontWeight: 500 }}>
+                      {formatDate(ev.startsAt)}
+                    </div>
+                    <div style={{ fontSize: 14, color: 'var(--ink)' }}>
+                      {ev.title}
+                      {ev.description && (
+                        <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 4 }}>{ev.description}</div>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-2)', opacity: 0.7, fontVariantNumeric: 'tabular-nums' }}>
+                      {formatRange(ev.startsAt, ev.endsAt)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

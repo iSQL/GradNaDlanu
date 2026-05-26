@@ -11,6 +11,7 @@ import {
   users,
 } from '../db/schema.js';
 import { requireRole } from '../lib/auth.js';
+import { validateContent } from '../lib/locations.js';
 import {
   findCafeConflicts,
   findHotelConflicts,
@@ -61,6 +62,8 @@ export async function ownerRoutes(app: FastifyInstance) {
       for (const k of ['name', 'subtitle', 'address'] as const) {
         if (locFields[k] !== undefined) allowed[k] = locFields[k];
       }
+      const contentCheck = validateContent(content);
+      if (!contentCheck.ok) return reply.code(400).send({ error: contentCheck.error });
 
       let row;
       if (Object.keys(allowed).length > 0) {

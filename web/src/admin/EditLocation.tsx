@@ -6,6 +6,8 @@ import type { Location, LocationWithContent } from '../types';
 import { LocationContentEditor } from './LocationContentEditor';
 import { defaultContentFor } from './defaults';
 import { FieldRow, TextInput } from './forms/widgets';
+import { ReservationsInbox } from './ReservationsInbox';
+import { OwnerEventsEditor } from '../components/OwnerEventsEditor';
 
 export function EditLocation() {
   const ctx = useOutletContext<AppContext>();
@@ -116,12 +118,19 @@ export function EditLocation() {
                 Uredi: {loc.name}
               </h1>
             </div>
-            <button
-              className="nav-btn"
-              onClick={() => window.open(`/objekat/${loc.slug}`, '_blank')}
-            >
-              Pregled →
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {(loc.catId === 'cafe' || loc.catId === 'hotel') && (
+                <button className="nav-btn" onClick={() => navigate(`/poslovni/objekti/${loc.slug}/mapa`)}>
+                  Plan prostora →
+                </button>
+              )}
+              <button
+                className="nav-btn"
+                onClick={() => window.open(`/objekat/${loc.slug}`, '_blank')}
+              >
+                Pregled →
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -188,6 +197,18 @@ export function EditLocation() {
             <LocationContentEditor catId={loc.catId} value={content} onChange={setContent} />
           </div>
         </div>
+
+        <div className="admin-card" style={{ marginTop: 24 }}>
+          <div className="section-label" style={{ margin: 0, marginBottom: 16 }}>Najavljeni događaji</div>
+          <OwnerEventsEditor locationId={loc.id} />
+        </div>
+
+        {(loc.catId === 'cafe' || loc.catId === 'hotel') && (
+          <div className="admin-card" style={{ marginTop: 24 }}>
+            <div className="section-label" style={{ margin: 0, marginBottom: 16 }}>Rezervacije za ovaj objekat</div>
+            <ReservationsInbox locationId={loc.id} />
+          </div>
+        )}
       </div>
     </div>
   );

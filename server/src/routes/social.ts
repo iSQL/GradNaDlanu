@@ -191,12 +191,24 @@ export async function socialRoutes(app: FastifyInstance) {
       // Replies are restricted to the object owner (or admin). Visitors create top-level only.
       if (parentId !== undefined && parentId !== null) {
         const [parent] = await db
-          .select({ locationId: comments.locationId })
+          .select({
+            locationId: comments.locationId,
+            parentId: comments.parentId,
+            status: comments.status,
+          })
           .from(comments)
           .where(eq(comments.id, parentId))
           .limit(1);
         if (!parent || parent.locationId !== loc.id) {
           return reply.code(400).send({ error: 'parentId does not belong to this location' });
+        }
+        // Only one level of nesting — the UI only renders depth-1 replies, and
+        // deeper chains would be invisible-yet-stored.
+        if (parent.parentId !== null) {
+          return reply.code(400).send({ error: 'replies cannot themselves be replied to' });
+        }
+        if (parent.status !== 'visible') {
+          return reply.code(400).send({ error: 'cannot reply to a hidden or flagged comment' });
         }
         if (req.user.role !== 'admin') {
           const [owner] = await db

@@ -5,6 +5,8 @@ import { api } from '../lib/api';
 import { LocationContentEditor } from '../admin/LocationContentEditor';
 import { defaultContentFor } from '../admin/defaults';
 import { FieldRow, TextInput } from '../admin/forms/widgets';
+import { OwnerEventsEditor } from '../components/OwnerEventsEditor';
+import { ReservationsInbox } from '../admin/ReservationsInbox';
 import type { Location, LocationWithContent } from '../types';
 
 export function OwnerEditLocation() {
@@ -128,6 +130,18 @@ export function OwnerEditLocation() {
             <LocationContentEditor catId={loc.catId} value={content} onChange={setContent} />
           </div>
         </div>
+
+        <div className="admin-card" style={{ marginTop: 24 }}>
+          <div className="section-label" style={{ margin: 0, marginBottom: 16 }}>Najavljeni događaji</div>
+          <OwnerEventsEditor locationId={loc.id} />
+        </div>
+
+        {(loc.catId === 'cafe' || loc.catId === 'hotel') && (
+          <div className="admin-card" style={{ marginTop: 24 }}>
+            <div className="section-label" style={{ margin: 0, marginBottom: 16 }}>Rezervacije za ovaj objekat</div>
+            <ReservationsInbox locationId={loc.id} />
+          </div>
+        )}
       </div>
     </div>
   );

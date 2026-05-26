@@ -1,19 +1,41 @@
 import type { FastifyInstance } from 'fastify';
-import { and, desc, eq, ilike, or } from 'drizzle-orm';
+import { and, count, desc, eq, ilike, or } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { locations, objectOwners, users } from '../db/schema.js';
-import { requireRole } from '../lib/auth.js';
+import { bumpTokenVersion, requireRole } from '../lib/auth.js';
+import { escapeLikePattern } from '../lib/locations.js';
 
 const ROLES = ['admin', 'business', 'user'] as const;
+const DEFAULT_LIMIT = 50;
+const MAX_LIMIT = 200;
+
+function clampLimit(raw: string | undefined): number {
+  if (raw === undefined) return DEFAULT_LIMIT;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 1) return DEFAULT_LIMIT;
+  return Math.min(MAX_LIMIT, Math.floor(n));
+}
+
+function clampOffset(raw: string | undefined): number {
+  if (raw === undefined) return 0;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Math.floor(n);
+}
 
 export async function adminUsersRoutes(app: FastifyInstance) {
-  app.get<{ Querystring: { q?: string } }>(
+  app.get<{ Querystring: { q?: string; limit?: string; offset?: string } }>(
     '/api/admin/users',
     { preHandler: requireRole('admin') },
-    async (req) => {
+    async (req, reply) => {
       const q = req.query.q?.trim();
+      const limit = clampLimit(req.query.limit);
+      const offset = clampOffset(req.query.offset);
       const where = q
-        ? or(ilike(users.email, `%${q}%`), ilike(users.displayName, `%${q}%`))
+        ? or(
+            ilike(users.email, `%${escapeLikePattern(q.slice(0, 80))}%`),
+            ilike(users.displayName, `%${escapeLikePattern(q.slice(0, 80))}%`),
+          )
         : undefined;
       const userRows = await db
         .select({
@@ -25,9 +47,10 @@ export async function adminUsersRoutes(app: FastifyInstance) {
         })
         .from(users)
         .where(where)
-        .orderBy(desc(users.createdAt));
+        .orderBy(desc(users.createdAt))
+        .limit(limit)
+        .offset(offset);
 
-      // Attach ownership info in a single query.
       const ownerships = await db
         .select({
           userId: objectOwners.userId,
@@ -45,6 +68,8 @@ export async function adminUsersRoutes(app: FastifyInstance) {
         byUser.set(o.userId, arr);
       }
 
+      const [{ total }] = await db.select({ total: count() }).from(users).where(where);
+      reply.header('X-Total-Count', String(total));
       return userRows.map((u) => ({ ...u, ownedLocations: byUser.get(u.id) ?? [] }));
     },
   );
@@ -55,11 +80,24 @@ export async function adminUsersRoutes(app: FastifyInstance) {
     async (req, reply) => {
       const id = Number(req.params.id);
       const patch: Record<string, unknown> = {};
-      if (req.body?.role !== undefined) {
-        if (!ROLES.includes(req.body.role as (typeof ROLES)[number])) {
+      const newRole = req.body?.role;
+      if (newRole !== undefined) {
+        if (!ROLES.includes(newRole as (typeof ROLES)[number])) {
           return reply.code(400).send({ error: 'invalid role' });
         }
-        patch.role = req.body.role;
+        // Refuse self-demotion when this would leave the system with no admin
+        // (or when an admin tries to drop their own admin role unintentionally).
+        if (id === req.user.sub && newRole !== 'admin') {
+          const [{ admins }] = await db
+            .select({ admins: count() })
+            .from(users)
+            .where(eq(users.role, 'admin'));
+          if (Number(admins) <= 1) {
+            return reply.code(400).send({ error: 'cannot demote the last remaining admin' });
+          }
+          return reply.code(400).send({ error: 'admins cannot demote themselves; ask another admin' });
+        }
+        patch.role = newRole;
       }
       if (req.body?.displayName !== undefined) patch.displayName = req.body.displayName;
       if (Object.keys(patch).length === 0) {
@@ -67,6 +105,7 @@ export async function adminUsersRoutes(app: FastifyInstance) {
       }
       const [row] = await db.update(users).set(patch).where(eq(users.id, id)).returning();
       if (!row) return reply.code(404).send({ error: 'Not found' });
+      if (newRole !== undefined) await bumpTokenVersion(id);
       return { id: row.id, email: row.email, displayName: row.displayName, role: row.role };
     },
   );
@@ -85,15 +124,17 @@ export async function adminUsersRoutes(app: FastifyInstance) {
       const [loc] = await db.select().from(locations).where(eq(locations.id, locationId)).limit(1);
       if (!loc) return reply.code(404).send({ error: 'Location not found' });
 
-      // Promote to business if currently a plain visitor — admin keeps admin.
+      let promoted = false;
       if (user.role === 'user') {
         await db.update(users).set({ role: 'business' }).where(eq(users.id, userId));
+        promoted = true;
       }
 
       await db
         .insert(objectOwners)
         .values({ userId, locationId, grantedByAdminId: req.user.sub })
         .onConflictDoNothing();
+      if (promoted) await bumpTokenVersion(userId);
       return { ok: true, userId, locationId };
     },
   );
@@ -107,6 +148,20 @@ export async function adminUsersRoutes(app: FastifyInstance) {
       await db
         .delete(objectOwners)
         .where(and(eq(objectOwners.userId, userId), eq(objectOwners.locationId, locationId)));
+
+      // If no grants remain, demote business → user so they lose business-only
+      // privileges. Admins stay admin regardless.
+      const [{ remaining }] = await db
+        .select({ remaining: count() })
+        .from(objectOwners)
+        .where(eq(objectOwners.userId, userId));
+      if (Number(remaining) === 0) {
+        await db
+          .update(users)
+          .set({ role: 'user' })
+          .where(and(eq(users.id, userId), eq(users.role, 'business')));
+      }
+      await bumpTokenVersion(userId);
       return reply.send({ ok: true });
     },
   );

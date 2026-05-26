@@ -3,7 +3,7 @@ import { and, avg, count, desc, eq, gte, ilike, sql as dsql } from 'drizzle-orm'
 import { db } from '../db/client.js';
 import { checkins, comments, favorites, locations, moduleContent } from '../db/schema.js';
 import { requireAdmin, getOptionalUser } from '../lib/auth.js';
-import { slugify } from '../lib/locations.js';
+import { escapeLikePattern, InvalidSlugError, slugify, validateContent } from '../lib/locations.js';
 
 function clampLimit(raw: string | undefined): number | undefined {
   if (raw === undefined) return undefined;
@@ -21,7 +21,10 @@ export async function locationsRoutes(app: FastifyInstance) {
       const conds = [];
       if (!includeDrafts) conds.push(eq(locations.status, 'published'));
       if (cat) conds.push(eq(locations.catId, cat));
-      if (q)   conds.push(ilike(locations.name, `%${q}%`));
+      if (q) {
+        const safe = escapeLikePattern(q.slice(0, 80));
+        conds.push(ilike(locations.name, `%${safe}%`));
+      }
       const where = conds.length ? and(...conds) : undefined;
       const cap = clampLimit(limit);
 
@@ -129,7 +132,15 @@ export async function locationsRoutes(app: FastifyInstance) {
       if (!name || !address || !catId) {
         return reply.code(400).send({ error: 'name, address, catId are required' });
       }
-      const slug = slugify(name);
+      let slug: string;
+      try {
+        slug = slugify(name);
+      } catch (err) {
+        if (err instanceof InvalidSlugError) {
+          return reply.code(400).send({ error: 'name does not contain any ASCII-slugifiable characters' });
+        }
+        throw err;
+      }
       try {
         const [row] = await db
           .insert(locations)
@@ -173,22 +184,37 @@ export async function locationsRoutes(app: FastifyInstance) {
     { preHandler: requireAdmin },
     async (req, reply) => {
       const id = Number(req.params.id);
-      const { content, ...locFields } = req.body;
+      const body = req.body ?? {};
+
+      // Explicit whitelist — Drizzle's typed .set() doesn't reject unknown keys
+      // at runtime, so a future Body widening (or a malicious body that happens
+      // to match a column name like slug/catId/createdAt) would otherwise
+      // silently mutate fields outside the admin product scope.
+      const allowed: Record<string, unknown> = {};
+      if (typeof body.name === 'string') allowed.name = body.name;
+      if (typeof body.address === 'string') allowed.address = body.address;
+      if (typeof body.subtitle === 'string' || body.subtitle === null) allowed.subtitle = body.subtitle;
+      if (body.status === 'draft' || body.status === 'published') allowed.status = body.status;
+      if (typeof body.lat === 'number' && Number.isFinite(body.lat)) allowed.lat = body.lat;
+      if (typeof body.lng === 'number' && Number.isFinite(body.lng)) allowed.lng = body.lng;
+
+      const contentCheck = validateContent(body.content);
+      if (!contentCheck.ok) return reply.code(400).send({ error: contentCheck.error });
 
       let row;
-      if (Object.keys(locFields).length > 0) {
-        [row] = await db.update(locations).set(locFields).where(eq(locations.id, id)).returning();
+      if (Object.keys(allowed).length > 0) {
+        [row] = await db.update(locations).set(allowed).where(eq(locations.id, id)).returning();
         if (!row) return reply.code(404).send({ error: 'Not found' });
       } else {
         [row] = await db.select().from(locations).where(eq(locations.id, id)).limit(1);
         if (!row) return reply.code(404).send({ error: 'Not found' });
       }
 
-      if (content !== undefined) {
+      if (body.content !== undefined) {
         await db
           .insert(moduleContent)
-          .values({ locationId: id, content })
-          .onConflictDoUpdate({ target: moduleContent.locationId, set: { content } });
+          .values({ locationId: id, content: body.content })
+          .onConflictDoUpdate({ target: moduleContent.locationId, set: { content: body.content } });
       }
 
       return row;
