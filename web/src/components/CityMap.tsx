@@ -38,6 +38,8 @@ export function CityMap({
       zoom={DEFAULT_ZOOM}
       zoomControl={false}
       scrollWheelZoom={false}
+      zoomSnap={0.5}
+      zoomDelta={0.5}
       className="leaflet-canvas"
     >
       <TileLayer
