@@ -62,22 +62,29 @@ function readAdminPassword(): string {
   return v ?? 'admin';
 }
 
-function readCorsOrigin(): string | false {
+function readCorsOrigin(): string | string[] | false {
   const v = process.env.CORS_ORIGIN;
   if (isProduction) {
     // In production the API also serves the SPA from the same origin, so CORS
     // is unnecessary by default. Operators who want a separate frontend host
-    // must opt in with an explicit https:// origin.
+    // must opt in with one or more explicit https:// origins.
     if (!v) return false;
-    if (v === '*' || v.includes(',')) {
-      throw new Error('CORS_ORIGIN must be a single concrete origin in production (no "*" or comma lists).');
+    const origins = v.split(',').map((s) => s.trim()).filter((s) => s.length > 0);
+    if (origins.length === 0) return false;
+    for (const o of origins) {
+      if (o === '*') {
+        throw new Error('CORS_ORIGIN must not include "*" in production.');
+      }
+      if (!o.startsWith('https://')) {
+        throw new Error(`CORS_ORIGIN entries must use https:// in production (got "${o}").`);
+      }
     }
-    if (!v.startsWith('https://')) {
-      throw new Error('CORS_ORIGIN must use https:// in production.');
-    }
-    return v;
+    return origins.length === 1 ? origins[0] : origins;
   }
-  return v ?? 'http://localhost:5173';
+  if (!v) return 'http://localhost:5173';
+  const origins = v.split(',').map((s) => s.trim()).filter((s) => s.length > 0);
+  if (origins.length === 0) return 'http://localhost:5173';
+  return origins.length === 1 ? origins[0] : origins;
 }
 
 export const env = {
