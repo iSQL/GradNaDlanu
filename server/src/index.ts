@@ -55,16 +55,37 @@ async function main() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: [
+          "'self'",
+          // Cloudflare Web Analytics — injected automatically by Cloudflare in
+          // front of the app. Drop this entry if you disable CF Analytics.
+          'https://static.cloudflareinsights.com',
+        ],
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          'https://fonts.googleapis.com',
+        ],
         imgSrc: [
           "'self'",
           'data:',
           'blob:',
-          'https://server.arcgisonline.com',
+          // Esri serves World Imagery tiles from server.arcgisonline.com but
+          // some regions / load-balanced responses redirect to other arcgis
+          // subdomains; allow the umbrella so tiles never silently fail.
+          'https://*.arcgisonline.com',
+          'https://*.arcgis.com',
         ],
-        connectSrc: ["'self'"],
-        fontSrc: ["'self'", 'data:'],
+        connectSrc: [
+          "'self'",
+          // Cloudflare beacon POSTs back to here.
+          'https://cloudflareinsights.com',
+        ],
+        fontSrc: [
+          "'self'",
+          'data:',
+          'https://fonts.gstatic.com',
+        ],
         objectSrc: ["'none'"],
         frameAncestors: ["'none'"],
         baseUri: ["'self'"],
