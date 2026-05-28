@@ -99,11 +99,12 @@ async function userOwnsLocation(userId: number, role: string, locationId: number
 export async function eventsRoutes(app: FastifyInstance) {
   // Public: aggregated upcoming events across all published locations.
   // Powers the Pregled "Najavljeni događaji" panel.
-  app.get<{ Querystring: { cat?: string; limit?: string; includePast?: string } }>(
+  app.get<{ Querystring: { cat?: string; village?: string; limit?: string; includePast?: string } }>(
     '/api/events',
     async (req) => {
       const limit = clampLimit(req.query.limit);
       const cat = req.query.cat?.trim();
+      const village = req.query.village?.trim();
       const includePast = req.query.includePast === '1';
       const conds = [
         eq(events.status, 'published' as const),
@@ -111,6 +112,7 @@ export async function eventsRoutes(app: FastifyInstance) {
       ];
       if (!includePast) conds.push(gte(events.startsAt, new Date()));
       if (cat) conds.push(eq(locations.catId, cat));
+      if (village) conds.push(eq(locations.village, village));
 
       const rows = await db
         .select({
@@ -124,6 +126,7 @@ export async function eventsRoutes(app: FastifyInstance) {
           locationSlug: locations.slug,
           locationName: locations.name,
           locationCatId: locations.catId,
+          village: locations.village,
         })
         .from(events)
         .innerJoin(locations, eq(events.locationId, locations.id))

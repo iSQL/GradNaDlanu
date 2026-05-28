@@ -25,6 +25,7 @@ export const locations = pgTable('locations', {
   name: text('name').notNull(),
   subtitle: text('subtitle'),
   address: text('address').notNull(),
+  village: text('village'),
   lat: doublePrecision('lat').notNull(),
   lng: doublePrecision('lng').notNull(),
   status: text('status', { enum: ['draft', 'published'] })
@@ -187,6 +188,31 @@ export const appSettings = pgTable('app_settings', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+export const news = pgTable('news', {
+  id: serial('id').primaryKey(),
+  locationId: integer('location_id')
+    .references(() => locations.id, { onDelete: 'cascade' })
+    .notNull(),
+  authorId: integer('author_id')
+    .references(() => users.id)
+    .notNull(),
+  title: text('title').notNull(),
+  slug: text('slug').notNull().unique(),
+  body: text('body').notNull(),
+  status: text('status', { enum: ['draft', 'pending', 'published'] })
+    .default('pending')
+    .notNull(),
+  publishedAt: timestamp('published_at', { withTimezone: true }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const newsletterSubscribers = pgTable('newsletter_subscribers', {
+  id: serial('id').primaryKey(),
+  email: text('email').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const serviceRequests = pgTable('service_requests', {
   id: serial('id').primaryKey(),
   userId: integer('user_id')
@@ -225,4 +251,7 @@ export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect
 export type AppSetting = typeof appSettings.$inferSelect;
 export type ServiceRequest = typeof serviceRequests.$inferSelect;
 export type ServiceRequestStatus = ServiceRequest['status'];
+export type News = typeof news.$inferSelect;
+export type NewsStatus = News['status'];
+export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 export type Role = User['role'];

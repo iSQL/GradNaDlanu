@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { SELA_ZABARI } from '../lib/villages';
 import type { Category, CategoryId } from '../types';
 import { PinGlyph } from './PinGlyph';
 
@@ -15,6 +16,7 @@ export function AddObjectDialog({ categories, lat, lng, onClose, onCreated }: Pr
   const [catId, setCatId] = useState<CategoryId>('cafe');
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
+  const [village, setVillage] = useState<string>('');
   const [publishNow, setPublishNow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +37,7 @@ export function AddObjectDialog({ categories, lat, lng, onClose, onCreated }: Pr
         name,
         address,
         catId,
+        village: village || null,
         lat,
         lng,
         status: publishNow ? 'published' : 'draft',
@@ -93,6 +96,22 @@ export function AddObjectDialog({ categories, lat, lng, onClose, onCreated }: Pr
             onChange={(e) => setAddress(e.target.value)}
             placeholder="npr. Kralja Petra 7"
           />
+        </div>
+
+        <div style={{ marginTop: 12 }}>
+          <div className="field-label">Selo</div>
+          <select
+            className="field-input"
+            value={village}
+            onChange={(e) => setVillage(e.target.value)}
+          >
+            <option value="">— nije izabrano —</option>
+            {SELA_ZABARI.map((v) => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))}
+          </select>
         </div>
 
         <label

@@ -4,6 +4,7 @@ import { db } from '../db/client.js';
 import { checkins, comments, favorites, locations, moduleContent } from '../db/schema.js';
 import { requireAdmin, getOptionalUser } from '../lib/auth.js';
 import { escapeLikePattern, InvalidSlugError, slugify, validateContent } from '../lib/locations.js';
+import { isVillage } from '../lib/villages.js';
 
 function clampLimit(raw: string | undefined): number | undefined {
   if (raw === undefined) return undefined;
@@ -124,13 +125,20 @@ export async function locationsRoutes(app: FastifyInstance) {
   });
 
   // Admin: create
-  app.post<{ Body: { name: string; address: string; catId: string; lat?: number; lng?: number; subtitle?: string; status?: 'draft' | 'published' } }>(
+  app.post<{ Body: { name: string; address: string; catId: string; lat?: number; lng?: number; subtitle?: string; village?: string | null; status?: 'draft' | 'published' } }>(
     '/api/admin/locations',
     { preHandler: requireAdmin },
     async (req, reply) => {
-      const { name, address, catId, lat, lng, subtitle, status } = req.body;
+      const { name, address, catId, lat, lng, subtitle, village, status } = req.body;
       if (!name || !address || !catId) {
         return reply.code(400).send({ error: 'name, address, catId are required' });
+      }
+      let resolvedVillage: string | null = null;
+      if (typeof village === 'string' && village.length > 0) {
+        if (!isVillage(village)) {
+          return reply.code(400).send({ error: 'village must be one of opština Žabari sela' });
+        }
+        resolvedVillage = village;
       }
       let slug: string;
       try {
@@ -150,6 +158,7 @@ export async function locationsRoutes(app: FastifyInstance) {
             address,
             catId,
             subtitle: subtitle ?? null,
+            village: resolvedVillage,
             lat: lat ?? 44.3567,
             lng: lng ?? 21.2161,
             status: status === 'published' ? 'published' : 'draft',
@@ -174,6 +183,7 @@ export async function locationsRoutes(app: FastifyInstance) {
       name: string;
       address: string;
       subtitle: string;
+      village: string | null;
       status: 'draft' | 'published';
       lat: number;
       lng: number;
@@ -194,6 +204,17 @@ export async function locationsRoutes(app: FastifyInstance) {
       if (typeof body.name === 'string') allowed.name = body.name;
       if (typeof body.address === 'string') allowed.address = body.address;
       if (typeof body.subtitle === 'string' || body.subtitle === null) allowed.subtitle = body.subtitle;
+      if (body.village === null) {
+        allowed.village = null;
+      } else if (typeof body.village === 'string') {
+        if (body.village.length === 0) {
+          allowed.village = null;
+        } else if (!isVillage(body.village)) {
+          return reply.code(400).send({ error: 'village must be one of opština Žabari sela' });
+        } else {
+          allowed.village = body.village;
+        }
+      }
       if (body.status === 'draft' || body.status === 'published') allowed.status = body.status;
       if (typeof body.lat === 'number' && Number.isFinite(body.lat)) allowed.lat = body.lat;
       if (typeof body.lng === 'number' && Number.isFinite(body.lng)) allowed.lng = body.lng;

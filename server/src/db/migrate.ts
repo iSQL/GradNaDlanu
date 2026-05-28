@@ -165,6 +165,29 @@ const statements = [
   `CREATE INDEX IF NOT EXISTS events_status_starts_idx ON events(status, starts_at)`,
   `CREATE INDEX IF NOT EXISTS service_requests_loc_status_idx ON service_requests(location_id, status)`,
   `CREATE INDEX IF NOT EXISTS service_requests_user_created_idx ON service_requests(user_id, created_at DESC)`,
+  // --- Village column on locations + news + newsletter_subscribers ---
+  `ALTER TABLE locations ADD COLUMN IF NOT EXISTS village TEXT`,
+  `CREATE INDEX IF NOT EXISTS locations_village_idx ON locations(village)`,
+  `CREATE TABLE IF NOT EXISTS news (
+    id           SERIAL PRIMARY KEY,
+    location_id  INTEGER NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+    author_id    INTEGER NOT NULL REFERENCES users(id),
+    title        TEXT NOT NULL,
+    slug         TEXT NOT NULL UNIQUE,
+    body         TEXT NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'pending'
+      CHECK (status IN ('draft','pending','published')),
+    published_at TIMESTAMPTZ,
+    created_at   TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS news_status_published_idx ON news(status, published_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS news_location_idx ON news(location_id)`,
+  `CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+    id         SERIAL PRIMARY KEY,
+    email      TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
   // One-shot backfill: grandfather every user that existed before email
   // verification shipped. Gated on an app_settings sentinel so subsequent boots
   // don't re-verify users who refused to confirm their email.

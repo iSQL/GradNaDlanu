@@ -14,6 +14,9 @@ import type {
   MyComment,
   MyReservation,
   MyServiceRequest,
+  NewsItem,
+  NewsStatus,
+  OwnerNewsItem,
   OwnerReservation,
   OwnerServiceRequest,
   RecentComment,
@@ -108,7 +111,7 @@ export const api = {
   },
   getLocation: (slug: string) => request<LocationWithContent>(`/api/locations/${slug}`),
   adminListLocations: () => request<Location[]>('/api/admin/locations'),
-  adminCreateLocation: (body: { name: string; address: string; catId: string; subtitle?: string; lat?: number; lng?: number; status?: 'draft' | 'published' }) =>
+  adminCreateLocation: (body: { name: string; address: string; catId: string; subtitle?: string; village?: string | null; lat?: number; lng?: number; status?: 'draft' | 'published' }) =>
     request<Location>('/api/admin/locations', { method: 'POST', body: JSON.stringify(body) }),
   adminUpdateLocation: (
     id: number,
@@ -117,6 +120,7 @@ export const api = {
       name: string;
       address: string;
       subtitle: string;
+      village: string | null;
       lat: number;
       lng: number;
       content: unknown;
@@ -213,7 +217,7 @@ export const api = {
     }),
   ownerUpdateLocation: (
     id: number,
-    patch: Partial<{ name: string; subtitle: string; address: string; content: unknown }>,
+    patch: Partial<{ name: string; subtitle: string; address: string; village: string | null; content: unknown }>,
   ) =>
     request<Location>(`/api/owner/locations/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   ownerComments: () =>
@@ -318,9 +322,10 @@ export const api = {
     }),
 
   // Events
-  listEvents: (params: { cat?: string; limit?: number; includePast?: boolean } = {}) => {
+  listEvents: (params: { cat?: string; village?: string; limit?: number; includePast?: boolean } = {}) => {
     const qs = new URLSearchParams();
     if (params.cat) qs.set('cat', params.cat);
+    if (params.village) qs.set('village', params.village);
     if (params.limit !== undefined) qs.set('limit', String(params.limit));
     if (params.includePast) qs.set('includePast', '1');
     const s = qs.toString();
@@ -355,4 +360,38 @@ export const api = {
     request<CityEvent>(`/api/owner/events/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   ownerDeleteEvent: (id: number) =>
     request<{ ok: true }>(`/api/owner/events/${id}`, { method: 'DELETE' }),
+
+  // News
+  listNews: (params: { village?: string; locationId?: number; limit?: number } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.village) qs.set('village', params.village);
+    if (params.locationId !== undefined) qs.set('locationId', String(params.locationId));
+    if (params.limit !== undefined) qs.set('limit', String(params.limit));
+    const s = qs.toString();
+    return request<NewsItem[]>(`/api/news${s ? `?${s}` : ''}`);
+  },
+
+  // Owner news
+  ownerListNews: (params: { locationId?: number } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.locationId !== undefined) qs.set('locationId', String(params.locationId));
+    const s = qs.toString();
+    return request<OwnerNewsItem[]>(`/api/owner/news${s ? `?${s}` : ''}`);
+  },
+  ownerCreateNews: (body: { locationId: number; title: string; body: string; status?: NewsStatus }) =>
+    request<OwnerNewsItem>('/api/owner/news', { method: 'POST', body: JSON.stringify(body) }),
+  ownerUpdateNews: (
+    id: number,
+    body: Partial<{ title: string; body: string; status: NewsStatus }>,
+  ) =>
+    request<OwnerNewsItem>(`/api/owner/news/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  ownerDeleteNews: (id: number) =>
+    request<{ ok: true }>(`/api/owner/news/${id}`, { method: 'DELETE' }),
+
+  // Newsletter
+  subscribeNewsletter: (email: string) =>
+    request<{ ok: true }>(`/api/newsletter/subscribe`, {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
 };

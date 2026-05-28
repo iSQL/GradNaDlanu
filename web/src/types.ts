@@ -28,6 +28,7 @@ export interface Location {
   name: string;
   subtitle: string | null;
   address: string;
+  village: string | null;
   lat: number;
   lng: number;
   status: 'draft' | 'published';
@@ -245,6 +246,7 @@ export interface CityEvent {
   locationSlug: string;
   locationName: string;
   locationCatId: CategoryId;
+  village?: string | null;
 }
 
 export interface LocationEvent {
@@ -254,6 +256,27 @@ export interface LocationEvent {
   startsAt: string;
   endsAt: string | null;
   status: EventStatus;
+}
+
+export type NewsStatus = 'draft' | 'pending' | 'published';
+
+export interface NewsItem {
+  id: number;
+  locationId: number;
+  title: string;
+  slug: string;
+  body: string;
+  publishedAt: string | null;
+  createdAt: string;
+  locationName: string;
+  locationSlug: string;
+  locationCatId: CategoryId;
+  village: string | null;
+}
+
+export interface OwnerNewsItem extends NewsItem {
+  status: NewsStatus;
+  updatedAt: string;
 }
 
 export const CATEGORY_LABELS: Record<CategoryId, string> = {

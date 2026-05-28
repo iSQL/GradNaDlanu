@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Nav } from './components/Nav';
 import { GuestBanner } from './components/GuestBanner';
+import { NewsletterForm } from './components/NewsletterForm';
 import { api, type CurrentUser } from './lib/api';
 import { clearToken, getToken } from './lib/auth';
 import type { Category, CategoryId, Location } from './types';
-
-export type HomeView = 'map' | 'dashboard';
 
 export interface AppContext {
   categories: Category[];
@@ -17,23 +16,12 @@ export interface AppContext {
   search: string;
   currentUser: CurrentUser | null;
   reloadCurrentUser: () => Promise<void>;
-  homeView: HomeView;
-  setHomeView: (next: HomeView) => void;
   registrationEnabled: boolean;
   guestsCanBook: boolean;
   reloadSettings: () => Promise<void>;
 }
 
-const HOME_VIEW_KEY = 'gnd.homeView';
-
-function readStoredHomeView(): HomeView {
-  if (typeof window === 'undefined') return 'map';
-  const raw = window.localStorage.getItem(HOME_VIEW_KEY);
-  return raw === 'dashboard' ? 'dashboard' : 'map';
-}
-
 export function App() {
-  const navigate = useNavigate();
   const location = useLocation();
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -43,14 +31,6 @@ export function App() {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [registrationEnabled, setRegistrationEnabled] = useState<boolean>(false);
   const [guestsCanBook, setGuestsCanBook] = useState<boolean>(true);
-  const [homeView, setHomeViewState] = useState<HomeView>(readStoredHomeView);
-
-  const setHomeView = useCallback((next: HomeView) => {
-    setHomeViewState(next);
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(HOME_VIEW_KEY, next);
-    }
-  }, []);
 
   useEffect(() => {
     api.listCategories().then(setCategories).catch(console.error);
@@ -103,20 +83,10 @@ export function App() {
   }, [reloadSettings]);
 
   const isAdmin = location.pathname.startsWith('/admin');
-  const isHome = location.pathname === '/';
 
   return (
     <>
-      <Nav
-        search={search}
-        onSearchChange={setSearch}
-        onHome={() => {
-          if (!isHome) navigate('/');
-        }}
-        currentUser={currentUser}
-        homeView={homeView}
-        onHomeViewChange={setHomeView}
-      />
+      <Nav search={search} onSearchChange={setSearch} currentUser={currentUser} />
       <GuestBanner role={currentUser?.role} />
 
       <Outlet
@@ -129,8 +99,6 @@ export function App() {
           search,
           currentUser,
           reloadCurrentUser,
-          homeView,
-          setHomeView,
           registrationEnabled,
           guestsCanBook,
           reloadSettings,
@@ -139,9 +107,34 @@ export function App() {
 
       {!isAdmin && (
         <footer className="foot">
-          Grad na dlanu · Opština Žabari · {new Date().getFullYear()} ·{' '}
-          <Link to="/pravna-napomena">Pravna napomena</Link> ·{' '}
-          <Link to="/politika-privatnosti">Politika privatnosti</Link>
+          <div className="foot-grid">
+            <div className="foot-col">
+              <h4>Grad na dlanu</h4>
+              <p>Opština Žabari, Braničevski okrug, 12374.</p>
+              <p>
+                <Link to="/pravna-napomena">Pravna napomena</Link>
+                {' · '}
+                <Link to="/politika-privatnosti">Politika privatnosti</Link>
+              </p>
+            </div>
+            <div className="foot-col">
+              <h4>Kontakt</h4>
+              <p>Opština Žabari</p>
+              <p>Kneza Miloša 103, 12374 Žabari</p>
+              <p>
+                <a href="tel:+38112250130">+381 12 250 130</a>
+              </p>
+              <p>
+                <a href="mailto:info@zabari.rs">info@zabari.rs</a>
+              </p>
+            </div>
+            <div className="foot-col">
+              <h4>Budi u toku</h4>
+              <p>Prijavi se da dobijaš najnovija dešavanja iz opštine.</p>
+              <NewsletterForm />
+            </div>
+          </div>
+          <div className="foot-copy">© {new Date().getFullYear()} Grad na dlanu · Žabari</div>
         </footer>
       )}
     </>

@@ -21,7 +21,10 @@ import { mediaRoutes } from './routes/media.js';
 import { eventsRoutes } from './routes/events.js';
 import { serviceRequestsRoutes } from './routes/service-requests.js';
 import { settingsRoutes } from './routes/settings.js';
+import { newsRoutes } from './routes/news.js';
+import { newsletterRoutes } from './routes/newsletter.js';
 import { startGuestCleanup } from './lib/guest-cleanup.js';
+import { startDesavanjaCleanup } from './lib/desavanja-cleanup.js';
 import { runMigrations } from './db/migrate.js';
 import { runSeed } from './db/seed.js';
 
@@ -134,10 +137,15 @@ async function main() {
   await app.register(eventsRoutes);
   await app.register(serviceRequestsRoutes);
   await app.register(settingsRoutes);
+  await app.register(newsRoutes);
+  await app.register(newsletterRoutes);
 
   // Daily sweep: deletes guest accounts inactive for >7 days, CASCADE clears
   // their favorites/comments/checkins along with the row.
   startGuestCleanup(app);
+
+  // Daily sweep: deletes news/events older than 30 days.
+  startDesavanjaCleanup(app);
 
   // Static asset serving — production. In dev, the Vite dev server handles this on :5173
   // and proxies /api/* to us, so the directory simply won't exist and we skip registration.

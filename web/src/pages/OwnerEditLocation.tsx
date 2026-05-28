@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { api } from '../lib/api';
+import { SELA_ZABARI } from '../lib/villages';
 import { LocationContentEditor } from '../admin/LocationContentEditor';
 import { defaultContentFor } from '../admin/defaults';
 import { FieldRow, TextInput } from '../admin/forms/widgets';
 import { OwnerEventsEditor } from '../components/OwnerEventsEditor';
+import { OwnerNewsEditor } from '../components/OwnerNewsEditor';
 import { ReservationsInbox } from '../admin/ReservationsInbox';
 import type { Location, LocationWithContent } from '../types';
 
@@ -19,6 +21,7 @@ export function OwnerEditLocation() {
   const [name, setName] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [address, setAddress] = useState('');
+  const [village, setVillage] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -33,6 +36,7 @@ export function OwnerEditLocation() {
         setName(data.name);
         setSubtitle(data.subtitle ?? '');
         setAddress(data.address);
+        setVillage(data.village ?? '');
         const c = (data.content && Object.keys(data.content).length > 0)
           ? (data.content as Record<string, unknown>)
           : defaultContentFor(data.catId);
@@ -68,7 +72,7 @@ export function OwnerEditLocation() {
     setError(null);
     setSaved(false);
     try {
-      await api.ownerUpdateLocation(loc.id, { name, subtitle, address, content });
+      await api.ownerUpdateLocation(loc.id, { name, subtitle, address, village: village || null, content });
       await ctx.reloadLocations();
       setSaved(true);
     } catch (err: unknown) {
@@ -115,6 +119,20 @@ export function OwnerEditLocation() {
             <FieldRow label="Naziv"><TextInput value={name} onChange={setName} /></FieldRow>
             <FieldRow label="Podnaslov"><TextInput value={subtitle} onChange={setSubtitle} /></FieldRow>
             <FieldRow label="Adresa"><TextInput value={address} onChange={setAddress} /></FieldRow>
+            <FieldRow label="Selo">
+              <select
+                className="field-input"
+                value={village}
+                onChange={(e) => setVillage(e.target.value)}
+              >
+                <option value="">— nije izabrano —</option>
+                {SELA_ZABARI.map((v) => (
+                  <option key={v} value={v}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </FieldRow>
             <div style={{ fontSize: 11, color: 'var(--ink-2)', opacity: 0.7, lineHeight: 1.5, marginTop: 4 }}>
               Položaj na mapi i kategorija se ne mogu menjati ovde — kontaktirajte administraciju.
             </div>
@@ -134,6 +152,11 @@ export function OwnerEditLocation() {
         <div className="admin-card" style={{ marginTop: 24 }}>
           <div className="section-label" style={{ margin: 0, marginBottom: 16 }}>Najavljeni događaji</div>
           <OwnerEventsEditor locationId={loc.id} />
+        </div>
+
+        <div className="admin-card" style={{ marginTop: 24 }}>
+          <div className="section-label" style={{ margin: 0, marginBottom: 16 }}>Obaveštenja</div>
+          <OwnerNewsEditor locationId={loc.id} />
         </div>
 
         {(loc.catId === 'cafe' || loc.catId === 'hotel') && (

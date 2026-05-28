@@ -12,6 +12,7 @@ import {
 } from '../db/schema.js';
 import { requireRole } from '../lib/auth.js';
 import { validateContent } from '../lib/locations.js';
+import { isVillage } from '../lib/villages.js';
 import {
   findCafeConflicts,
   findHotelConflicts,
@@ -47,7 +48,7 @@ export async function ownerRoutes(app: FastifyInstance) {
   // Edit a single owned location — restricted field set (no lat/lng/catId/slug/status).
   app.patch<{
     Params: { id: string };
-    Body: Partial<{ name: string; subtitle: string; address: string; content: unknown }>;
+    Body: Partial<{ name: string; subtitle: string; address: string; village: string | null; content: unknown }>;
   }>(
     '/api/owner/locations/:id',
     { preHandler: requireRole('business') },
@@ -57,10 +58,21 @@ export async function ownerRoutes(app: FastifyInstance) {
       if (owned !== 'ALL' && !owned.includes(id)) {
         return reply.code(403).send({ error: 'Forbidden' });
       }
-      const { content, ...locFields } = req.body ?? {};
+      const { content, village, ...locFields } = req.body ?? {};
       const allowed: Record<string, unknown> = {};
       for (const k of ['name', 'subtitle', 'address'] as const) {
         if (locFields[k] !== undefined) allowed[k] = locFields[k];
+      }
+      if (village === null) {
+        allowed.village = null;
+      } else if (typeof village === 'string') {
+        if (village.length === 0) {
+          allowed.village = null;
+        } else if (!isVillage(village)) {
+          return reply.code(400).send({ error: 'village must be one of opština Žabari sela' });
+        } else {
+          allowed.village = village;
+        }
       }
       const contentCheck = validateContent(content);
       if (!contentCheck.ok) return reply.code(400).send({ error: contentCheck.error });

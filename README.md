@@ -1,8 +1,8 @@
 # Grad na dlanu
 
-City directory web app for **Žabari** (Braničevo District, Serbia, ZIP 12374). Full-bleed Leaflet satellite map of the village as the hero, sticky top nav with category filters and search, and dedicated module pages per object type (kafići, javne službe, znamenitosti, smeštaj, obrazovanje).
+City directory web app for **Žabari** (Braničevo District, Serbia, ZIP 12374). Landing page with CTA cards as the front door; the Leaflet satellite map is lazy-loaded on `/mapa` so the initial bundle stays light. Sticky top nav with a hamburger drawer on mobile, dedicated module pages per object type (kafići, javne službe, znamenitosti, smeštaj, obrazovanje), and a `/desavanja` feed merging news items and announced events across all villages of the municipality.
 
-Three user roles — admin, business owner, visitor — with reservations, favorites, comments, check-ins, and an owner-managed floor-plan editor for cafés and hotels. UI copy is Serbian (Latin script).
+Three user roles — admin, business owner, visitor — with reservations, favorites, comments, check-ins, news/announcements per object, an owner-managed floor-plan editor for cafés and hotels, and a newsletter sign-up in the footer. UI copy is Serbian (Latin script).
 
 ## Stack
 
@@ -43,13 +43,15 @@ Visitors register at `/registracija`. Business owners are visitors who've been g
 
 | Role | Surface | Can do |
 | --- | --- | --- |
-| Visitor (`/nalog`) | hero map, module pages | favorite objects, comment + rate, check in, request reservations, cancel own reservations |
-| Business owner (`/poslovni`) | dashboard | edit owned objects (name/subtitle/address/content), approve/decline reservations, draw floor plans, reply to comments on own objects |
-| Admin (`/admin`) | full panel | everything; tabs: **Objekti** (CRUD all locations), **Rezervacije** (cross-location inbox), **Korisnici** (search, change role, grant/revoke ownership) |
+| Visitor (`/nalog`) | landing, map, module pages, `/desavanja`, `/objekti` | favorite objects, comment + rate, check in, request reservations, cancel own reservations |
+| Business owner (`/poslovni`) | dashboard | edit owned objects (name/subtitle/address/village/content), approve/decline reservations, draw floor plans, publish events and news ("obaveštenja") per object, reply to comments on own objects |
+| Admin (`/admin`) | full panel | everything; tabs: **Objekti** (CRUD all locations including `village`), **Rezervacije** (cross-location inbox), **Korisnici** (search, change role, grant/revoke ownership) |
 
 Reservations enforce real availability — café tables use a half-open `tstzrange` overlap check per `(location_id, tableId)`; hotels use a `daterange '[)'` per `(location_id, roomKey)`. Pending reservations block new ones until declined or cancelled.
 
 The floor-plan editor (`/poslovni/objekti/<slug>/mapa`) is an SVG canvas with drag/resize, snap-to-grid, and a side panel for label/capacity/roomKey. Visitor reservation pickers automatically render the saved layout in place of the illustrative SVG, greying out items that are booked in the chosen window.
+
+The `/desavanja` feed merges `news` (per-object announcements) and `events` (timed happenings — concerts, performances) in a single timeline, with tabs **Sva dešavanja / Događaji / Obaveštenja** and a per-village dropdown. News older than 7 days and events whose `endsAt` (or `startsAt` if `endsAt` is null) is more than 7 days in the past are hidden by default; a **"Prikaži stara obaveštenja"** checkbox reveals them. A daily background job in [server/src/lib/desavanja-cleanup.ts](server/src/lib/desavanja-cleanup.ts) permanently deletes both news and events older than 30 days.
 
 ## Scripts
 
@@ -79,6 +81,8 @@ The floor-plan editor (`/poslovni/objekti/<slug>/mapa`) is an SVG canvas with dr
 ```
 
 The starter dataset (one location per category — Stara Vodenica, Opština, Crkva Sv. Arhanđela, Hotel Morava, OŠ "Dositej Obradović") lives in [server/src/db/seed-data.ts](server/src/db/seed-data.ts). Real objects are added through the admin panel; to extend the seed itself, edit that file and run `npm run db:reset`.
+
+Villages of opština Žabari are a hardcoded enum mirrored in two places — [server/src/lib/villages.ts](server/src/lib/villages.ts) and [web/src/lib/villages.ts](web/src/lib/villages.ts). Both files must change together. Backend validates `village` writes against the enum; the seed dataset leaves `village = NULL` and admins/owners assign it through the edit forms.
 
 Production data flow on a single image: Fastify boots → runs migrations on boot (`RUN_MIGRATIONS_ON_BOOT=true` is the default in `NODE_ENV=production`) → registers `@fastify/static` against `web/dist` → falls back to `index.html` for non-`/api/*` requests so React Router's client-side routes work on hard refresh.
 

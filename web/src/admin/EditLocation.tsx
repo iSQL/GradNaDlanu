@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { api } from '../lib/api';
+import { SELA_ZABARI } from '../lib/villages';
 import type { Location, LocationWithContent } from '../types';
 import { LocationContentEditor } from './LocationContentEditor';
 import { defaultContentFor } from './defaults';
 import { FieldRow, TextInput } from './forms/widgets';
 import { ReservationsInbox } from './ReservationsInbox';
 import { OwnerEventsEditor } from '../components/OwnerEventsEditor';
+import { OwnerNewsEditor } from '../components/OwnerNewsEditor';
 
 export function EditLocation() {
   const ctx = useOutletContext<AppContext>();
@@ -19,6 +21,7 @@ export function EditLocation() {
   const [name, setName] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [address, setAddress] = useState('');
+  const [village, setVillage] = useState('');
   const [lat, setLat] = useState('');
   const [lng, setLng] = useState('');
   const [status, setStatus] = useState<'draft' | 'published'>('draft');
@@ -36,6 +39,7 @@ export function EditLocation() {
         setName(data.name);
         setSubtitle(data.subtitle ?? '');
         setAddress(data.address);
+        setVillage(data.village ?? '');
         setLat(String(data.lat));
         setLng(String(data.lng));
         setStatus(data.status);
@@ -70,6 +74,7 @@ export function EditLocation() {
         name,
         subtitle,
         address,
+        village: village || null,
         lat: parseFloat(lat),
         lng: parseFloat(lng),
         status,
@@ -142,6 +147,20 @@ export function EditLocation() {
             <FieldRow label="Naziv"><TextInput value={name} onChange={setName} /></FieldRow>
             <FieldRow label="Podnaslov"><TextInput value={subtitle} onChange={setSubtitle} /></FieldRow>
             <FieldRow label="Adresa"><TextInput value={address} onChange={setAddress} /></FieldRow>
+            <FieldRow label="Selo">
+              <select
+                className="field-input"
+                value={village}
+                onChange={(e) => setVillage(e.target.value)}
+              >
+                <option value="">— nije izabrano —</option>
+                {SELA_ZABARI.map((v) => (
+                  <option key={v} value={v}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </FieldRow>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <FieldRow label="Lat"><TextInput value={lat} onChange={setLat} /></FieldRow>
               <FieldRow label="Lng"><TextInput value={lng} onChange={setLng} /></FieldRow>
@@ -201,6 +220,11 @@ export function EditLocation() {
         <div className="admin-card" style={{ marginTop: 24 }}>
           <div className="section-label" style={{ margin: 0, marginBottom: 16 }}>Najavljeni događaji</div>
           <OwnerEventsEditor locationId={loc.id} />
+        </div>
+
+        <div className="admin-card" style={{ marginTop: 24 }}>
+          <div className="section-label" style={{ margin: 0, marginBottom: 16 }}>Obaveštenja</div>
+          <OwnerNewsEditor locationId={loc.id} />
         </div>
 
         {(loc.catId === 'cafe' || loc.catId === 'hotel') && (
