@@ -1,3 +1,11 @@
+// Source of truth for:
+//   - CATEGORIES → inserted by migrate.ts on every boot (auto-syncs to prod
+//     without RUN_SEED_ON_BOOT). Adding a new category here is a one-step
+//     change: it appears on the next deploy.
+//   - LOCATIONS / EVENTS → inserted by seed.ts, which only runs when
+//     RUN_SEED_ON_BOOT=true (default off in prod after first deploy). To push
+//     a new starter location to prod, either flip the flag for one boot or
+//     create it through the admin panel.
 // One starter location per category — minimal seed.
 // Add more by editing this file and running `npm run db:reset`.
 

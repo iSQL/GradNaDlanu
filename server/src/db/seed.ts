@@ -3,7 +3,7 @@ import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { eq, and } from 'drizzle-orm';
 import * as schema from './schema.js';
-import { categories, events, locations, moduleContent, users } from './schema.js';
+import { events, locations, moduleContent, users } from './schema.js';
 import { CATEGORIES, EVENTS, LOCATIONS, buildModuleContent } from './seed-data.js';
 import { env } from '../env.js';
 
@@ -23,10 +23,8 @@ export async function runSeed(): Promise<SeedResult> {
   const db = drizzle(sql, { schema });
 
   try {
-    await db
-      .insert(categories)
-      .values(CATEGORIES.map((c) => ({ id: c.id, label: c.label, short: c.short, color: c.color })))
-      .onConflictDoNothing();
+    // Categories are inserted by migrate.ts on every boot — see comment there.
+    // The seed only owns starter locations + admin user + events.
 
     let locCount = 0;
     let modCount = 0;

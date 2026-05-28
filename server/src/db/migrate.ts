@@ -1,5 +1,6 @@
 import postgres from 'postgres';
 import { env } from '../env.js';
+import { CATEGORIES } from './seed-data.js';
 
 const statements = [
   `CREATE TABLE IF NOT EXISTS categories (
@@ -195,6 +196,20 @@ export async function runMigrations(): Promise<void> {
   try {
     for (const stmt of statements) {
       await sql.unsafe(stmt);
+    }
+    // Sync the category table with the canonical list in seed-data.ts. This
+    // used to live in seed.ts, but seed only runs when RUN_SEED_ON_BOOT=true
+    // (off in prod after first deploy) so newly added categories never made
+    // it to production. Migrations run on every boot in prod, so dropping
+    // categories here means adding one is a code change away from being live.
+    // ON CONFLICT DO NOTHING preserves any manual category edits an operator
+    // may have made via DB directly.
+    for (const c of CATEGORIES) {
+      await sql`
+        INSERT INTO categories (id, label, short, color)
+        VALUES (${c.id}, ${c.label}, ${c.short}, ${c.color})
+        ON CONFLICT (id) DO NOTHING
+      `;
     }
   } finally {
     await sql.end();
