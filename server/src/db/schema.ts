@@ -165,6 +165,12 @@ export const events = pgTable('events', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const appSettings = pgTable('app_settings', {
+  key: text('key').primaryKey(),
+  value: jsonb('value').notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 export const serviceRequests = pgTable('service_requests', {
   id: serial('id').primaryKey(),
   userId: integer('user_id')
@@ -199,6 +205,7 @@ export type ObjectMap = typeof objectMaps.$inferSelect;
 export type Media = typeof media.$inferSelect;
 export type Event = typeof events.$inferSelect;
 export type EventStatus = Event['status'];
+export type AppSetting = typeof appSettings.$inferSelect;
 export type ServiceRequest = typeof serviceRequests.$inferSelect;
 export type ServiceRequestStatus = ServiceRequest['status'];
 export type Role = User['role'];

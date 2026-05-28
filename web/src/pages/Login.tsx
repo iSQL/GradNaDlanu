@@ -16,6 +16,7 @@ export function Login() {
   const ctx = useOutletContext<AppContext>();
 
   const fromState = (location.state as { from?: string } | null)?.from;
+  const registrationEnabled = ctx.registrationEnabled;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -67,9 +68,11 @@ export function Login() {
             {submitting ? 'Prijava…' : 'Prijavi se'}
           </button>
           {error && <div className="login-error">{error}</div>}
-          <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 6 }}>
-            Nemate nalog? <Link to="/registracija">Registrujte se</Link>
-          </div>
+          {registrationEnabled && (
+            <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 6 }}>
+              Nemate nalog? <Link to="/registracija">Registrujte se</Link>
+            </div>
+          )}
         </div>
       </form>
     </div>

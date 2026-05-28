@@ -101,6 +101,11 @@ const statements = [
     created_by_user_id   INTEGER REFERENCES users(id) ON DELETE SET NULL,
     created_at           TIMESTAMP NOT NULL DEFAULT NOW()
   )`,
+  `CREATE TABLE IF NOT EXISTS app_settings (
+    key        TEXT PRIMARY KEY,
+    value      JSONB NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
   `CREATE TABLE IF NOT EXISTS service_requests (
     id                   SERIAL PRIMARY KEY,
     user_id              INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

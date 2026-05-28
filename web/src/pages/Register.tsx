@@ -7,6 +7,7 @@ import { setToken } from '../lib/auth';
 export function Register() {
   const navigate = useNavigate();
   const ctx = useOutletContext<AppContext>();
+  const registrationEnabled = ctx.registrationEnabled;
 
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -32,6 +33,22 @@ export function Register() {
       setSubmitting(false);
     }
   };
+
+  if (!registrationEnabled) {
+    return (
+      <div className="login-shell">
+        <div className="login-card">
+          <h1>Registracija</h1>
+          <p style={{ fontSize: 14, color: 'var(--ink-2)', marginTop: 8 }}>
+            Registracija novih korisnika je trenutno onemogućena.
+          </p>
+          <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 12 }}>
+            Već imate nalog? <Link to="/prijava">Prijavite se</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="login-shell">

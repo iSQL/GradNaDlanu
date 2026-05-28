@@ -20,6 +20,7 @@ import { objectMapsRoutes } from './routes/object-maps.js';
 import { mediaRoutes } from './routes/media.js';
 import { eventsRoutes } from './routes/events.js';
 import { serviceRequestsRoutes } from './routes/service-requests.js';
+import { settingsRoutes } from './routes/settings.js';
 import { runMigrations } from './db/migrate.js';
 import { runSeed } from './db/seed.js';
 
@@ -131,6 +132,7 @@ async function main() {
   await app.register(mediaRoutes);
   await app.register(eventsRoutes);
   await app.register(serviceRequestsRoutes);
+  await app.register(settingsRoutes);
 
   // Static asset serving — production. In dev, the Vite dev server handles this on :5173
   // and proxies /api/* to us, so the directory simply won't exist and we skip registration.

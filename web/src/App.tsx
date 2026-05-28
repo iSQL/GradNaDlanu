@@ -18,6 +18,8 @@ export interface AppContext {
   reloadCurrentUser: () => Promise<void>;
   homeView: HomeView;
   setHomeView: (next: HomeView) => void;
+  registrationEnabled: boolean;
+  reloadSettings: () => Promise<void>;
 }
 
 const HOME_VIEW_KEY = 'gnd.homeView';
@@ -37,6 +39,7 @@ export function App() {
   const [activeFilter, setActiveFilter] = useState<CategoryId | 'all'>('all');
   const [search, setSearch] = useState('');
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [registrationEnabled, setRegistrationEnabled] = useState<boolean>(false);
   const [homeView, setHomeViewState] = useState<HomeView>(readStoredHomeView);
 
   const setHomeView = useCallback((next: HomeView) => {
@@ -78,6 +81,19 @@ export function App() {
     reloadCurrentUser().catch(console.error);
   }, [reloadCurrentUser]);
 
+  const reloadSettings = useCallback(async () => {
+    try {
+      const s = await api.getSettings();
+      setRegistrationEnabled(s.registrationEnabled);
+    } catch {
+      setRegistrationEnabled(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    reloadSettings().catch(console.error);
+  }, [reloadSettings]);
+
   const isAdmin = location.pathname.startsWith('/admin');
   const isHome = location.pathname === '/';
 
@@ -106,6 +122,8 @@ export function App() {
           reloadCurrentUser,
           homeView,
           setHomeView,
+          registrationEnabled,
+          reloadSettings,
         } satisfies AppContext}
       />
 

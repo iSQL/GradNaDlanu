@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { users, objectOwners } from '../db/schema.js';
 import { requireAuth } from '../lib/auth.js';
+import { isRegistrationEnabled } from '../lib/settings.js';
 
 const BCRYPT_COST = 12;
 const MAX_DISPLAY_NAME = 60;
@@ -87,6 +88,9 @@ export async function authRoutes(app: FastifyInstance) {
       },
     },
     async (req, reply) => {
+      if (!(await isRegistrationEnabled())) {
+        return reply.code(403).send({ error: 'Registracija je trenutno onemogućena.' });
+      }
       const { email, password, displayName } = req.body ?? {};
       if (!email || !password) {
         return reply.code(400).send({ error: 'email, password, displayName required' });

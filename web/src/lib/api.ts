@@ -276,6 +276,14 @@ export const api = {
       body: JSON.stringify({ status: 'completed' }),
     }),
 
+  // Settings
+  getSettings: () => request<{ registrationEnabled: boolean }>('/api/settings'),
+  adminUpdateSettings: (patch: { registrationEnabled: boolean }) =>
+    request<{ registrationEnabled: boolean }>('/api/admin/settings', {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
+
   // Events
   listEvents: (params: { cat?: string; limit?: number; includePast?: boolean } = {}) => {
     const qs = new URLSearchParams();

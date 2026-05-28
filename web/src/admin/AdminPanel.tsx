@@ -7,8 +7,9 @@ import { PinGlyph } from '../components/PinGlyph';
 import type { CategoryId, Location } from '../types';
 import { UsersTab } from './UsersTab';
 import { ReservationsInbox } from './ReservationsInbox';
+import { SettingsTab } from './SettingsTab';
 
-type Tab = 'objects' | 'reservations' | 'users';
+type Tab = 'objects' | 'reservations' | 'users' | 'settings';
 
 export function AdminPanel() {
   const ctx = useOutletContext<AppContext>();
@@ -127,6 +128,7 @@ export function AdminPanel() {
             <button className={`account-tab admin-tab ${tab === 'objects' ? 'active' : ''}`} onClick={() => setTab('objects')}>Objekti</button>
             <button className={`account-tab admin-tab ${tab === 'reservations' ? 'active' : ''}`} onClick={() => setTab('reservations')}>Rezervacije</button>
             <button className={`account-tab admin-tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>Korisnici</button>
+            <button className={`account-tab admin-tab ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>Podešavanja</button>
           </div>
         </div>
       </div>
@@ -242,6 +244,7 @@ export function AdminPanel() {
 
         {tab === 'reservations' && <ReservationsInbox />}
         {tab === 'users' && <UsersTab />}
+        {tab === 'settings' && <SettingsTab />}
       </div>
     </div>
   );
