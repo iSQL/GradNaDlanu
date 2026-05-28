@@ -5,6 +5,7 @@ import { api, mediaUrl } from '../lib/api';
 import { clearToken } from '../lib/auth';
 import { PinGlyph } from '../components/PinGlyph';
 import { IconStar } from '../components/Icons';
+import { RoleBadge } from '../components/RoleBadge';
 import type {
   FavoriteRow,
   MyComment,
@@ -61,6 +62,32 @@ export function Account() {
   const [reservations, setReservations] = useState<MyReservation[] | null>(null);
   const [serviceRequests, setServiceRequests] = useState<MyServiceRequest[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Guest → user upgrade form state. Token is NOT cleared on success — the
+  // guest stays logged in until they click the verify link (or abandon it,
+  // in which case the cleanup job sweeps the row after 7 days of inactivity).
+  const [upgradeEmail, setUpgradeEmail] = useState('');
+  const [upgradePassword, setUpgradePassword] = useState('');
+  const [upgradeBusy, setUpgradeBusy] = useState(false);
+  const [upgradeError, setUpgradeError] = useState<string | null>(null);
+  const [upgradeSentTo, setUpgradeSentTo] = useState<string | null>(null);
+
+  const submitUpgrade = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUpgradeError(null);
+    setUpgradeBusy(true);
+    try {
+      const res = await api.upgradeGuest(upgradeEmail, upgradePassword);
+      setUpgradeSentTo(res.email);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes('409')) setUpgradeError('Ova e-pošta je već registrovana.');
+      else if (message.includes('400')) setUpgradeError('Proverite unos: validna e-pošta i lozinka (min. 6 karaktera).');
+      else setUpgradeError(message);
+    } finally {
+      setUpgradeBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (!ctx.currentUser) return;
@@ -127,11 +154,67 @@ export function Account() {
       <div className="account-shell">
         <div className="account-header">
           <div>
-            <h1>{ctx.currentUser.displayName}</h1>
-            <div className="account-meta">{ctx.currentUser.email} · {ctx.currentUser.role}</div>
+            <h1>
+              {ctx.currentUser.displayName}
+              <RoleBadge role={ctx.currentUser.role} />
+            </h1>
+            <div className="account-meta">
+              {ctx.currentUser.role === 'guest'
+                ? 'Privremeni nalog'
+                : `${ctx.currentUser.email ?? ''} · ${ctx.currentUser.role}`}
+            </div>
           </div>
           <button className="nav-btn" onClick={logout}>Odjavi se</button>
         </div>
+
+        {ctx.currentUser.role === 'guest' && (
+          upgradeSentTo ? (
+            <div className="admin-card" style={{ marginTop: 16 }}>
+              <div className="section-label" style={{ margin: 0, marginBottom: 10 }}>Potvrdite e-poštu</div>
+              <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55, margin: 0 }}>
+                Poslali smo link na <strong>{upgradeSentTo}</strong>. Otvorite poruku i kliknite na link
+                da nadogradite nalog u trajan. Link važi 24 sata. Do tada ostajete prijavljeni kao gost.
+              </p>
+            </div>
+          ) : (
+            <form className="admin-card" style={{ marginTop: 16 }} onSubmit={submitUpgrade}>
+              <div className="section-label" style={{ margin: 0, marginBottom: 10 }}>Nadogradite na trajan nalog</div>
+              <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.55, margin: '0 0 14px' }}>
+                Dodajte e-poštu i lozinku da zadržite omiljena mesta, komentare i istoriju, i otključate
+                rezervacije i ostale funkcije nakon potvrde e-pošte.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <div className="field-label">E-pošta</div>
+                  <input
+                    className="field-input"
+                    type="email"
+                    value={upgradeEmail}
+                    onChange={(e) => setUpgradeEmail(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <div className="field-label">Lozinka</div>
+                  <input
+                    className="field-input"
+                    type="password"
+                    value={upgradePassword}
+                    onChange={(e) => setUpgradePassword(e.target.value)}
+                    placeholder="najmanje 6 karaktera"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={upgradeBusy || !upgradeEmail || !upgradePassword}
+                >
+                  {upgradeBusy ? 'Slanje…' : 'Nadogradite nalog'}
+                </button>
+                {upgradeError && <div className="login-error">{upgradeError}</div>}
+              </div>
+            </form>
+          )
+        )}
 
         <div className="account-tabs">
           <button className={`account-tab ${tab === 'favorites' ? 'active' : ''}`} onClick={() => setTab('favorites')}>

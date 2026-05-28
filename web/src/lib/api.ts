@@ -3,6 +3,7 @@ import type {
   AvailabilityRow,
   Category,
   CityEvent,
+  CommentAuthor,
   CommentNode,
   EventStatus,
   FavoriteRow,
@@ -23,7 +24,8 @@ import { getToken, type Role } from './auth';
 
 export interface CurrentUser {
   id: number;
-  email: string;
+  // Null for guest accounts (they have no email until they upgrade).
+  email: string | null;
   displayName: string;
   role: Role;
   emailVerifiedAt: string | null;
@@ -32,13 +34,18 @@ export interface CurrentUser {
 
 export interface AuthResponse {
   token: string;
-  user: { id: number; email: string; displayName: string; role: Role };
+  user: { id: number; email: string | null; displayName: string; role: Role };
 }
 
 export interface RegisterResponse {
   ok: true;
   email: string;
   message: string;
+}
+
+export interface AppSettings {
+  registrationEnabled: boolean;
+  guestsCanBook: boolean;
 }
 
 async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
@@ -140,9 +147,19 @@ export const api = {
     }),
   getMe: () => request<CurrentUser>('/api/me'),
   updateMe: (patch: { displayName: string }) =>
-    request<{ id: number; email: string; displayName: string; role: Role }>('/api/me', {
+    request<{ id: number; email: string | null; displayName: string; role: Role }>('/api/me', {
       method: 'PATCH',
       body: JSON.stringify(patch),
+    }),
+  guestSignup: (displayName: string) =>
+    request<AuthResponse>('/api/auth/guest', {
+      method: 'POST',
+      body: JSON.stringify({ displayName }),
+    }),
+  upgradeGuest: (email: string, password: string) =>
+    request<RegisterResponse>('/api/auth/upgrade', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
     }),
   favorite: (slug: string) =>
     request<{ favorited: true }>(`/api/locations/${slug}/favorite`, { method: 'POST' }),
@@ -157,7 +174,7 @@ export const api = {
       rating: number | null;
       parentId: number | null;
       createdAt: string;
-      author: { id: number; displayName: string };
+      author: CommentAuthor;
     }>(`/api/locations/${slug}/comments`, { method: 'POST', body: JSON.stringify(body) }),
   myComments: () => request<MyComment[]>('/api/me/comments'),
   checkin: (slug: string) =>
@@ -293,9 +310,9 @@ export const api = {
     }),
 
   // Settings
-  getSettings: () => request<{ registrationEnabled: boolean }>('/api/settings'),
-  adminUpdateSettings: (patch: { registrationEnabled: boolean }) =>
-    request<{ registrationEnabled: boolean }>('/api/admin/settings', {
+  getSettings: () => request<AppSettings>('/api/settings'),
+  adminUpdateSettings: (patch: Partial<AppSettings>) =>
+    request<AppSettings>('/api/admin/settings', {
       method: 'PATCH',
       body: JSON.stringify(patch),
     }),

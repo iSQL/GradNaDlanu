@@ -4,6 +4,7 @@ import { db } from '../db/client.js';
 import { locations, media, serviceRequests } from '../db/schema.js';
 import { requireAuth } from '../lib/auth.js';
 import { getLocationBySlug } from '../lib/locations.js';
+import { guestsCanBook } from '../lib/settings.js';
 import {
   canTransition,
   isMajstorCategory,
@@ -16,6 +17,14 @@ export async function serviceRequestsRoutes(app: FastifyInstance) {
     '/api/locations/:slug/service-requests',
     { preHandler: requireAuth },
     async (req, reply) => {
+      // Same gate as reservations: admin can disable guest service requests if
+      // owners can't make use of a contact-less request.
+      if (req.user.role === 'guest' && !(await guestsCanBook())) {
+        return reply.code(403).send({
+          error: 'Za zahtev za uslugu je potreban trajan nalog.',
+          code: 'guest_not_allowed',
+        });
+      }
       const loc = await getLocationBySlug(req.params.slug);
       if (!loc) return reply.code(404).send({ error: 'Not found' });
       if (!isMajstorCategory(loc.catId)) {

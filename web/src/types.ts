@@ -94,12 +94,18 @@ export interface LocationWithContent extends Location {
   commentSummary: { count: number; avgRating: number | null };
 }
 
+export interface CommentAuthor {
+  id: number;
+  displayName: string;
+  role: 'admin' | 'business' | 'user' | 'guest';
+}
+
 export interface CommentNode {
   id: number;
   body: string;
   rating: number | null;
   createdAt: string;
-  author: { id: number; displayName: string };
+  author: CommentAuthor;
   replies: CommentNode[];
 }
 
@@ -122,7 +128,7 @@ export interface RecentComment {
   body: string;
   rating: number | null;
   createdAt: string;
-  author: { id: number; displayName: string };
+  author: CommentAuthor;
   location: { id: number; slug: string; name: string; catId: CategoryId };
 }
 

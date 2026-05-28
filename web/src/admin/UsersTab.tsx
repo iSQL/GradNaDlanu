@@ -9,6 +9,7 @@ const ROLE_LABELS: Record<Role, string> = {
   admin: 'admin',
   business: 'vlasnik',
   user: 'posetilac',
+  guest: 'gost',
 };
 
 export function UsersTab() {

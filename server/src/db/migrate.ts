@@ -129,6 +129,26 @@ const statements = [
   `CREATE INDEX IF NOT EXISTS locations_cat_id_idx ON locations(cat_id)`,
   `CREATE INDEX IF NOT EXISTS locations_status_idx ON locations(status)`,
   `CREATE INDEX IF NOT EXISTS users_role_idx ON users(role)`,
+  // --- Guest account support (idempotent) ---
+  // Replace the role check to add 'guest'. CHECK constraints on the users.role
+  // column may exist under either of two auto-generated names depending on which
+  // version of Postgres / Drizzle initially created them, so we drop both.
+  `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check`,
+  `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_role_check`,
+  `ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin','business','user','guest'))`,
+  // Allow null email / password_hash for guest rows. ALTER … DROP NOT NULL is
+  // a no-op when the column is already nullable.
+  `ALTER TABLE users ALTER COLUMN email DROP NOT NULL`,
+  `ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL`,
+  // Switch from a column-level UNIQUE constraint (which would refuse multiple
+  // NULL emails on some Postgres configurations and noisily duplicate the work
+  // anyway) to a partial unique index that ignores NULLs entirely.
+  `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_email_key`,
+  `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_email_unique`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique ON users(email) WHERE email IS NOT NULL`,
+  // Activity tracking column + partial index for the cleanup query.
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMP NOT NULL DEFAULT NOW()`,
+  `CREATE INDEX IF NOT EXISTS users_guest_last_active_idx ON users(last_active_at) WHERE role = 'guest'`,
   `CREATE INDEX IF NOT EXISTS object_owners_location_idx ON object_owners(location_id)`,
   `CREATE INDEX IF NOT EXISTS favorites_location_idx ON favorites(location_id)`,
   `CREATE INDEX IF NOT EXISTS comments_loc_status_created_idx ON comments(location_id, status, created_at DESC)`,

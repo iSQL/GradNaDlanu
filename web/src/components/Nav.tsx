@@ -3,6 +3,7 @@ import type { HomeView } from '../App';
 import type { CurrentUser } from '../lib/api';
 import { getToken } from '../lib/auth';
 import { IconAdmin, IconSearch } from './Icons';
+import { RoleBadge } from './RoleBadge';
 
 interface Props {
   search: string;
@@ -72,6 +73,7 @@ export function Nav({
         {currentUser ? (
           <button className="nav-btn" onClick={() => navigate(homeRouteFor(currentUser))}>
             <IconAdmin /> {currentUser.displayName}
+            <RoleBadge role={currentUser.role} />
           </button>
         ) : getToken() ? (
           // Token exists in localStorage but /api/me hasn't resolved yet.

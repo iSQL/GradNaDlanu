@@ -1,10 +1,12 @@
 const KEY = 'gnd.token';
 
-export type Role = 'admin' | 'business' | 'user';
+export type Role = 'admin' | 'business' | 'user' | 'guest';
 
 export interface TokenPayload {
   sub: number;
-  email: string;
+  // Null for guest accounts (one-click signup, no email). Becomes a real
+  // address once a guest upgrades and verifies.
+  email: string | null;
   role: Role;
   iat?: number;
   exp?: number;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Nav } from './components/Nav';
+import { GuestBanner } from './components/GuestBanner';
 import { api, type CurrentUser } from './lib/api';
 import { clearToken, getToken } from './lib/auth';
 import type { Category, CategoryId, Location } from './types';
@@ -19,6 +20,7 @@ export interface AppContext {
   homeView: HomeView;
   setHomeView: (next: HomeView) => void;
   registrationEnabled: boolean;
+  guestsCanBook: boolean;
   reloadSettings: () => Promise<void>;
 }
 
@@ -40,6 +42,7 @@ export function App() {
   const [search, setSearch] = useState('');
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [registrationEnabled, setRegistrationEnabled] = useState<boolean>(false);
+  const [guestsCanBook, setGuestsCanBook] = useState<boolean>(true);
   const [homeView, setHomeViewState] = useState<HomeView>(readStoredHomeView);
 
   const setHomeView = useCallback((next: HomeView) => {
@@ -85,8 +88,13 @@ export function App() {
     try {
       const s = await api.getSettings();
       setRegistrationEnabled(s.registrationEnabled);
+      setGuestsCanBook(s.guestsCanBook);
     } catch {
+      // Fail closed on registration; fail open on guestsCanBook to match the
+      // server default (true) — booking UI stays available if the settings
+      // endpoint blips.
       setRegistrationEnabled(false);
+      setGuestsCanBook(true);
     }
   }, []);
 
@@ -109,6 +117,7 @@ export function App() {
         homeView={homeView}
         onHomeViewChange={setHomeView}
       />
+      <GuestBanner role={currentUser?.role} />
 
       <Outlet
         context={{
@@ -123,6 +132,7 @@ export function App() {
           homeView,
           setHomeView,
           registrationEnabled,
+          guestsCanBook,
           reloadSettings,
         } satisfies AppContext}
       />

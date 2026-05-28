@@ -108,7 +108,9 @@ export async function getOptionalUser(req: FastifyRequest) {
 
 declare module '@fastify/jwt' {
   interface FastifyJWT {
-    payload: { sub: number; email: string; role: Role; tv: number };
-    user: { sub: number; email: string; role: Role; tv: number };
+    // email is null for guest accounts (one-click signup, no email). Becomes
+    // non-null after a guest upgrades and verifies the address.
+    payload: { sub: number; email: string | null; role: Role; tv: number };
+    user: { sub: number; email: string | null; role: Role; tv: number };
   }
 }

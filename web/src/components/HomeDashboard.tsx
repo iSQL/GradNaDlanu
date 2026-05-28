@@ -6,6 +6,7 @@ import type { Location, RecentComment } from '../types';
 import { EventsPanel } from './EventsPanel';
 import { IconStar } from './Icons';
 import { PinGlyph } from './PinGlyph';
+import { RoleBadge } from './RoleBadge';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -89,7 +90,10 @@ export function HomeDashboard() {
               {comments.map((c) => (
                 <article key={c.id} className="comment">
                   <div className="comment-head">
-                    <span className="comment-author">{c.author.displayName}</span>
+                    <span className="comment-author">
+                      {c.author.displayName}
+                      <RoleBadge role={c.author.role} />
+                    </span>
                     <span className="home-comment-sep">·</span>
                     <Link to={`/objekat/${c.location.slug}`} className="comment-loc">
                       {c.location.name}

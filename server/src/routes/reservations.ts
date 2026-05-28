@@ -4,6 +4,7 @@ import { db, sql } from '../db/client.js';
 import { locations, reservations } from '../db/schema.js';
 import { requireAuth } from '../lib/auth.js';
 import { getLocationBySlug } from '../lib/locations.js';
+import { guestsCanBook } from '../lib/settings.js';
 import {
   findCafeConflicts,
   findHotelConflicts,
@@ -18,6 +19,14 @@ export async function reservationsRoutes(app: FastifyInstance) {
     '/api/locations/:slug/reservations',
     { preHandler: requireAuth },
     async (req, reply) => {
+      // Admin can flip `guestsCanBook` off if guest reservations cause problems
+      // (owners can't reach a guest without an email). Default is true.
+      if (req.user.role === 'guest' && !(await guestsCanBook())) {
+        return reply.code(403).send({
+          error: 'Za rezervaciju je potreban trajan nalog.',
+          code: 'guest_not_allowed',
+        });
+      }
       const loc = await getLocationBySlug(req.params.slug);
       if (!loc) return reply.code(404).send({ error: 'Not found' });
 

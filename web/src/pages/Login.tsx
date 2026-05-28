@@ -25,6 +25,10 @@ export function Login() {
   const [needsVerification, setNeedsVerification] = useState(false);
   const [resendBusy, setResendBusy] = useState(false);
   const [resendMessage, setResendMessage] = useState<string | null>(null);
+  const [guestOpen, setGuestOpen] = useState(false);
+  const [guestName, setGuestName] = useState('');
+  const [guestBusy, setGuestBusy] = useState(false);
+  const [guestError, setGuestError] = useState<string | null>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +53,31 @@ export function Login() {
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const startGuest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setGuestError(null);
+    setGuestBusy(true);
+    try {
+      const { token } = await api.guestSignup(guestName.trim());
+      setToken(token);
+      await ctx.reloadCurrentUser();
+      navigate('/');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes('403')) {
+        setGuestError('Registracija je trenutno onemogućena.');
+      } else if (message.includes('429')) {
+        setGuestError('Trenutno previše gost naloga — pokušajte ponovo kasnije.');
+      } else if (message.includes('400')) {
+        setGuestError('Ime mora imati 1–60 karaktera.');
+      } else {
+        setGuestError(message);
+      }
+    } finally {
+      setGuestBusy(false);
     }
   };
 
@@ -116,6 +145,62 @@ export function Login() {
           )}
         </div>
       </form>
+
+      {registrationEnabled && (
+        <div className="login-card" style={{ marginTop: 16 }}>
+          {!guestOpen ? (
+            <>
+              <div style={{ fontSize: 13, color: 'var(--ink-2)', marginBottom: 10, lineHeight: 1.55 }}>
+                Samo želite da pogledate ili sačuvate omiljena mesta? Otvorite{' '}
+                <strong>privremeni nalog</strong> jednim klikom — bez e-pošte.
+              </div>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => setGuestOpen(true)}
+              >
+                Nastavite kao gost
+              </button>
+            </>
+          ) : (
+            <form onSubmit={startGuest} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <div className="field-label">Ime za prikaz</div>
+                <input
+                  className="field-input"
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  placeholder="npr. Marko"
+                  autoFocus
+                  maxLength={60}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={guestBusy || guestName.trim().length === 0}
+                >
+                  {guestBusy ? 'Pravimo nalog…' : 'Kreiraj gost nalog'}
+                </button>
+                <button
+                  type="button"
+                  className="nav-btn"
+                  onClick={() => { setGuestOpen(false); setGuestError(null); }}
+                  disabled={guestBusy}
+                >
+                  Otkaži
+                </button>
+              </div>
+              {guestError && <div className="login-error">{guestError}</div>}
+              <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.55 }}>
+                Nalog se briše nakon 7 dana neaktivnosti. Kasnije možete da dodate e-poštu i
+                nadogradite ga u trajan nalog (sa rezervacijama i ostalim funkcijama).
+              </div>
+            </form>
+          )}
+        </div>
+      )}
     </div>
   );
 }

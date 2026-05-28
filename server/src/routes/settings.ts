@@ -1,23 +1,46 @@
 import type { FastifyInstance } from 'fastify';
 import { requireRole } from '../lib/auth.js';
-import { isRegistrationEnabled, setRegistrationEnabled } from '../lib/settings.js';
+import {
+  guestsCanBook,
+  isRegistrationEnabled,
+  setGuestsCanBook,
+  setRegistrationEnabled,
+} from '../lib/settings.js';
 
 export async function settingsRoutes(app: FastifyInstance) {
   app.get('/api/settings', async () => {
-    const registrationEnabled = await isRegistrationEnabled();
-    return { registrationEnabled };
+    const [registrationEnabled, guestsCanBookValue] = await Promise.all([
+      isRegistrationEnabled(),
+      guestsCanBook(),
+    ]);
+    return { registrationEnabled, guestsCanBook: guestsCanBookValue };
   });
 
-  app.patch<{ Body: { registrationEnabled?: unknown } }>(
+  app.patch<{
+    Body: { registrationEnabled?: unknown; guestsCanBook?: unknown };
+  }>(
     '/api/admin/settings',
     { preHandler: requireRole('admin') },
     async (req, reply) => {
-      const next = req.body?.registrationEnabled;
-      if (typeof next !== 'boolean') {
-        return reply.code(400).send({ error: 'registrationEnabled (boolean) required' });
+      const body = req.body ?? {};
+      const reg = body.registrationEnabled;
+      const guests = body.guestsCanBook;
+      if (reg !== undefined && typeof reg !== 'boolean') {
+        return reply.code(400).send({ error: 'registrationEnabled must be a boolean' });
       }
-      await setRegistrationEnabled(next);
-      return { registrationEnabled: next };
+      if (guests !== undefined && typeof guests !== 'boolean') {
+        return reply.code(400).send({ error: 'guestsCanBook must be a boolean' });
+      }
+      if (reg === undefined && guests === undefined) {
+        return reply.code(400).send({ error: 'nothing to update' });
+      }
+      if (typeof reg === 'boolean') await setRegistrationEnabled(reg);
+      if (typeof guests === 'boolean') await setGuestsCanBook(guests);
+      const [registrationEnabled, guestsCanBookValue] = await Promise.all([
+        isRegistrationEnabled(),
+        guestsCanBook(),
+      ]);
+      return { registrationEnabled, guestsCanBook: guestsCanBookValue };
     },
   );
 }

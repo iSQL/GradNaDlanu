@@ -42,10 +42,13 @@ export const moduleContent = pgTable('module_content', {
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
-  email: text('email').notNull().unique(),
-  passwordHash: text('password_hash').notNull(),
+  // email + passwordHash are nullable: guest accounts have neither. Uniqueness
+  // on email is enforced via a partial unique index (see migrate.ts) so multiple
+  // guests with NULL email don't collide.
+  email: text('email'),
+  passwordHash: text('password_hash'),
   displayName: text('display_name').notNull(),
-  role: text('role', { enum: ['admin', 'business', 'user'] })
+  role: text('role', { enum: ['admin', 'business', 'user', 'guest'] })
     .default('user')
     .notNull(),
   // Bumped on role change / ownership revoke / forced logout so previously-issued
@@ -53,6 +56,9 @@ export const users = pgTable('users', {
   tokenVersion: integer('token_version').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   emailVerifiedAt: timestamp('email_verified_at'),
+  // Updated on guest-allowed mutating actions (favorite/comment/checkin). Used
+  // by the 7-day inactivity sweep that deletes role='guest' rows.
+  lastActiveAt: timestamp('last_active_at').defaultNow().notNull(),
 });
 
 export const objectOwners = pgTable(

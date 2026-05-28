@@ -115,6 +115,7 @@ export function CafeModule({ loc, content }: Props) {
       const message = err instanceof Error ? err.message : String(err);
       if (message.includes('409')) setError('Sto je već zauzet u izabranom periodu.');
       else if (message.includes('401')) setError('Prijavite se da biste rezervisali.');
+      else if (message.includes('guest_not_allowed')) setError('Za rezervaciju je potreban trajan nalog. Otvorite "Nalog" da nadogradite.');
       else setError(message);
     } finally {
       setSubmitting(false);

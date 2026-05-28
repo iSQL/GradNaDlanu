@@ -4,6 +4,7 @@ import type { AppContext } from '../App';
 import { api } from '../lib/api';
 import type { CommentNode } from '../types';
 import { IconStar } from './Icons';
+import { RoleBadge } from './RoleBadge';
 
 interface Props {
   slug: string;
@@ -135,7 +136,10 @@ export function CommentsSection({ slug, canReply }: Props) {
           {items.map((c) => (
             <div className="comment" key={c.id}>
               <div className="comment-head">
-                <div className="comment-author">{c.author.displayName}</div>
+                <div className="comment-author">
+                  {c.author.displayName}
+                  <RoleBadge role={c.author.role} />
+                </div>
                 {c.rating !== null && (
                   <div className="comment-rating">
                     {[1, 2, 3, 4, 5].map((n) => (
@@ -180,7 +184,10 @@ export function CommentsSection({ slug, canReply }: Props) {
                   {c.replies.map((r) => (
                     <div className="comment reply" key={r.id}>
                       <div className="comment-head">
-                        <div className="comment-author">{r.author.displayName}</div>
+                        <div className="comment-author">
+                          {r.author.displayName}
+                          <RoleBadge role={r.author.role} />
+                        </div>
                         <span className="comment-owner-tag">vlasnik</span>
                         <div className="comment-date">{formatDate(r.createdAt)}</div>
                       </div>

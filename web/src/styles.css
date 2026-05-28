@@ -2121,3 +2121,55 @@ button { font-family: inherit; }
   .quote-form-row { grid-template-columns: 1fr; }
   .service-request-head { flex-direction: column; align-items: flex-start; }
 }
+
+/* ---- Guest accounts ---- */
+.role-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  vertical-align: middle;
+  line-height: 1.4;
+}
+.role-badge-guest {
+  background: rgba(184, 147, 47, 0.08);
+  color: var(--gold-2);
+  border: 1px solid rgba(184, 147, 47, 0.45);
+}
+
+.guest-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 24px;
+  background: rgba(184, 147, 47, 0.10);
+  border-bottom: 1px solid rgba(184, 147, 47, 0.35);
+  color: var(--ink-2);
+  font-size: 13px;
+}
+.guest-banner strong {
+  color: var(--ink);
+  margin-right: 6px;
+}
+.guest-banner a {
+  color: var(--gold-2);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.guest-banner a:hover {
+  text-decoration: underline;
+}
+@media (max-width: 640px) {
+  .guest-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 8px 16px;
+  }
+}

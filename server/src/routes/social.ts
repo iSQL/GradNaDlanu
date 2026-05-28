@@ -11,13 +11,23 @@ import {
 } from '../db/schema.js';
 import { requireAuth } from '../lib/auth.js';
 import { getLocationBySlug } from '../lib/locations.js';
+import { touchGuestActivity } from '../lib/guest-activity.js';
+
+// `author.role` is surfaced so the UI can render the small "(gost)" badge next
+// to guest commenters. Only id/displayName/role are exposed — explicitly NOT
+// email or last_active_at, which would leak guest activity windows.
+interface CommentAuthor {
+  id: number;
+  displayName: string;
+  role: 'admin' | 'business' | 'user' | 'guest';
+}
 
 interface CommentNode {
   id: number;
   body: string;
   rating: number | null;
   createdAt: Date;
-  author: { id: number; displayName: string };
+  author: CommentAuthor;
   replies: CommentNode[];
 }
 
@@ -45,6 +55,7 @@ export async function socialRoutes(app: FastifyInstance) {
           createdAt: comments.createdAt,
           authorId: users.id,
           authorName: users.displayName,
+          authorRole: users.role,
           locationId: locations.id,
           locationSlug: locations.slug,
           locationName: locations.name,
@@ -61,7 +72,7 @@ export async function socialRoutes(app: FastifyInstance) {
         body: r.body,
         rating: r.rating,
         createdAt: r.createdAt,
-        author: { id: r.authorId, displayName: r.authorName },
+        author: { id: r.authorId, displayName: r.authorName, role: r.authorRole },
         location: {
           id: r.locationId,
           slug: r.locationSlug,
@@ -83,6 +94,7 @@ export async function socialRoutes(app: FastifyInstance) {
         .insert(favorites)
         .values({ userId: req.user.sub, locationId: loc.id })
         .onConflictDoNothing();
+      touchGuestActivity(req.user.sub, req.user.role);
       return { favorited: true };
     },
   );
@@ -96,6 +108,7 @@ export async function socialRoutes(app: FastifyInstance) {
       await db
         .delete(favorites)
         .where(and(eq(favorites.userId, req.user.sub), eq(favorites.locationId, loc.id)));
+      touchGuestActivity(req.user.sub, req.user.role);
       return { favorited: false };
     },
   );
@@ -137,6 +150,7 @@ export async function socialRoutes(app: FastifyInstance) {
           parentId: comments.parentId,
           authorId: users.id,
           authorName: users.displayName,
+          authorRole: users.role,
         })
         .from(comments)
         .innerJoin(users, eq(comments.userId, users.id))
@@ -151,7 +165,7 @@ export async function socialRoutes(app: FastifyInstance) {
           body: r.body,
           rating: r.rating,
           createdAt: r.createdAt,
-          author: { id: r.authorId, displayName: r.authorName },
+          author: { id: r.authorId, displayName: r.authorName, role: r.authorRole },
           replies: [],
         };
         byId.set(r.id, node);
@@ -238,11 +252,12 @@ export async function socialRoutes(app: FastifyInstance) {
 
       // Fetch author for the response so the UI can render immediately.
       const [author] = await db
-        .select({ id: users.id, displayName: users.displayName })
+        .select({ id: users.id, displayName: users.displayName, role: users.role })
         .from(users)
         .where(eq(users.id, req.user.sub))
         .limit(1);
 
+      touchGuestActivity(req.user.sub, req.user.role);
       return {
         id: row.id,
         body: row.body,
@@ -284,6 +299,7 @@ export async function socialRoutes(app: FastifyInstance) {
         .insert(checkins)
         .values({ userId: req.user.sub, locationId: loc.id })
         .returning();
+      touchGuestActivity(req.user.sub, req.user.role);
       return { id: row.id, createdAt: row.createdAt };
     },
   );

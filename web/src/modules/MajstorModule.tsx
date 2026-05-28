@@ -109,7 +109,12 @@ export function MajstorModule({ loc, content }: Props) {
       files.forEach((f) => URL.revokeObjectURL(f.url));
       setFiles([]);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : String(err));
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes('guest_not_allowed')) {
+        setError('Za zahtev za uslugu je potreban trajan nalog. Otvorite "Nalog" da nadogradite.');
+      } else {
+        setError(message);
+      }
     } finally {
       setBusy(false);
     }
