@@ -22,10 +22,15 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendBusy, setResendBusy] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setNeedsVerification(false);
+    setResendMessage(null);
     setSubmitting(true);
     try {
       const { token, user } = await api.login(email, password);
@@ -34,9 +39,29 @@ export function Login() {
       navigate(fromState ?? defaultRouteFor(user.role));
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      setError(message.includes('401') ? 'Pogrešna e-pošta ili lozinka.' : message);
+      if (message.includes('email_not_verified')) {
+        setNeedsVerification(true);
+        setError('E-pošta nije potvrđena. Otvorite poruku koju smo poslali ili tražite novi link.');
+      } else if (message.includes('401')) {
+        setError('Pogrešna e-pošta ili lozinka.');
+      } else {
+        setError(message);
+      }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const resend = async () => {
+    setResendBusy(true);
+    setResendMessage(null);
+    try {
+      await api.resendVerification(email);
+      setResendMessage('Ako nalog postoji, poslali smo novi link na vašu e-poštu.');
+    } catch (err: unknown) {
+      setResendMessage(err instanceof Error ? err.message : String(err));
+    } finally {
+      setResendBusy(false);
     }
   };
 
@@ -68,6 +93,22 @@ export function Login() {
             {submitting ? 'Prijava…' : 'Prijavi se'}
           </button>
           {error && <div className="login-error">{error}</div>}
+          {needsVerification && (
+            <div style={{ marginTop: 4, fontSize: 13, color: 'var(--ink-2)' }}>
+              <button
+                type="button"
+                className="nav-btn"
+                onClick={resend}
+                disabled={resendBusy || !email}
+                style={{ marginRight: 8 }}
+              >
+                {resendBusy ? 'Slanje…' : 'Pošalji novi link'}
+              </button>
+              {resendMessage && (
+                <span style={{ display: 'block', marginTop: 8 }}>{resendMessage}</span>
+              )}
+            </div>
+          )}
           {registrationEnabled && (
             <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 6 }}>
               Nemate nalog? <Link to="/registracija">Registrujte se</Link>

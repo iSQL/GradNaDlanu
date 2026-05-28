@@ -100,6 +100,7 @@ export async function runSeed(): Promise<SeedResult> {
         passwordHash,
         displayName: env.adminUsername,
         role: 'admin',
+        emailVerifiedAt: new Date(),
       })
       .onConflictDoNothing({ target: users.email })
       .returning({ id: users.id });

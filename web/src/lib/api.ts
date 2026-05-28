@@ -35,6 +35,12 @@ export interface AuthResponse {
   user: { id: number; email: string; displayName: string; role: Role };
 }
 
+export interface RegisterResponse {
+  ok: true;
+  email: string;
+  message: string;
+}
+
 async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
@@ -118,9 +124,19 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
   register: (email: string, password: string, displayName: string) =>
-    request<AuthResponse>('/api/auth/register', {
+    request<RegisterResponse>('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password, displayName }),
+    }),
+  verifyEmail: (token: string) =>
+    request<AuthResponse>('/api/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }),
+  resendVerification: (email: string) =>
+    request<{ ok: true; message: string }>('/api/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
     }),
   getMe: () => request<CurrentUser>('/api/me'),
   updateMe: (patch: { displayName: string }) =>

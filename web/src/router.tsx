@@ -7,6 +7,7 @@ import { EditLocation } from './admin/EditLocation';
 import { RequireAuth } from './admin/RequireAuth';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+import { VerifyEmail } from './pages/VerifyEmail';
 import { Account } from './pages/Account';
 import { OwnerDashboard } from './pages/OwnerDashboard';
 import { OwnerEditLocation } from './pages/OwnerEditLocation';
@@ -23,6 +24,7 @@ export const router = createBrowserRouter([
       { path: 'objekat/:slug', element: <ModulePage /> },
       { path: 'prijava', element: <Login /> },
       { path: 'registracija', element: <Register /> },
+      { path: 'verify-email', element: <VerifyEmail /> },
       { path: 'pravna-napomena', element: <LegalNotice /> },
       { path: 'politika-privatnosti', element: <PrivacyPolicy /> },
       {

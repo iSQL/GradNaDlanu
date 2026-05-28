@@ -62,6 +62,34 @@ function readAdminPassword(): string {
   return v ?? 'admin';
 }
 
+function readAppUrl(): string {
+  const v = process.env.APP_URL?.trim();
+  if (v && /^https?:\/\//i.test(v)) {
+    return v.replace(/\/+$/, '');
+  }
+  // Sensible defaults: prod must have it explicitly set if the verification link
+  // should point at a real domain. Falling back to localhost in dev keeps the
+  // happy path painless.
+  if (isProduction) {
+    // Try to derive from APP_DOMAIN if APP_URL isn't set.
+    const dom = process.env.APP_DOMAIN?.trim();
+    if (dom) return `https://${dom.replace(/\/+$/, '')}`;
+  }
+  return 'http://localhost:5173';
+}
+
+function readEmailFrom(): string {
+  const v = process.env.EMAIL_FROM?.trim();
+  if (v) return v;
+  if (isProduction) {
+    // Not fatal — registration still works, but emails will fail. We surface a
+    // clear console warning instead of refusing to boot so other features keep
+    // working. Operators see the warning in logs on first boot.
+    console.warn('[env] EMAIL_FROM is not set — verification emails will fail.');
+  }
+  return 'noreply@example.com';
+}
+
 function readCorsOrigin(): string | string[] | false {
   const v = process.env.CORS_ORIGIN;
   if (isProduction) {
@@ -101,4 +129,10 @@ export const env = {
   runSeedOnBoot: bool('RUN_SEED_ON_BOOT', false),
   uploadDir: process.env.UPLOAD_DIR
     ?? (isProduction ? '/data/uploads' : './uploads'),
+  // Email / verification. RESEND_API_KEY is optional in dev — when missing we
+  // log verification links to the console instead of sending. EMAIL_FROM and
+  // APP_URL are used to compose the message and the verification link.
+  resendApiKey: process.env.RESEND_API_KEY?.trim() || null,
+  emailFrom: readEmailFrom(),
+  appUrl: readAppUrl(),
 };

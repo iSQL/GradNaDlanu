@@ -101,6 +101,14 @@ const statements = [
     created_by_user_id   INTEGER REFERENCES users(id) ON DELETE SET NULL,
     created_at           TIMESTAMP NOT NULL DEFAULT NOW()
   )`,
+  `CREATE TABLE IF NOT EXISTS email_verification_tokens (
+    id          SERIAL PRIMARY KEY,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash  TEXT NOT NULL UNIQUE,
+    expires_at  TIMESTAMPTZ NOT NULL,
+    created_at  TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS email_verification_tokens_user_idx ON email_verification_tokens(user_id)`,
   `CREATE TABLE IF NOT EXISTS app_settings (
     key        TEXT PRIMARY KEY,
     value      JSONB NOT NULL,
@@ -136,6 +144,16 @@ const statements = [
   `CREATE INDEX IF NOT EXISTS events_status_starts_idx ON events(status, starts_at)`,
   `CREATE INDEX IF NOT EXISTS service_requests_loc_status_idx ON service_requests(location_id, status)`,
   `CREATE INDEX IF NOT EXISTS service_requests_user_created_idx ON service_requests(user_id, created_at DESC)`,
+  // One-shot backfill: grandfather every user that existed before email
+  // verification shipped. Gated on an app_settings sentinel so subsequent boots
+  // don't re-verify users who refused to confirm their email.
+  `DO $$
+   BEGIN
+     IF NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'email_verification_backfilled') THEN
+       UPDATE users SET email_verified_at = NOW() WHERE email_verified_at IS NULL;
+       INSERT INTO app_settings (key, value) VALUES ('email_verification_backfilled', 'true'::jsonb);
+     END IF;
+   END $$`,
   // One-shot mirror: copy any v1 admin_users rows into users with role='admin'.
   // Wrapped so it's a no-op once admin_users has been dropped.
   `DO $$

@@ -165,6 +165,16 @@ export const events = pgTable('events', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const emailVerificationTokens = pgTable('email_verification_tokens', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  tokenHash: text('token_hash').notNull().unique(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const appSettings = pgTable('app_settings', {
   key: text('key').primaryKey(),
   value: jsonb('value').notNull(),
@@ -205,6 +215,7 @@ export type ObjectMap = typeof objectMaps.$inferSelect;
 export type Media = typeof media.$inferSelect;
 export type Event = typeof events.$inferSelect;
 export type EventStatus = Event['status'];
+export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
 export type AppSetting = typeof appSettings.$inferSelect;
 export type ServiceRequest = typeof serviceRequests.$inferSelect;
 export type ServiceRequestStatus = ServiceRequest['status'];

@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { api } from '../lib/api';
-import { setToken } from '../lib/auth';
 
 export function Register() {
-  const navigate = useNavigate();
   const ctx = useOutletContext<AppContext>();
   const registrationEnabled = ctx.registrationEnabled;
 
@@ -14,19 +12,19 @@ export function Register() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [sentTo, setSentTo] = useState<string | null>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
     try {
-      const { token } = await api.register(email, password, displayName);
-      setToken(token);
-      await ctx.reloadCurrentUser();
-      navigate('/');
+      const res = await api.register(email, password, displayName);
+      setSentTo(res.email);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       if (message.includes('409')) setError('Ova e-pošta je već registrovana.');
+      else if (message.includes('403')) setError('Registracija je trenutno onemogućena.');
       else if (message.includes('400')) setError('Proverite unos: e-pošta i lozinka (min. 6 karaktera).');
       else setError(message);
     } finally {
@@ -45,6 +43,24 @@ export function Register() {
           <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 12 }}>
             Već imate nalog? <Link to="/prijava">Prijavite se</Link>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (sentTo) {
+    return (
+      <div className="login-shell">
+        <div className="login-card">
+          <h1>Potvrdite e-poštu</h1>
+          <p style={{ fontSize: 14, color: 'var(--ink-2)', marginTop: 8, lineHeight: 1.55 }}>
+            Poslali smo link za potvrdu na <strong>{sentTo}</strong>. Otvorite poruku i kliknite na
+            link da aktivirate nalog. Link važi 24 sata.
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 12, lineHeight: 1.55 }}>
+            Ne vidite poruku? Proverite folder „neželjena pošta" ili{' '}
+            <Link to="/prijava">prijavite se</Link> kada potvrdite mejl.
+          </p>
         </div>
       </div>
     );
