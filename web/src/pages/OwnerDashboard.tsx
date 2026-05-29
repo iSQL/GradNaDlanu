@@ -3,6 +3,7 @@ import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { api } from '../lib/api';
 import { clearToken } from '../lib/auth';
+import { formatDateTime as formatDate } from '../lib/format';
 import { PinGlyph } from '../components/PinGlyph';
 import type { Location } from '../types';
 import { ReservationsInbox } from '../admin/ReservationsInbox';
@@ -10,16 +11,6 @@ import { ServiceRequestsInbox } from '../admin/ServiceRequestsInbox';
 
 type OwnerComment = Awaited<ReturnType<typeof api.ownerComments>>[number];
 type Tab = 'objects' | 'reservations' | 'service-requests' | 'comments';
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString('sr-RS', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 export function OwnerDashboard() {
   const ctx = useOutletContext<AppContext>();

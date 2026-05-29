@@ -3,6 +3,7 @@ import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { api, mediaUrl } from '../lib/api';
 import { clearToken } from '../lib/auth';
+import { formatDate, formatDateTime, formatTime } from '../lib/format';
 import { PinGlyph } from '../components/PinGlyph';
 import { IconStar } from '../components/Icons';
 import { RoleBadge } from '../components/RoleBadge';
@@ -25,14 +26,6 @@ const SR_STATUS_LABELS: Record<ServiceRequestStatus, string> = {
   completed: 'završeno',
 };
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('sr-RS', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-}
-
 const STATUS_LABELS: Record<MyReservation['status'], string> = {
   pending: 'na čekanju',
   approved: 'odobreno',
@@ -43,9 +36,7 @@ const STATUS_LABELS: Record<MyReservation['status'], string> = {
 function describeReservation(r: MyReservation): string {
   const p = r.payload as unknown as Record<string, string | number>;
   if (r.locationCatId === 'cafe') {
-    const start = new Date(String(p.slotStart));
-    const end = new Date(String(p.slotEnd));
-    return `Sto #${p.tableId} · ${start.toLocaleString('sr-RS', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} – ${end.toLocaleTimeString('sr-RS', { hour: '2-digit', minute: '2-digit' })} · ${p.guests} gostiju`;
+    return `Sto #${p.tableId} · ${formatDateTime(String(p.slotStart))} – ${formatTime(String(p.slotEnd))} · ${p.guests} gostiju`;
   }
   if (r.locationCatId === 'hotel') {
     return `Soba ${p.roomKey} · ${p.dateFrom} → ${p.dateTo} · ${p.guests} gostiju`;

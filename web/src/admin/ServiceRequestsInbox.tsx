@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, mediaUrl } from '../lib/api';
+import { formatDateTime as formatDate } from '../lib/format';
 import type { OwnerServiceRequest, ServiceRequestQuote, ServiceRequestStatus } from '../types';
 
 const STATUS_LABELS: Record<ServiceRequestStatus, string> = {
@@ -20,16 +21,6 @@ const STATUS_FILTERS: Array<{ key: ServiceRequestStatus | 'all'; label: string }
   { key: 'cancelled', label: 'Otkazano' },
   { key: 'all',       label: 'Sve' },
 ];
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString('sr-RS', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function todayISO(): string {
   const d = new Date();

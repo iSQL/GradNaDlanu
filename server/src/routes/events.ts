@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { and, asc, count, eq, gte, inArray } from 'drizzle-orm';
+import { and, asc, count, eq, inArray, sql as dsql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { events, locations, objectOwners } from '../db/schema.js';
 import { requireRole } from '../lib/auth.js';
@@ -110,7 +110,10 @@ export async function eventsRoutes(app: FastifyInstance) {
         eq(events.status, 'published' as const),
         eq(locations.status, 'published' as const),
       ];
-      if (!includePast) conds.push(gte(events.startsAt, new Date()));
+      // "Aktuelan" = endsAt još nije prošao (multi-day festival ostaje vidljiv dok
+      // ne istekne), ili (ako nema endsAt) startsAt je u budućnosti. Inače `startsAt >= now`
+      // bi sakrio događaj koji upravo traje.
+      if (!includePast) conds.push(dsql`COALESCE(${events.endsAt}, ${events.startsAt}) >= NOW()`);
       if (cat) conds.push(eq(locations.catId, cat));
       if (village) conds.push(eq(locations.village, village));
 
@@ -137,6 +140,32 @@ export async function eventsRoutes(app: FastifyInstance) {
     },
   );
 
+  // Public: single event by id — koristi se za /dogadjaj/:id detail view.
+  app.get<{ Params: { id: string } }>('/api/events/:id', async (req, reply) => {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return reply.code(400).send({ error: 'Invalid id' });
+    const [row] = await db
+      .select({
+        id: events.id,
+        title: events.title,
+        description: events.description,
+        startsAt: events.startsAt,
+        endsAt: events.endsAt,
+        status: events.status,
+        locationId: locations.id,
+        locationSlug: locations.slug,
+        locationName: locations.name,
+        locationCatId: locations.catId,
+        village: locations.village,
+      })
+      .from(events)
+      .innerJoin(locations, eq(events.locationId, locations.id))
+      .where(and(eq(events.id, id), eq(events.status, 'published' as const)))
+      .limit(1);
+    if (!row) return reply.code(404).send({ error: 'Not found' });
+    return row;
+  });
+
   // Public: events for a single location (used by module pages).
   app.get<{ Params: { slug: string }; Querystring: { includePast?: string } }>(
     '/api/locations/:slug/events',
@@ -148,7 +177,7 @@ export async function eventsRoutes(app: FastifyInstance) {
         eq(events.locationId, loc.id),
         eq(events.status, 'published' as const),
       ];
-      if (!includePast) conds.push(gte(events.startsAt, new Date()));
+      if (!includePast) conds.push(dsql`COALESCE(${events.endsAt}, ${events.startsAt}) >= NOW()`);
       return db
         .select({
           id: events.id,
@@ -172,7 +201,7 @@ export async function eventsRoutes(app: FastifyInstance) {
     async (req) => {
       const includePast = req.query.includePast === '1';
       const conds = [];
-      if (!includePast) conds.push(gte(events.startsAt, new Date()));
+      if (!includePast) conds.push(dsql`COALESCE(${events.endsAt}, ${events.startsAt}) >= NOW()`);
 
       if (req.user.role !== 'admin') {
         const owned = await db
@@ -268,6 +297,48 @@ export async function eventsRoutes(app: FastifyInstance) {
         .where(eq(events.id, id))
         .returning();
       return updated;
+    },
+  );
+
+  // Bulk delete: brisi sve "prošle" događaje. "Prošao" = COALESCE(endsAt, startsAt) < NOW().
+  // Sa ?locationId=X — radi samo za taj objekat (uz ownership check). Bez query-ja —
+  // briše prošle iz svih objekata koje korisnik poseduje (admin = svi objekti).
+  app.delete<{ Querystring: { locationId?: string } }>(
+    '/api/owner/events/past',
+    { preHandler: requireRole('business') },
+    async (req, reply) => {
+      const stale = dsql`COALESCE(${events.endsAt}, ${events.startsAt}) < NOW()`;
+      const lidRaw = req.query.locationId;
+
+      // Per-location varijanta: zahteva ownership na tom objektu.
+      if (lidRaw !== undefined) {
+        const lid = Number(lidRaw);
+        if (!Number.isFinite(lid)) return reply.code(400).send({ error: 'Invalid locationId' });
+        if (!(await userOwnsLocation(req.user.sub, req.user.role, lid))) {
+          return reply.code(403).send({ error: 'Forbidden' });
+        }
+        const rows = await db
+          .delete(events)
+          .where(and(eq(events.locationId, lid), stale))
+          .returning({ id: events.id });
+        return { deleted: rows.length };
+      }
+
+      // Bez locationId: admin → svi objekti, business → samo posedovani.
+      if (req.user.role === 'admin') {
+        const rows = await db.delete(events).where(stale).returning({ id: events.id });
+        return { deleted: rows.length };
+      }
+      const owned = await db
+        .select({ id: objectOwners.locationId })
+        .from(objectOwners)
+        .where(eq(objectOwners.userId, req.user.sub));
+      if (owned.length === 0) return { deleted: 0 };
+      const rows = await db
+        .delete(events)
+        .where(and(inArray(events.locationId, owned.map((o) => o.id)), stale))
+        .returning({ id: events.id });
+      return { deleted: rows.length };
     },
   );
 

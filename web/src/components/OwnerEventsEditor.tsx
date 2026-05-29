@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { formatDateTimeRange } from '../lib/format';
 import type { CityEvent } from '../types';
+import { TimeSelect } from './TimeSelect';
+import { DateInput } from './DateInput';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -12,20 +15,17 @@ function splitIso(iso: string): { date: string; time: string } {
   };
 }
 
+// Vreme je opciono pri unosu — ako ga korisnik ne postavi, default je 08:00.
+// Konkretan datum je obavezan (bez njega ne postoji početak događaja).
+const DEFAULT_TIME = '08:00';
 function combine(date: string, time: string): string | null {
-  if (!date || !time) return null;
-  const merged = new Date(`${date}T${time}`);
+  if (!date) return null;
+  const t = time || DEFAULT_TIME;
+  const merged = new Date(`${date}T${t}`);
   if (Number.isNaN(merged.getTime())) return null;
   return merged.toISOString();
 }
 
-function formatRange(start: string, end: string | null): string {
-  const fmt = (iso: string) => new Date(iso).toLocaleString('sr-Latn-RS', {
-    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  });
-  if (!end) return fmt(start);
-  return `${fmt(start)} → ${new Date(end).toLocaleTimeString('sr-Latn-RS', { hour: '2-digit', minute: '2-digit' })}`;
-}
 
 interface DraftEvent {
   id?: number;
@@ -59,20 +59,9 @@ function DateTimeFields({
   return (
     <div>
       <div className="field-label" style={{ marginBottom: 6 }}>{label}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px', gap: 6 }}>
-        <input
-          className="field-input"
-          type="date"
-          value={date}
-          onChange={(e) => onDate(e.target.value)}
-        />
-        <input
-          className="field-input"
-          type="time"
-          step={300}
-          value={time}
-          onChange={(e) => onTime(e.target.value)}
-        />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 6 }}>
+        <DateInput value={date} onChange={onDate} />
+        <TimeSelect value={time} onChange={onTime} />
       </div>
     </div>
   );
@@ -85,6 +74,7 @@ export function OwnerEventsEditor({ locationId }: Props) {
   const [editing, setEditing] = useState<DraftEvent | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const reload = () => {
     setError(null);
@@ -103,7 +93,7 @@ export function OwnerEventsEditor({ locationId }: Props) {
   const handleCreate = async () => {
     const startsAt = combine(draft.startDate, draft.startTime);
     if (!draft.title.trim() || !startsAt) {
-      setError('Naslov, datum i vreme početka su obavezni.');
+      setError('Naslov i datum početka su obavezni.');
       return;
     }
     const endsAt = draft.endDate || draft.endTime
@@ -132,7 +122,7 @@ export function OwnerEventsEditor({ locationId }: Props) {
     if (!editing || editing.id === undefined) return;
     const startsAt = combine(editing.startDate, editing.startTime);
     if (!editing.title.trim() || !startsAt) {
-      setError('Naslov, datum i vreme početka su obavezni.');
+      setError('Naslov i datum početka su obavezni.');
       return;
     }
     const endsAt = editing.endDate || editing.endTime
@@ -170,17 +160,53 @@ export function OwnerEventsEditor({ locationId }: Props) {
     }
   };
 
+  const handleDeletePast = async () => {
+    if (!confirm('Obrisati sve prošle događaje za ovaj objekat? Ova radnja je trajna.')) return;
+    setBusy(true);
+    setError(null);
+    setSuccessMsg(null);
+    try {
+      const res = await api.ownerDeletePastEvents(locationId);
+      setSuccessMsg(
+        res.deleted === 0
+          ? 'Nema prošlih događaja za brisanje.'
+          : `Obrisano ${res.deleted} prošli${res.deleted === 1 ? '' : 'h'} događaja.`,
+      );
+      reload();
+      setTimeout(() => setSuccessMsg(null), 4000);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="events-editor">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <div className="field-label" style={{ margin: 0 }}>Predstojeći događaji</div>
-        <label style={{ fontSize: 12, color: 'var(--ink-2)', display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-          <input type="checkbox" checked={includePast} onChange={(e) => setIncludePast(e.target.checked)} />
-          Prikaži i prošle
-        </label>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 16 }}>
+          <label style={{ fontSize: 12, color: 'var(--ink-2)', display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+            <input type="checkbox" checked={includePast} onChange={(e) => setIncludePast(e.target.checked)} />
+            Prikaži i prošle
+          </label>
+          <button
+            type="button"
+            className="row-action danger"
+            style={{ fontSize: 12, padding: '6px 10px' }}
+            disabled={busy}
+            onClick={handleDeletePast}
+            title="Briše sve događaje čiji je kraj (ili početak ako nema kraja) prošao"
+          >
+            Obriši prošle
+          </button>
+        </div>
       </div>
 
       {error && <div className="login-error">{error}</div>}
+      {successMsg && (
+        <div style={{ fontSize: 13, color: 'var(--moss, #2f7a3c)', padding: '6px 0' }}>{successMsg}</div>
+      )}
 
       {events === null ? (
         <div className="home-skeleton-list">
@@ -235,7 +261,7 @@ export function OwnerEventsEditor({ locationId }: Props) {
               <div key={e.id} className="events-editor-row">
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{e.title}</div>
-                  <div className="events-editor-meta">{formatRange(e.startsAt, e.endsAt)}</div>
+                  <div className="events-editor-meta">{formatDateTimeRange(e.startsAt, e.endsAt)}</div>
                   {e.description && (
                     <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 6 }}>{e.description}</div>
                   )}
@@ -302,7 +328,7 @@ export function OwnerEventsEditor({ locationId }: Props) {
           <button
             type="button"
             className="btn-primary"
-            disabled={busy || !draft.title.trim() || !draft.startDate || !draft.startTime}
+            disabled={busy || !draft.title.trim() || !draft.startDate}
             onClick={handleCreate}
           >
             {busy ? 'Dodavanje…' : 'Dodaj događaj'}

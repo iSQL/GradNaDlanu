@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { SELA_ZABARI } from '../lib/villages';
+import { formatDate, formatDateTimeRange } from '../lib/format';
 import type { CityEvent, NewsItem } from '../types';
 
 type Tab = 'all' | 'events' | 'news';
@@ -19,33 +20,6 @@ interface EventCard {
   data: CityEvent;
 }
 type Card = NewsCard | EventCard;
-
-function formatDate(iso: string | null): string {
-  if (!iso) return '';
-  return new Date(iso).toLocaleDateString('sr-Latn-RS', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-function formatEventTime(start: string, end: string | null): string {
-  const fmt = (iso: string) =>
-    new Date(iso).toLocaleString('sr-Latn-RS', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  if (!end) return fmt(start);
-  const sameDay = new Date(start).toDateString() === new Date(end).toDateString();
-  if (sameDay) {
-    const endTime = new Date(end).toLocaleTimeString('sr-Latn-RS', { hour: '2-digit', minute: '2-digit' });
-    return `${fmt(start)} → ${endTime}`;
-  }
-  return `${fmt(start)} → ${fmt(end)}`;
-}
 
 function truncate(s: string, max: number): string {
   if (s.length <= max) return s;
@@ -304,7 +278,7 @@ export function DesavanjaPage() {
             {cards.map((c) =>
               c.kind === 'news' ? (
                 <li key={`news-${c.id}`} className="desavanja-tile-wrap">
-                  <Link to={`/objekat/${c.data.locationSlug}`} className="news-tile news-tile-d">
+                  <Link to={`/obavestenje/${c.data.slug}`} className="news-tile news-tile-d">
                     <div className="news-tile-eyebrow">
                       <span className="tile-kind kind-news">Obaveštenje</span>
                       <span className="news-tile-date">
@@ -321,14 +295,14 @@ export function DesavanjaPage() {
                 </li>
               ) : (
                 <li key={`event-${c.id}`} className="desavanja-tile-wrap">
-                  <Link to={`/objekat/${c.data.locationSlug}`} className="news-tile news-tile-d news-tile-event">
+                  <Link to={`/dogadjaj/${c.data.id}`} className="news-tile news-tile-d news-tile-event">
                     <div className="news-tile-eyebrow">
                       <span className="tile-kind kind-event">Događaj</span>
                       <span className="news-tile-date">{formatDate(c.data.startsAt)}</span>
                     </div>
                     <h3 className="news-tile-title">{c.data.title}</h3>
                     <div className="news-tile-when">
-                      {formatEventTime(c.data.startsAt, c.data.endsAt)}
+                      {formatDateTimeRange(c.data.startsAt, c.data.endsAt)}
                     </div>
                     {c.data.description && (
                       <p className="news-tile-body">{truncate(c.data.description, 130)}</p>

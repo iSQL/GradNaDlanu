@@ -1,16 +1,10 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { formatDateTime } from '../lib/format';
 import type { NewsStatus, OwnerNewsItem } from '../types';
 
 function formatDate(iso: string | null): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString('sr-Latn-RS', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return iso ? formatDateTime(iso) : '—';
 }
 
 function statusLabel(s: NewsStatus): string {

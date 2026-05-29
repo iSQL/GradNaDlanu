@@ -17,6 +17,8 @@ import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { MapPage } from './pages/MapPage';
 import { ObjektiPage } from './pages/ObjektiPage';
 import { DesavanjaPage } from './pages/DesavanjaPage';
+import { NewsDetailPage } from './pages/NewsDetailPage';
+import { EventDetailPage } from './pages/EventDetailPage';
 import { DashboardPage } from './pages/DashboardPage';
 
 export const router = createBrowserRouter([
@@ -28,6 +30,8 @@ export const router = createBrowserRouter([
       { path: 'mapa', element: <MapPage /> },
       { path: 'objekti', element: <ObjektiPage /> },
       { path: 'desavanja', element: <DesavanjaPage /> },
+      { path: 'obavestenje/:slug', element: <NewsDetailPage /> },
+      { path: 'dogadjaj/:id', element: <EventDetailPage /> },
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'objekat/:slug', element: <ModulePage /> },
       { path: 'prijava', element: <Login /> },

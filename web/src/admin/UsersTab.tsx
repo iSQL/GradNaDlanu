@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { api } from '../lib/api';
+import { formatDate } from '../lib/format';
 import type { AdminUserRow, Location } from '../types';
 import type { Role } from '../lib/auth';
 
@@ -107,7 +108,7 @@ export function UsersTab() {
           <div className="user-row" key={u.id}>
             <div>
               <div className="favorite-name">{u.displayName}</div>
-              <div className="favorite-meta">{u.email} · od {new Date(u.createdAt).toLocaleDateString('sr-RS')}</div>
+              <div className="favorite-meta">{u.email} · od {formatDate(u.createdAt)}</div>
               {u.ownedLocations.length > 0 && (
                 <div className="user-owned">
                   Vlasnik:&nbsp;

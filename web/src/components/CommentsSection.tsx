@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { api } from '../lib/api';
+import { formatDate } from '../lib/format';
 import type { CommentNode } from '../types';
 import { IconStar } from './Icons';
 import { RoleBadge } from './RoleBadge';
@@ -9,11 +10,6 @@ import { RoleBadge } from './RoleBadge';
 interface Props {
   slug: string;
   canReply: boolean;
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString('sr-RS', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function StarPicker({ value, onChange }: { value: number | null; onChange: (n: number | null) => void }) {

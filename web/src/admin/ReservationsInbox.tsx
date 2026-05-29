@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { formatDateTime, formatTime } from '../lib/format';
 import type { OwnerReservation } from '../types';
 
 const STATUS_LABELS: Record<OwnerReservation['status'], string> = {
@@ -17,22 +18,12 @@ const STATUS_FILTERS: Array<{ key: OwnerReservation['status'] | 'all'; label: st
   { key: 'all',       label: 'Sve' },
 ];
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString('sr-RS', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+const formatDate = formatDateTime;
 
 function describePayload(r: OwnerReservation): string {
   const p = r.payload as unknown as Record<string, string | number>;
   if (r.locationCatId === 'cafe') {
-    const start = new Date(String(p.slotStart));
-    const end = new Date(String(p.slotEnd));
-    return `Sto #${p.tableId} · ${start.toLocaleString('sr-RS', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}–${end.toLocaleTimeString('sr-RS', { hour: '2-digit', minute: '2-digit' })} · ${p.guests} gostiju`;
+    return `Sto #${p.tableId} · ${formatDateTime(String(p.slotStart))}–${formatTime(String(p.slotEnd))} · ${p.guests} gostiju`;
   }
   if (r.locationCatId === 'hotel') {
     return `Soba ${p.roomKey} · ${p.dateFrom} → ${p.dateTo} · ${p.guests} gostiju`;

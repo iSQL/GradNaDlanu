@@ -2797,6 +2797,260 @@ button { font-family: inherit; }
   .desavanja-grid { grid-template-columns: 1fr; }
 }
 
+/* ============================================
+   LOCATION DESAVANJA PANEL (na module stranicama)
+   Dve kolone: događaji + obaveštenja, sa klikabilnim redovima.
+   ============================================ */
+
+.loc-desavanja {
+  margin: 24px 0;
+  padding: 22px 24px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.loc-desavanja-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.loc-desavanja-head h2 {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 22px;
+  color: var(--navy);
+  margin: 0;
+}
+.loc-desavanja-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+.loc-desavanja-col-head {
+  margin-bottom: 10px;
+}
+.loc-desavanja-empty {
+  font-size: 13px;
+  color: var(--ink-2);
+  padding: 12px 0;
+  font-style: italic;
+}
+.loc-desavanja-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.loc-desavanja-row {
+  display: grid;
+  grid-template-columns: 50px 1fr auto;
+  gap: 14px;
+  padding: 12px 10px;
+  margin: 0 -10px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  align-items: center;
+  transition: background 0.12s;
+}
+.loc-desavanja-row:hover {
+  background: var(--paper);
+}
+/* News redovi nemaju calendar block levo. */
+.loc-desavanja-row-news {
+  grid-template-columns: 1fr auto;
+}
+.loc-desavanja-date {
+  text-align: center;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 2px;
+}
+.loc-desavanja-day {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--navy);
+}
+.loc-desavanja-month {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin-top: 3px;
+}
+.loc-desavanja-body { min-width: 0; }
+.loc-desavanja-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.3;
+}
+.loc-desavanja-desc {
+  font-size: 12px;
+  color: var(--ink-2);
+  margin-top: 3px;
+  line-height: 1.45;
+}
+.loc-desavanja-time {
+  font-size: 12px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  align-self: flex-start;
+  padding-top: 2px;
+}
+.loc-desavanja-time-news {
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+@media (max-width: 720px) {
+  .loc-desavanja { padding: 18px; }
+  .loc-desavanja-cols { grid-template-columns: 1fr; gap: 18px; }
+}
+
+/* ============================================
+   DETAIL VIEW (obaveštenje / događaj)
+   ============================================ */
+
+.page-shell-narrow { max-width: 720px; }
+
+.detail-back {
+  display: inline-block;
+  font-size: 13px;
+  color: var(--ink-2);
+  text-decoration: none;
+  margin-bottom: 18px;
+}
+.detail-back:hover { color: var(--navy); text-decoration: underline; }
+
+.detail-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.detail-date {
+  font-size: 13px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.detail-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 36px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--navy);
+  margin: 0 0 10px;
+}
+.detail-meta {
+  font-size: 14px;
+  color: var(--ink-2);
+  margin-bottom: 24px;
+}
+.detail-loc {
+  color: var(--navy);
+  font-weight: 600;
+  text-decoration: none;
+}
+.detail-loc:hover { text-decoration: underline; }
+
+.detail-body {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--ink);
+  white-space: pre-wrap; /* poštuje line break-ove iz textarea */
+  margin-bottom: 32px;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 10px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+/* Edit forma — pojavljuje se na mestu sadržaja kad korisnik klikne "Uredi". */
+.detail-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.detail-edit-title {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  padding: 12px 14px;
+}
+.detail-edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.detail-edit-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.detail-edit-dt {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+}
+
+/* Cross-browser 24h time picker (komponenta TimeSelect — dva select-a). */
+.time-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.time-select-part {
+  width: auto;
+  min-width: 56px;
+  padding: 10px 4px 10px 8px;
+  font-variant-numeric: tabular-nums;
+}
+.time-select-sep {
+  color: var(--ink-2);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 0 2px;
+}
+.detail-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 6px;
+}
+.detail-edit-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.detail-edit-buttons {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+@media (max-width: 720px) {
+  .detail-title { font-size: 28px; }
+  .detail-body { font-size: 15px; }
+  .detail-edit-grid { grid-template-columns: 1fr; }
+}
+
 /* Tab redu (Sva / Događaji / Obaveštenja). */
 .desavanja-tabs {
   display: inline-flex;

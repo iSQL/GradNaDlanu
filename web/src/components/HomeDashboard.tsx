@@ -2,16 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { api } from '../lib/api';
+import { formatDate } from '../lib/format';
 import type { Location, RecentComment } from '../types';
 import { EventsPanel } from './EventsPanel';
 import { IconStar } from './Icons';
 import { PinGlyph } from './PinGlyph';
 import { RoleBadge } from './RoleBadge';
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString('sr-Latn-RS', { day: 'numeric', month: 'short', year: 'numeric' });
-}
 
 function truncate(s: string, max: number): string {
   if (s.length <= max) return s;

@@ -2,31 +2,19 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { api } from '../lib/api';
+import { formatDate, formatDateTime } from '../lib/format';
 import type { CityEvent, Location, NewsItem, RecentComment } from '../types';
 import { CATEGORY_LABELS } from '../types';
 import { PinGlyph } from './PinGlyph';
 import { IconStar } from './Icons';
 import { RoleBadge } from './RoleBadge';
 
-function formatDate(iso: string | null): string {
-  if (!iso) return '';
-  return new Date(iso).toLocaleDateString('sr-Latn-RS', { day: 'numeric', month: 'short' });
-}
-
-function formatEventDate(iso: string): string {
-  return new Date(iso).toLocaleString('sr-Latn-RS', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function formatDayMonth(iso: string): { day: string; month: string } {
+// Calendar block u "Predstojeći događaji" karticama — dvocifren dan/mesec.
+function calendarBlock(iso: string): { day: string; month: string } {
   const d = new Date(iso);
   return {
-    day: String(d.getDate()),
-    month: d.toLocaleDateString('sr-Latn-RS', { month: 'short' }).replace('.', ''),
+    day: String(d.getDate()).padStart(2, '0'),
+    month: String(d.getMonth() + 1).padStart(2, '0'),
   };
 }
 
@@ -210,7 +198,7 @@ export function HomePage() {
           ) : (
             <div className="home-card-grid home-card-grid-3">
               {upcoming.map((e) => {
-                const dm = formatDayMonth(e.startsAt);
+                const dm = calendarBlock(e.startsAt);
                 return (
                   <Link key={e.id} to={`/objekat/${e.locationSlug}`} className="event-tile">
                     <div className="event-tile-date">
@@ -219,7 +207,7 @@ export function HomePage() {
                     </div>
                     <div className="event-tile-body">
                       <h3 className="event-tile-title">{e.title}</h3>
-                      <div className="event-tile-when">{formatEventDate(e.startsAt)}</div>
+                      <div className="event-tile-when">{formatDateTime(e.startsAt)}</div>
                       <div className="event-tile-loc">
                         {CATEGORY_LABELS[e.locationCatId]} · {e.locationName}
                       </div>

@@ -360,6 +360,10 @@ export const api = {
     request<CityEvent>(`/api/owner/events/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   ownerDeleteEvent: (id: number) =>
     request<{ ok: true }>(`/api/owner/events/${id}`, { method: 'DELETE' }),
+  ownerDeletePastEvents: (locationId?: number) => {
+    const qs = locationId !== undefined ? `?locationId=${locationId}` : '';
+    return request<{ deleted: number }>(`/api/owner/events/past${qs}`, { method: 'DELETE' });
+  },
 
   // News
   listNews: (params: { village?: string; locationId?: number; limit?: number } = {}) => {
@@ -370,6 +374,8 @@ export const api = {
     const s = qs.toString();
     return request<NewsItem[]>(`/api/news${s ? `?${s}` : ''}`);
   },
+  getNews: (slug: string) => request<NewsItem>(`/api/news/${slug}`),
+  getEvent: (id: number) => request<CityEvent>(`/api/events/${id}`),
 
   // Owner news
   ownerListNews: (params: { locationId?: number } = {}) => {

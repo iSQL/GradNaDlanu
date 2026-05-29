@@ -1,21 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { formatTime } from '../lib/format';
 import type { CityEvent } from '../types';
 import { PinGlyph } from './PinGlyph';
 
-const MONTHS_SR = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'avg', 'sep', 'okt', 'nov', 'dec'];
-
-function formatDayMonth(iso: string): { day: string; month: string } {
+function calendarBlock(iso: string): { day: string; month: string } {
   const d = new Date(iso);
-  return { day: String(d.getDate()), month: MONTHS_SR[d.getMonth()] };
-}
-
-function formatTime(iso: string): string {
-  const d = new Date(iso);
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mm = String(d.getMinutes()).padStart(2, '0');
-  return `${hh}:${mm}`;
+  return {
+    day: String(d.getDate()).padStart(2, '0'),
+    month: String(d.getMonth() + 1).padStart(2, '0'),
+  };
 }
 
 function formatTimeRange(start: string, end: string | null): string {
@@ -62,7 +57,7 @@ export function EventsPanel({ cat, limit = 10 }: Props) {
       ) : (
         <ul className="events-list">
           {events.map((e) => {
-            const { day, month } = formatDayMonth(e.startsAt);
+            const { day, month } = calendarBlock(e.startsAt);
             const time = formatTimeRange(e.startsAt, e.endsAt);
             return (
               <li key={e.id} className="events-row">

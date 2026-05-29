@@ -20,6 +20,7 @@ import { MajstorModule } from './MajstorModule';
 import { EmptyContent, isEmptyContent } from './EmptyContent';
 import { SocialActions } from '../components/SocialActions';
 import { CommentsSection } from '../components/CommentsSection';
+import { LocationDesavanjaPanel } from '../components/LocationDesavanjaPanel';
 
 export function ModulePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -82,6 +83,7 @@ export function ModulePage() {
       <div className="module-page-extras">
         <div className="module-page-extras-inner">
           <SocialActions loc={data} onChanged={() => reload().catch(console.error)} />
+          <LocationDesavanjaPanel locationId={data.id} locationSlug={data.slug} />
           <CommentsSection slug={data.slug} canReply={isOwner || !!isAdmin} />
         </div>
       </div>
