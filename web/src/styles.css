@@ -3007,24 +3007,92 @@ button { font-family: inherit; }
   gap: 6px;
 }
 
-/* Cross-browser 24h time picker (komponenta TimeSelect — dva select-a). */
-.time-select {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
+/* react-datepicker theme override — uklapa popup sa GnD paletu (paper/navy/gold).
+   Sami input-i koriste `.field-input` pa naslede default izgled iz forme.
+   Popup ide u portal `#rdp-portal` (vidi DateTimePicker.tsx) — z-index iznad
+   topnav (1000) i nav drawer overlay-a (1100). */
+.react-datepicker-wrapper {
+  display: block;
+  width: 100%;
 }
-.time-select-part {
-  width: auto;
-  min-width: 56px;
-  padding: 10px 4px 10px 8px;
+.react-datepicker__input-container input { width: 100%; }
+.react-datepicker-popper { z-index: 1200 !important; }
+#rdp-portal .react-datepicker-popper { z-index: 1200; }
+
+.react-datepicker {
+  font-family: 'Inter', sans-serif;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(11, 27, 43, 0.18);
+  color: var(--ink);
+  font-size: 13px;
+}
+.react-datepicker__triangle { display: none; }
+.react-datepicker__header {
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--line);
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  padding-top: 10px;
+}
+.react-datepicker__current-month,
+.react-datepicker-time__header {
+  color: var(--navy);
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 14px;
+}
+.react-datepicker__day-name { color: var(--ink-2); font-weight: 600; }
+.react-datepicker__day,
+.react-datepicker__day-name {
+  width: 30px;
+  line-height: 30px;
+  margin: 2px;
+  border-radius: 6px;
+}
+.react-datepicker__day { color: var(--ink); cursor: pointer; }
+.react-datepicker__day:hover { background: rgba(30, 58, 95, 0.10); }
+.react-datepicker__day--today {
+  font-weight: 700;
+  color: var(--gold-2);
+}
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background: var(--navy) !important;
+  color: var(--paper) !important;
+}
+.react-datepicker__day--outside-month { color: var(--ink-2); opacity: 0.4; }
+.react-datepicker__navigation-icon::before {
+  border-color: var(--navy);
+}
+/* Time list panel */
+.react-datepicker__time-container {
+  border-left: 1px solid var(--line);
+}
+.react-datepicker__time {
+  background: var(--paper);
+}
+.react-datepicker__time-list-item {
   font-variant-numeric: tabular-nums;
+  color: var(--ink);
 }
-.time-select-sep {
-  color: var(--ink-2);
+.react-datepicker__time-list-item:hover { background: rgba(30, 58, 95, 0.10) !important; }
+.react-datepicker__time-list-item--selected {
+  background: var(--navy) !important;
+  color: var(--paper) !important;
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  padding: 0 2px;
 }
+
+/* Layout: datum + vreme polje jedan pored drugog (OwnerEventsEditor). */
+.dt-fields {
+  display: grid;
+  grid-template-columns: 1fr 110px;
+  gap: 6px;
+}
+.dt-fields .react-datepicker-wrapper { width: 100%; }
+/* Time input je uži — datum želi prostor za "dd/mm/yyyy". */
+.gnd-time-input { text-align: center; }
 .detail-edit-actions {
   display: flex;
   align-items: center;

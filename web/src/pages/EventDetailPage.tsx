@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { api } from '../lib/api';
-import { TimeSelect } from '../components/TimeSelect';
-import { DateInput } from '../components/DateInput';
+import { GndDatePicker, GndTimePicker } from '../components/DateTimePicker';
 import { formatDateTimeRange } from '../lib/format';
 import type { CityEvent } from '../types';
 
@@ -172,11 +171,11 @@ export function EventDetailPage() {
               <label>
                 <span className="field-label">Početak</span>
                 <div className="detail-edit-dt">
-                  <DateInput
+                  <GndDatePicker
                     value={editing.startDate}
                     onChange={(v) => setEditing({ ...editing, startDate: v })}
                   />
-                  <TimeSelect
+                  <GndTimePicker
                     value={editing.startTime}
                     onChange={(v) => setEditing({ ...editing, startTime: v })}
                   />
@@ -185,11 +184,11 @@ export function EventDetailPage() {
               <label>
                 <span className="field-label">Kraj (opciono)</span>
                 <div className="detail-edit-dt">
-                  <DateInput
+                  <GndDatePicker
                     value={editing.endDate}
                     onChange={(v) => setEditing({ ...editing, endDate: v })}
                   />
-                  <TimeSelect
+                  <GndTimePicker
                     value={editing.endTime}
                     onChange={(v) => setEditing({ ...editing, endTime: v })}
                   />

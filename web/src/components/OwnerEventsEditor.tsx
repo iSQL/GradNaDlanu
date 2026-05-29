@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { formatDateTimeRange } from '../lib/format';
 import type { CityEvent } from '../types';
-import { TimeSelect } from './TimeSelect';
-import { DateInput } from './DateInput';
+import { GndDatePicker, GndTimePicker } from './DateTimePicker';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -59,9 +58,9 @@ function DateTimeFields({
   return (
     <div>
       <div className="field-label" style={{ marginBottom: 6 }}>{label}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 6 }}>
-        <DateInput value={date} onChange={onDate} />
-        <TimeSelect value={time} onChange={onTime} />
+      <div className="dt-fields">
+        <GndDatePicker value={date} onChange={onDate} />
+        <GndTimePicker value={time} onChange={onTime} />
       </div>
     </div>
   );
