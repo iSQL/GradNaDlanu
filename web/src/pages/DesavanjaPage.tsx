@@ -53,42 +53,68 @@ function truncate(s: string, max: number): string {
 }
 
 const RECENT_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
+const PAGE_STEP = 10;
 
 export function DesavanjaPage() {
   const [village, setVillage] = useState<string>('');
   const [tab, setTab] = useState<Tab>('all');
   const [showOld, setShowOld] = useState(false);
+  const [limit, setLimit] = useState(PAGE_STEP);
   const [news, setNews] = useState<NewsItem[] | null>(null);
   const [events, setEvents] = useState<CityEvent[] | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    setNews(null);
-    setEvents(null);
+    const isInitial = limit === PAGE_STEP;
+    if (isInitial) {
+      // Prvi fetch (ili promena village-a) — pokaži skelet, sakri staru listu.
+      setNews(null);
+      setEvents(null);
+    } else {
+      // "Učitaj još" — zadrži postojeću listu na ekranu, samo dugme prelazi u loading.
+      setLoadingMore(true);
+    }
     setError(null);
     Promise.all([
-      api.listNews({ village: village || undefined, limit: 50 }),
-      api.listEvents({ village: village || undefined, limit: 50, includePast: true }),
+      api.listNews({ village: village || undefined, limit }),
+      api.listEvents({ village: village || undefined, limit, includePast: true }),
     ])
       .then(([n, e]) => {
-        if (!cancelled) {
-          setNews(n);
-          setEvents(e);
-        }
+        if (cancelled) return;
+        setNews(n);
+        setEvents(e);
+        // Server vrati tačno `limit` redova kad ima više = znak da treba još.
+        // Ako vrati manje, dospeli smo do kraja za taj tip.
+        setHasMore(n.length === limit || e.length === limit);
+        setLoadingMore(false);
       })
       .catch((err) => {
         console.error(err);
-        if (!cancelled) {
-          setError('Greška prilikom učitavanja dešavanja.');
-          setNews([]);
-          setEvents([]);
-        }
+        if (cancelled) return;
+        setError('Greška prilikom učitavanja dešavanja.');
+        setNews([]);
+        setEvents([]);
+        setHasMore(false);
+        setLoadingMore(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [village]);
+  }, [village, limit]);
+
+  // Promena sela resetuje paginaciju na prvih PAGE_STEP. Atomski sa `setVillage`
+  // u handleru — React batchuje oba setState-a u jedan re-render i jedan fetch.
+  const handleVillageChange = (v: string) => {
+    setVillage(v);
+    setLimit(PAGE_STEP);
+  };
+
+  const loadMore = () => {
+    setLimit((l) => l + PAGE_STEP);
+  };
 
   const cards = useMemo<Card[]>(() => {
     const now = Date.now();
@@ -158,7 +184,7 @@ export function DesavanjaPage() {
         <div className="objekti-filters">
           <label className="filter-field">
             <span>Selo</span>
-            <select value={village} onChange={(e) => setVillage(e.target.value)}>
+            <select value={village} onChange={(e) => handleVillageChange(e.target.value)}>
               <option value="">Sva sela</option>
               {SELA_ZABARI.map((v) => (
                 <option key={v} value={v}>
@@ -220,6 +246,19 @@ export function DesavanjaPage() {
               ),
             )}
           </ul>
+        )}
+
+        {!loading && !error && hasMore && (
+          <div className="desavanja-loadmore">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={loadMore}
+              disabled={loadingMore}
+            >
+              {loadingMore ? 'Učitavam…' : 'Učitaj još'}
+            </button>
+          </div>
         )}
       </div>
     </div>

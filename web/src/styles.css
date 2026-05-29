@@ -2553,6 +2553,20 @@ button { font-family: inherit; }
 .desavanja-tab:hover { color: var(--navy); }
 .desavanja-tab.active { background: var(--navy); color: var(--paper); }
 
+/* "Učitaj još" — centrira dugme ispod liste, dodaje malo prostora. */
+.desavanja-loadmore {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+.desavanja-loadmore button {
+  cursor: pointer;
+}
+.desavanja-loadmore button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Checkbox-style filter (npr. "Prikaži stara obaveštenja"). */
 .filter-toggle {
   display: inline-flex;
