@@ -3,7 +3,8 @@ import type { Role } from '../lib/auth';
 
 // Shown on every authenticated page while the user is on a guest account.
 // Sets the expectation that their data disappears after 7 days of inactivity
-// and drives upgrade conversion via the link to /nalog.
+// and drives upgrade conversion via the link to /dashboard (where the upgrade
+// form lives in the "Bilten gosta" card).
 //
 // Mounted in App.tsx above the <Outlet/>, so it can't use useOutletContext —
 // the role is passed down as a prop.
@@ -22,7 +23,7 @@ export function GuestBanner({ role }: Props) {
       <span>
         <strong>Privremeni nalog</strong> · istice za 7 dana neaktivnosti
       </span>
-      <Link to="/nalog">Nadogradite na trajan nalog →</Link>
+      <Link to="/dashboard">Nadogradite na trajan nalog →</Link>
     </div>
   );
 }

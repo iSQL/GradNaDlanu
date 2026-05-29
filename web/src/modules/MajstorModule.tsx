@@ -165,7 +165,7 @@ export function MajstorModule({ loc, content }: Props) {
             ) : success !== null ? (
               <div className="login-error" style={{ background: 'var(--paper-2)', color: 'var(--ink)' }}>
                 Zahtev #{success} je poslat. Status: <strong>na čekanju</strong>. Pratite ga u{' '}
-                <Link to="/nalog">Moj nalog → Moji zahtevi</Link>.
+                <Link to="/dashboard">Moj prostor → Zahtevi majstoru</Link>.
               </div>
             ) : (
               <form onSubmit={submit} className="majstor-form">

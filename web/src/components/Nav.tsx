@@ -14,7 +14,7 @@ interface Props {
 function homeRouteFor(user: CurrentUser): string {
   if (user.role === 'admin') return '/admin';
   if (user.role === 'business') return '/poslovni';
-  return '/nalog';
+  return '/dashboard';
 }
 
 const MENU = [

@@ -1501,6 +1501,117 @@ button { font-family: inherit; }
   border-bottom-color: var(--gold-2);
 }
 .account-favorites { display: flex; flex-direction: column; gap: 10px; }
+
+/* === Account "Pratim" — subtle followed-objects list + dešavanja feed === */
+.account-followed { display: flex; flex-direction: column; gap: 6px; }
+.account-followed .section-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin: 4px 0 6px;
+}
+.followed-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.followed-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  transition: background 0.12s;
+}
+.followed-row:hover { background: var(--paper-2); }
+.followed-link {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-decoration: none;
+  color: inherit;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.followed-glyph {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  align-self: center;
+}
+.followed-name { font-weight: 500; font-size: 14px; color: var(--ink); }
+.followed-meta { font-size: 12px; color: var(--ink-2); }
+.followed-unfollow {
+  font-size: 11px;
+  color: var(--ink-2);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+.followed-unfollow:hover { color: var(--rust); border-color: var(--rust); }
+
+.followed-feed {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.followed-feed-row {
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.followed-feed-row:hover {
+  border-color: var(--navy);
+  box-shadow: 0 4px 12px rgba(11, 27, 43, 0.06);
+}
+.followed-feed-link {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  text-decoration: none;
+  color: inherit;
+}
+.followed-feed-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.followed-feed-date {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.followed-feed-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 15px;
+  line-height: 1.3;
+  color: var(--navy);
+}
+.followed-feed-when { font-size: 12px; color: var(--ink-2); }
+.followed-feed-loc { font-size: 12px; color: var(--ink-2); font-weight: 600; }
+
 .favorite-card {
   display: flex;
   align-items: center;
@@ -3441,4 +3552,779 @@ button { font-family: inherit; }
 @media (max-width: 720px) {
   .foot { padding: 32px 20px 20px; }
   .foot-grid { grid-template-columns: 1fr; gap: 24px; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   MOJ PROSTOR — Lični bilten
+   Editorial newspaper layout. Roman-numeral chapter markers, em-dash
+   flanked eyebrows, "Registar" ledger column, pull-quote letters,
+   receipt-style booking tickets, telegram-band service quotes.
+   ════════════════════════════════════════════════════════════════════════ */
+
+.ms-page {
+  min-height: calc(100vh - 60px);
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(196, 158, 88, 0.10), transparent 55%),
+    var(--paper);
+  padding: clamp(28px, 4vw, 56px) 16px clamp(56px, 8vw, 96px);
+}
+
+.ms-paper {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(40px, 5vw, 64px);
+}
+
+/* ── shared eyebrow ────────────────────────────────────────────────────── */
+.ms-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-feature-settings: 'tnum';
+}
+.ms-eyebrow-flanked {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.ms-eyebrow-flanked::before,
+.ms-eyebrow-flanked::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.ms-eyebrow-flanked > span { white-space: nowrap; }
+
+/* ── MASTHEAD ──────────────────────────────────────────────────────────── */
+.ms-masthead {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: end;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--ink);
+  position: relative;
+}
+.ms-masthead::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 1px;
+  background: var(--ink);
+}
+.ms-masthead-main { min-width: 0; }
+.ms-masthead-title {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(40px, 6.5vw, 64px);
+  line-height: 0.95;
+  letter-spacing: -0.015em;
+  color: var(--navy);
+  margin: 0;
+}
+.ms-masthead-id {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.ms-masthead-name { color: var(--ink); font-weight: 600; }
+.ms-masthead-email { font-size: 13px; }
+.ms-dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--ink-2); opacity: 0.55;
+  display: inline-block;
+}
+.ms-masthead-actions { align-self: end; }
+
+/* ── NOTICE (guest upgrade) ────────────────────────────────────────────── */
+.ms-notice {
+  position: relative;
+  background: var(--paper-2);
+  border: 1px solid var(--ink);
+  padding: 26px 28px 24px;
+}
+.ms-notice-label {
+  position: absolute;
+  top: -8px;
+  left: 22px;
+  padding: 0 10px;
+  background: var(--paper);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.ms-notice-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 22px;
+  margin: 0 0 6px;
+  color: var(--navy);
+}
+.ms-notice-body {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  margin: 0 0 14px;
+}
+.ms-upgrade-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+  align-items: end;
+}
+.ms-field { display: flex; flex-direction: column; gap: 6px; }
+.ms-field-label {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.ms-field-input {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--ink);
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.ms-field-input:focus { border-color: var(--navy); }
+
+.ms-error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(176, 48, 48, 0.06);
+  border-left: 3px solid var(--rust);
+  color: var(--rust);
+  font-size: 13px;
+}
+
+/* ── SECTIONS ──────────────────────────────────────────────────────────── */
+.ms-section {
+  position: relative;
+  animation: ms-rise 0.45s ease-out both;
+}
+.ms-section-body { min-width: 0; }
+
+.ms-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding-bottom: 12px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.ms-section-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--navy);
+  margin: 0;
+}
+.ms-section-meta {
+  margin-left: auto;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-variant-numeric: oldstyle-nums;
+}
+
+/* ── EMPTY STATE (editorial) ───────────────────────────────────────────── */
+.ms-empty {
+  padding: 18px 0;
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  border-top: 1px dashed var(--line);
+  margin-top: -2px;
+}
+.ms-empty strong { color: var(--ink); font-style: normal; font-weight: 600; }
+
+/* ── I. PRATIM — register + feed ───────────────────────────────────────── */
+.ms-pratim-grid {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 36px;
+}
+
+.ms-register { min-width: 0; }
+.ms-register-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--ink);
+}
+.ms-register-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.ms-register-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px dotted var(--line);
+}
+.ms-register-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+  flex: 1;
+  min-width: 0;
+}
+.ms-register-glyph {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+}
+.ms-register-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ms-register-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+.ms-register-addr {
+  font-size: 11px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+.ms-unfollow {
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 9px;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.ms-unfollow:hover { color: var(--rust); border-color: var(--rust); }
+
+.ms-feed-col { min-width: 0; }
+.ms-feed { display: flex; flex-direction: column; }
+.ms-feed-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border-top: 2px solid var(--ink);
+  padding: 16px 0 20px;
+  transition: padding 0.22s ease, background 0.22s ease;
+}
+.ms-feed-card:last-child { border-bottom: 1px solid var(--line); }
+.ms-feed-card:hover {
+  padding-left: 10px;
+  padding-right: 2px;
+}
+.ms-feed-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.ms-feed-card-date {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-variant-numeric: oldstyle-nums;
+}
+.ms-feed-card-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 21px;
+  line-height: 1.2;
+  color: var(--navy);
+  margin: 0 0 8px;
+  letter-spacing: -0.005em;
+}
+.ms-feed-card-when {
+  font-size: 13px;
+  color: var(--ink-2);
+  margin-bottom: 4px;
+}
+.ms-feed-card-loc {
+  font-size: 12.5px;
+  color: var(--ink-2);
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+}
+.ms-feed-card-loc strong {
+  color: var(--ink);
+  font-style: normal;
+  font-weight: 600;
+}
+
+.ms-kind-stamp {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  line-height: 1.2;
+}
+.ms-kind-stamp.kind-news { color: var(--navy); }
+.ms-kind-stamp.kind-event { color: #3d5a30; }
+
+/* ── II. KOMENTARI — pull-quote letters ────────────────────────────────── */
+.ms-comments {
+  display: flex;
+  flex-direction: column;
+}
+.ms-comment {
+  display: grid;
+  grid-template-columns: 38px 1fr auto;
+  gap: 16px;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+.ms-comment-mark {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 58px;
+  line-height: 0.7;
+  color: var(--gold-2);
+  opacity: 0.55;
+  user-select: none;
+}
+.ms-comment-body { min-width: 0; }
+.ms-comment-text {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+.ms-comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.ms-comment-loc {
+  color: var(--navy);
+  text-decoration: none;
+  font-weight: 600;
+}
+.ms-comment-loc:hover { text-decoration: underline; }
+.ms-comment-sep { opacity: 0.6; }
+.ms-comment-rating { display: inline-flex; gap: 1px; }
+.ms-comment-date {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-variant-numeric: oldstyle-nums;
+  text-align: right;
+  white-space: nowrap;
+  align-self: start;
+  padding-top: 6px;
+}
+
+/* ── III. REZERVACIJE — receipt tickets ────────────────────────────────── */
+.ms-tickets {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ms-ticket {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 22px;
+  align-items: start;
+  padding: 22px 24px 28px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--ink);
+  position: relative;
+}
+.ms-ticket::after {
+  /* perforation strip along the bottom */
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 8px;
+  background-image: linear-gradient(
+    90deg,
+    var(--paper-2) 0,
+    var(--paper-2) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+  background-size: 8px 8px;
+  background-position: bottom;
+  background-repeat: repeat-x;
+}
+.ms-ticket.status-approved { border-left-color: var(--moss); }
+.ms-ticket.status-declined,
+.ms-ticket.status-cancelled { border-left-color: var(--rust); opacity: 0.85; }
+
+.ms-ticket-body { min-width: 0; }
+.ms-ticket-head { margin-bottom: 6px; }
+.ms-ticket-loc {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 19px;
+  color: var(--navy);
+  text-decoration: none;
+  letter-spacing: -0.005em;
+}
+.ms-ticket-loc:hover { text-decoration: underline; }
+.ms-ticket-summary {
+  font-size: 13px;
+  color: var(--ink);
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+.ms-ticket-date {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-variant-numeric: oldstyle-nums;
+}
+.ms-ticket-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+/* ── IV. ZAHTEVI — work-order cards ────────────────────────────────────── */
+.ms-orders {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.ms-order {
+  padding: 22px 24px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+}
+.ms-order-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 14px;
+}
+.ms-order-id { min-width: 0; }
+.ms-order-meta {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin-top: 6px;
+  font-variant-numeric: oldstyle-nums;
+}
+.ms-order-num {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  color: var(--ink);
+}
+.ms-order-body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink);
+  margin: 0 0 14px;
+}
+.ms-order-thumbs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.ms-order-thumbs img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  display: block;
+}
+.ms-order-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* telegram-band quote */
+.ms-quote {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 22px,
+      rgba(11, 27, 43, 0.025) 22px,
+      rgba(11, 27, 43, 0.025) 44px
+    ),
+    var(--paper);
+  border-top: 1px dashed var(--line-2, var(--line));
+  border-bottom: 1px dashed var(--line-2, var(--line));
+  padding: 12px 16px;
+  margin: 4px 0 14px;
+  position: relative;
+}
+.ms-quote-label {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin-bottom: 6px;
+}
+.ms-quote-main {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 17px;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+}
+.ms-quote-main strong { color: var(--navy); }
+.ms-quote-note {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-2);
+  margin-top: 6px;
+}
+
+/* ── STATUS STAMPS ─────────────────────────────────────────────────────── */
+.ms-stamp {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  white-space: nowrap;
+  align-self: start;
+  background: var(--paper);
+}
+.ms-stamp.s-pending { color: var(--ink-2); border-color: var(--ink-2); }
+.ms-stamp.s-approved,
+.ms-stamp.s-accepted { color: var(--moss); border-color: var(--moss); }
+.ms-stamp.s-declined,
+.ms-stamp.s-cancelled { color: var(--rust); border-color: var(--rust); }
+.ms-stamp.s-quoted { color: var(--gold-2); border-color: var(--gold-2); }
+.ms-stamp.s-completed { color: var(--ink); border-color: var(--ink); }
+
+/* ── BUTTONS ───────────────────────────────────────────────────────────── */
+.ms-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--ink);
+  padding: 10px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  font-family: inherit;
+}
+.ms-btn:hover { background: var(--ink); color: var(--paper); }
+.ms-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.ms-btn:disabled:hover { background: transparent; color: var(--ink); }
+.ms-btn-sm { padding: 7px 14px; font-size: 11px; }
+.ms-btn-primary {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: var(--paper);
+}
+.ms-btn-primary:hover { background: var(--ink); border-color: var(--ink); }
+.ms-btn-danger { border-color: var(--rust); color: var(--rust); }
+.ms-btn-danger:hover { background: var(--rust); color: var(--paper); }
+.ms-btn-ghost {
+  border-color: var(--ink-2);
+  color: var(--ink-2);
+}
+.ms-btn-ghost:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+/* ── SPLASH (logged out) ───────────────────────────────────────────────── */
+.ms-splash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: clamp(48px, 8vw, 96px) 16px;
+  gap: 16px;
+}
+.ms-splash .ms-eyebrow-flanked { max-width: 320px; margin: 0 auto 8px; }
+.ms-splash-body {
+  max-width: 520px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--ink-2);
+  margin: 8px 0 16px;
+}
+.ms-splash-actions { display: flex; gap: 12px; }
+
+/* ── TABS (newspaper section index) ───────────────────────────────────── */
+.ms-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--line);
+  margin-top: -8px;
+}
+.ms-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 18px 14px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: var(--ink-2);
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  transition: color 0.15s;
+}
+.ms-tab:first-child { padding-left: 0; }
+.ms-tab:hover { color: var(--ink); }
+.ms-tab.is-active {
+  color: var(--ink);
+}
+.ms-tab.is-active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--navy);
+}
+.ms-tab:first-child.is-active::after { left: 0; }
+.ms-tab-label { font-weight: 600; }
+.ms-tab-count {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-left: 2px;
+}
+.ms-tab.is-active .ms-tab-count {
+  color: var(--paper);
+  background: var(--navy);
+  border-color: var(--navy);
+}
+
+/* ── ANIMATIONS ────────────────────────────────────────────────────────── */
+@keyframes ms-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── RESPONSIVE ────────────────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .ms-pratim-grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .ms-upgrade-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  .ms-masthead {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .ms-masthead-actions { justify-self: start; }
+  .ms-section-head { gap: 10px; }
+  .ms-section-title { font-size: 22px; }
+  .ms-section-meta { margin-left: 0; }
+  .ms-comment {
+    grid-template-columns: 28px 1fr;
+    gap: 12px;
+  }
+  .ms-comment-mark { font-size: 44px; }
+  .ms-comment-date {
+    grid-column: 2 / 3;
+    text-align: left;
+    padding-top: 4px;
+  }
+  .ms-ticket {
+    grid-template-columns: 1fr;
+    padding: 18px 18px 24px;
+  }
+  .ms-ticket .ms-stamp { justify-self: start; }
+  .ms-order { padding: 18px; }
+  .ms-order-head {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .ms-feed-card-title { font-size: 19px; }
+  .ms-tab {
+    padding: 6px 12px 12px;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+  }
 }

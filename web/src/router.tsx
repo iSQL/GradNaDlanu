@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { App } from './App';
 import { HomePage } from './components/HomePage';
 import { ModulePage } from './modules/ModulePage';
@@ -8,7 +8,6 @@ import { RequireAuth } from './admin/RequireAuth';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { VerifyEmail } from './pages/VerifyEmail';
-import { Account } from './pages/Account';
 import { OwnerDashboard } from './pages/OwnerDashboard';
 import { OwnerEditLocation } from './pages/OwnerEditLocation';
 import { FloorPlanEditPage } from './pages/FloorPlanEditPage';
@@ -39,14 +38,8 @@ export const router = createBrowserRouter([
       { path: 'verify-email', element: <VerifyEmail /> },
       { path: 'pravna-napomena', element: <LegalNotice /> },
       { path: 'politika-privatnosti', element: <PrivacyPolicy /> },
-      {
-        path: 'nalog',
-        element: (
-          <RequireAuth>
-            <Account />
-          </RequireAuth>
-        ),
-      },
+      // Legacy alias — sav sadržaj nekadašnjeg /nalog je sad u /dashboard ("Moj prostor").
+      { path: 'nalog', element: <Navigate to="/dashboard" replace /> },
       {
         path: 'poslovni',
         element: (

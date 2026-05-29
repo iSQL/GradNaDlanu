@@ -78,7 +78,7 @@ export function SocialActions({ loc, onChanged }: Props) {
               aria-pressed={favorited}
             >
               <IconHeart filled={favorited} />
-              {favorited ? 'Sačuvano' : 'Sačuvaj'}
+              {favorited ? 'Otprati' : 'Zaprati'}
             </button>
             <button
               type="button"
@@ -92,7 +92,7 @@ export function SocialActions({ loc, onChanged }: Props) {
           </>
         ) : (
           <Link to="/prijava" className="social-btn">
-            <IconHeart /> Prijavite se za omiljeno
+            <IconHeart /> Prijavite se da zapratite
           </Link>
         )}
       </div>
