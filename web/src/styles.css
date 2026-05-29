@@ -2734,65 +2734,67 @@ button { font-family: inherit; }
    DEŠAVANJA list
    ============================================ */
 
-.desavanja-list {
+/* Grid feed za /desavanja — koristi iste tile komponente kao naslovna, ali u
+   3-kolonskom rasporedu. Slaganje u 2 → 1 koloniju na manjim ekranima. */
+.desavanja-grid {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, 1fr);
+}
+.desavanja-tile-wrap {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
-.desavanja-card {
-  background: var(--paper-2);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 18px 20px;
+.desavanja-tile-wrap > .news-tile {
+  width: 100%;
 }
-.desavanja-card-meta {
-  font-size: 12px;
-  color: var(--ink-2);
-}
-.desavanja-card-loc {
-  color: var(--navy);
-  font-weight: 600;
-  text-decoration: none;
-}
-.desavanja-card-loc:hover { text-decoration: underline; }
-.desavanja-card-date { font-variant-numeric: tabular-nums; }
-.desavanja-card-title {
-  font-family: 'Fraunces', serif;
-  font-weight: 500;
-  font-size: 20px;
-  margin: 8px 0 6px;
-  color: var(--navy);
-}
-.desavanja-card-body { margin: 0; color: var(--ink); font-size: 14px; line-height: 1.5; }
 
-/* Tip badge (Obaveštenje / Događaj) — mali label u gornjem desnom uglu kartice. */
-.desavanja-card { position: relative; }
-.desavanja-card-kind {
+/* Varijanta news-tile za /desavanja feed — slično naslovnoj ali sa eyebrow
+   redom (kind badge + datum) umesto samo datum. */
+.news-tile-d .news-tile-eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.news-tile-d .news-tile-date {
+  font-variant-numeric: tabular-nums;
+}
+.news-tile-when {
+  font-size: 13px;
+  color: var(--ink-2);
+  margin: -2px 0 4px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+/* Kind badge (Obaveštenje / Događaj) — pilula u eyebrow-u. */
+.tile-kind {
   display: inline-block;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 3px 8px;
   border-radius: 999px;
-  margin-bottom: 6px;
+  line-height: 1.2;
 }
-.desavanja-card-news .desavanja-card-kind {
+.kind-news {
   background: rgba(30, 58, 95, 0.1);
   color: var(--navy);
 }
-.desavanja-card-event .desavanja-card-kind {
-  background: rgba(107, 142, 90, 0.15);
-  color: #4d6c40;
+.kind-event {
+  background: rgba(107, 142, 90, 0.18);
+  color: #3d5a30;
 }
-.desavanja-card-when {
-  font-size: 13px;
-  color: var(--ink-2);
-  margin: 6px 0 8px;
-  font-variant-numeric: tabular-nums;
+
+@media (max-width: 960px) {
+  .desavanja-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 720px) {
+  .desavanja-grid { grid-template-columns: 1fr; }
 }
 
 /* Tab redu (Sva / Događaji / Obaveštenja). */
@@ -2821,6 +2823,104 @@ button { font-family: inherit; }
 }
 .desavanja-tab:hover { color: var(--navy); }
 .desavanja-tab.active { background: var(--navy); color: var(--paper); }
+
+/* Filter po objektima (chip lista) — dinamička, prikazuje samo objekte koji
+   trenutno imaju vidljiva dešavanja (zavisno od tab + showOld + selo). */
+.loc-filter {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.loc-filter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.loc-filter-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.loc-filter-toggle {
+  border: none;
+  background: transparent;
+  color: var(--navy);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s, opacity 0.15s;
+}
+.loc-filter-toggle:hover:not(:disabled) { background: rgba(30, 58, 95, 0.08); }
+.loc-filter-toggle:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.loc-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.loc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 6px 8px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--ink-2);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  line-height: 1.2;
+}
+.loc-chip:hover {
+  border-color: var(--navy);
+  color: var(--navy);
+}
+.loc-chip.on {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: var(--paper);
+}
+.loc-chip-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.loc-chip:not(.on) .loc-chip-check {
+  border: 1.5px solid var(--line);
+  border-radius: 3px;
+}
+.loc-chip-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  padding: 1px 5px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.loc-chip.on .loc-chip-count {
+  background: rgba(255, 255, 255, 0.18);
+}
 
 /* "Učitaj još" — centrira dugme ispod liste, dodaje malo prostora. */
 .desavanja-loadmore {
