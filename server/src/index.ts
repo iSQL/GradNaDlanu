@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import Fastify from 'fastify';
+import Fastify, { type FastifyBaseLogger } from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
@@ -46,7 +46,7 @@ function findWebDist(): string | null {
 // file at ${LOG_DIR}/zabariYYYY-MM-DD.log with N-day retention. If the file
 // stream can't be opened (perms/missing volume), we degrade to stdout-only
 // and surface a one-line warning rather than refusing to boot.
-function buildLogger() {
+function buildLogger(): FastifyBaseLogger {
   const streams: StreamEntry[] = [{ stream: process.stdout }];
   try {
     const file = createRollingFileStream({
@@ -60,14 +60,19 @@ function buildLogger() {
       `[log] file logging disabled (${env.logDir}): ${(err as Error).message}`,
     );
   }
+  // pino's typed Logger doesn't satisfy Fastify's FastifyBaseLogger (missing
+  // `msgPrefix` in the public type), but the instance does carry all the
+  // methods Fastify uses at runtime.
   return pino(
     { level: env.isProduction ? 'info' : 'debug' },
     multistream(streams),
-  );
+  ) as unknown as FastifyBaseLogger;
 }
 
 async function main() {
-  const app = Fastify({ logger: buildLogger(), trustProxy: env.isProduction });
+  // Fastify 5 splits the option: `logger` takes a config/boolean, while
+  // `loggerInstance` takes a pre-built logger (our pino + multistream).
+  const app = Fastify({ loggerInstance: buildLogger(), trustProxy: env.isProduction });
   app.log.info(
     { logDir: env.logDir, retentionDays: env.logRetentionDays },
     'Rolling file logger initialized',
