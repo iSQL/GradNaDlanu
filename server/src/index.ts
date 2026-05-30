@@ -8,7 +8,9 @@ import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
+import { pino, multistream, type StreamEntry } from 'pino';
 import { env } from './env.js';
+import { createRollingFileStream } from './lib/rolling-log.js';
 import { categoriesRoutes } from './routes/categories.js';
 import { locationsRoutes } from './routes/locations.js';
 import { authRoutes } from './routes/auth.js';
@@ -40,8 +42,36 @@ function findWebDist(): string | null {
   return candidates.find((p) => existsSync(p)) ?? null;
 }
 
+// Multistream logger: stdout (so Coolify's UI keeps working) + rolling daily
+// file at ${LOG_DIR}/zabariYYYY-MM-DD.log with N-day retention. If the file
+// stream can't be opened (perms/missing volume), we degrade to stdout-only
+// and surface a one-line warning rather than refusing to boot.
+function buildLogger() {
+  const streams: StreamEntry[] = [{ stream: process.stdout }];
+  try {
+    const file = createRollingFileStream({
+      dir: env.logDir,
+      prefix: 'zabari',
+      retentionDays: env.logRetentionDays,
+    });
+    streams.push({ stream: file });
+  } catch (err) {
+    console.warn(
+      `[log] file logging disabled (${env.logDir}): ${(err as Error).message}`,
+    );
+  }
+  return pino(
+    { level: env.isProduction ? 'info' : 'debug' },
+    multistream(streams),
+  );
+}
+
 async function main() {
-  const app = Fastify({ logger: true, trustProxy: env.isProduction });
+  const app = Fastify({ logger: buildLogger(), trustProxy: env.isProduction });
+  app.log.info(
+    { logDir: env.logDir, retentionDays: env.logRetentionDays },
+    'Rolling file logger initialized',
+  );
 
   if (env.runMigrationsOnBoot) {
     app.log.info('Running migrations…');

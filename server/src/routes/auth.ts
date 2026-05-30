@@ -156,6 +156,7 @@ export async function authRoutes(app: FastifyInstance) {
         req.log.error({ err, email: userEmail }, 'failed to send verification email at register time');
       }
 
+      req.log.info({ userId, email: userEmail }, 'user registered');
       return {
         ok: true,
         email: userEmail,
@@ -216,6 +217,10 @@ export async function authRoutes(app: FastifyInstance) {
       const token = app.jwt.sign(
         { sub: user.id, email: user.email, role: user.role, tv: freshTv },
         { expiresIn: '7d' },
+      );
+      req.log.info(
+        { userId: user.id, email: user.email, wasGuest },
+        wasGuest ? 'guest upgraded and email verified' : 'user email verified',
       );
       return {
         token,

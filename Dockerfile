@@ -38,9 +38,10 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/server/dist ./server/dist
 COPY --from=build /app/web/dist ./web/dist
 
-# The node base image ships a `node` user (uid 1000). The persistent upload mount
-# at /data/uploads needs to be writable by it, so create + chown the dir.
-RUN mkdir -p /data/uploads && chown -R node:node /app /data
+# The node base image ships a `node` user (uid 1000). The persistent upload
+# mount at /data/uploads and the rolling-log dir at /storage/logs both need to
+# be writable by it, so create + chown the dirs.
+RUN mkdir -p /data/uploads /storage/logs && chown -R node:node /app /data /storage
 
 USER node
 

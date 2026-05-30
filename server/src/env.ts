@@ -90,6 +90,24 @@ function readEmailFrom(): string {
   return 'noreply@example.com';
 }
 
+function readLogDir(): string {
+  const v = process.env.LOG_DIR?.trim();
+  if (v) return v;
+  if (isProduction) return '/storage/logs';
+  // Dev: resolve to <repo-root>/storage/logs regardless of which workspace cwd
+  // the script was invoked from (npm workspaces shift cwd; an unstable default
+  // path would scatter logs across two dirs depending on the invocation).
+  return resolve(here, '../../storage/logs');
+}
+
+function readLogRetentionDays(): number {
+  const v = process.env.LOG_RETENTION_DAYS;
+  if (!v) return 7;
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < 1) return 7;
+  return Math.floor(n);
+}
+
 function readCorsOrigin(): string | string[] | false {
   const v = process.env.CORS_ORIGIN;
   if (isProduction) {
@@ -135,4 +153,8 @@ export const env = {
   resendApiKey: process.env.RESEND_API_KEY?.trim() || null,
   emailFrom: readEmailFrom(),
   appUrl: readAppUrl(),
+  // Rolling daily log files. Default `/storage/logs` in prod (mount a Coolify
+  // Persistent Storage volume here), `./storage/logs` in dev (gitignored).
+  logDir: readLogDir(),
+  logRetentionDays: readLogRetentionDays(),
 };

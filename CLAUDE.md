@@ -83,6 +83,14 @@ Two daily sweeps run from boot (`setInterval` with `unref` so they don't block s
 
 Both batch deletes 500 rows at a time and loop until a partial batch signals the eligible set is drained.
 
+### Logging
+
+Pino multistream → **stdout + rolling daily files** at `${LOG_DIR}/zabariYYYY-MM-DD.log` (defaults: `/storage/logs` in prod, `./storage/logs` in dev). Retention is `LOG_RETENTION_DAYS` (default 7) — the oldest matching file is unlinked on rotation so the directory never exceeds the window. Rotation is *lazy*: triggered by the first write after a UTC date boundary, so an idle process can't pin an old file handle. Date is UTC-based to avoid the "midnight in Belgrade vs. container TZ" gotcha that could otherwise rotate twice on the same calendar day.
+
+If the file stream can't be opened (missing volume / no perms), the boot warns once and continues with stdout-only — never refuses to start. The implementation lives in [rolling-log.ts](server/src/lib/rolling-log.ts) and the multistream is built in [index.ts](server/src/index.ts) `buildLogger()`. Coolify keeps capturing stdout (so its UI keeps working) and the files persist via the `logs:/storage/logs` volume on `app` in [docker-compose.yml](docker-compose.yml).
+
+Fastify auto-logs every HTTP request. Explicit `req.log.info` lines exist for user-lifecycle events (register, email verification, guest upgrade) in [auth.ts](server/src/routes/auth.ts) — add similar lines if you introduce new domain events worth grep-ing for.
+
 ### Floor plans (`object_maps`)
 
 - The layout is a single `jsonb` blob: `{ width, height, items: LayoutItem[] }` where items are `table | room | wall | door`. Tables expose `id` as the bookable key; rooms expose `roomKey`.

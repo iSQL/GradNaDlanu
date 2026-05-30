@@ -48,6 +48,11 @@ services:
       # Where uploaded photos live. In Coolify, attach a Persistent Storage mount
       # to this path so images survive image rebuilds.
       UPLOAD_DIR: ${UPLOAD_DIR:-/data/uploads}
+      # Rolling daily logs: ${LOG_DIR}/zabariYYYY-MM-DD.log, retention of N days.
+      # In Coolify, attach a Persistent Storage mount to /storage/logs so the
+      # files survive image rebuilds.
+      LOG_DIR: ${LOG_DIR:-/storage/logs}
+      LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-7}
     # Soft dependency — waits for db when COMPOSE_PROFILES=dev is set, ignored
     # in production (Coolify) where the managed Postgres is reached over its own network.
     depends_on:
@@ -66,10 +71,11 @@ services:
     # Local-only port mapping — comment out / remove on Coolify (Traefik handles routing).
     ports:
       - "${APP_HOST_PORT:-3000}:3000"
-    # Persistent storage for uploaded photos. In dev this uses a named docker volume;
-    # in Coolify, add a Persistent Storage mount that maps to /data/uploads instead.
+    # Persistent storage. In dev these use named docker volumes; in Coolify, add
+    # Persistent Storage mounts that map to /data/uploads and /storage/logs.
     volumes:
       - uploads:/data/uploads
+      - logs:/storage/logs
     # Attach to Coolify's shared overlay network so the app can resolve the managed
     # Postgres hostname. `default` is the implicit per-stack network; `coolify` is the
     # external network created by Coolify when you provisioned the database.
@@ -80,6 +86,7 @@ services:
 volumes:
   pgdata:
   uploads:
+  logs:
 
 networks:
   coolify:
