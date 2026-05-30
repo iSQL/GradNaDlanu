@@ -71,11 +71,16 @@ services:
     # Local-only port mapping — comment out / remove on Coolify (Traefik handles routing).
     ports:
       - "${APP_HOST_PORT:-3000}:3000"
-    # Persistent storage. In dev these use named docker volumes; in Coolify, add
-    # Persistent Storage mounts that map to /data/uploads and /storage/logs.
+    # Persistent storage.
+    # - `uploads` is a named docker volume (dev) / Coolify Persistent Storage (prod) for photos.
+    # - Logs are a HOST BIND so files end up on the Coolify host where the Loki
+    #   collector tails them. Path is env-configurable: in prod set
+    #   HOST_LOG_DIR=/var/lib/coolify/storage/logs/zabari in Coolify's env panel;
+    #   in dev the default `./storage/logs` is a repo-local dir (gitignored) so
+    #   `docker compose up` works on Windows/macOS without root-owned mounts.
     volumes:
       - uploads:/data/uploads
-      - logs:/storage/logs
+      - ${HOST_LOG_DIR:-./storage/logs}:/storage/logs
     # Attach to Coolify's shared overlay network so the app can resolve the managed
     # Postgres hostname. `default` is the implicit per-stack network; `coolify` is the
     # external network created by Coolify when you provisioned the database.
@@ -86,7 +91,6 @@ services:
 volumes:
   pgdata:
   uploads:
-  logs:
 
 networks:
   coolify:
