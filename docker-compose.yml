@@ -80,7 +80,7 @@ services:
     #   `docker compose up` works on Windows/macOS without root-owned mounts.
     volumes:
       - uploads:/data/uploads
-      - ${HOST_LOG_DIR:-./storage/logs}:/storage/logs
+      - /var/lib/coolify/storage/logs/zabari:/storage/logs
     # Attach to Coolify's shared overlay network so the app can resolve the managed
     # Postgres hostname. `default` is the implicit per-stack network; `coolify` is the
     # external network created by Coolify when you provisioned the database.

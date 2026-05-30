@@ -1,4 +1,11 @@
-import { createWriteStream, mkdirSync, readdirSync, unlinkSync } from 'node:fs';
+import {
+  closeSync,
+  createWriteStream,
+  mkdirSync,
+  openSync,
+  readdirSync,
+  unlinkSync,
+} from 'node:fs';
 import type { WriteStream } from 'node:fs';
 import { join } from 'node:path';
 import { Writable } from 'node:stream';
@@ -30,6 +37,21 @@ function todayUtcStamp(): string {
 export function createRollingFileStream(opts: Options): Writable {
   mkdirSync(opts.dir, { recursive: true });
 
+  // Probe: confirm we can actually CREATE files in dir. mkdirSync only proves
+  // the dir exists; write permission isn't guaranteed (bind mounts can present
+  // a host dir whose effective owner-in-container differs from process uid).
+  // Fail loudly here so buildLogger() can catch and degrade to stdout-only —
+  // otherwise the first log line emits an unhandled 'error' on a WriteStream
+  // and the process dies.
+  const probePath = join(opts.dir, `.write-probe-${process.pid}`);
+  try {
+    const fd = openSync(probePath, 'w');
+    closeSync(fd);
+    unlinkSync(probePath);
+  } catch (err) {
+    throw new Error(`log dir ${opts.dir} not writable: ${(err as Error).message}`);
+  }
+
   let currentStamp = '';
   let stream: WriteStream | null = null;
 
@@ -54,7 +76,14 @@ export function createRollingFileStream(opts: Options): Writable {
     if (stamp === currentStamp && stream) return;
     if (stream) { try { stream.end(); } catch { /* ignore */ } }
     currentStamp = stamp;
-    stream = createWriteStream(filenameFor(stamp), { flags: 'a' });
+    const path = filenameFor(stamp);
+    stream = createWriteStream(path, { flags: 'a' });
+    // Catch async write errors (disk full, dir vanished, late perms flip) so
+    // they don't kill the process via "Unhandled 'error' event". We surface
+    // to stderr directly — using pino here would recurse into the same stream.
+    stream.on('error', (err) => {
+      console.error(`[rolling-log] write error on ${path}: ${err.message}`);
+    });
     prune();
   };
 
