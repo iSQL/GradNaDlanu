@@ -10,8 +10,14 @@ import type {
   Location,
 } from '../types';
 import { ModuleHero } from './ModuleHero';
-import { InfoCard } from './InfoCard';
+import { ModuleTabs, type TabDef } from './ModuleTabs';
 import { FloorPlanView } from '../components/floorplan/FloorPlanView';
+import { IconClock, IconPhone, IconPin, IconWeb } from '../components/Icons';
+import {
+  LocationEventsList,
+  LocationNewsList,
+  useLocationDesavanja,
+} from './LocationDesavanjaTabs';
 
 const TIMES = ['12:00', '13:00', '14:00', '18:00', '19:00', '20:00', '21:00', '22:00'];
 const TABLES = [
@@ -30,6 +36,11 @@ const TABLES = [
 ];
 const SLOT_HOURS = 2;
 
+const TODAY_DOW = (() => {
+  const d = new Date().getDay();
+  return d === 0 ? 6 : d - 1;
+})();
+
 interface Props { loc: Location; content: CafeContent }
 
 function todayIso(): string {
@@ -37,7 +48,6 @@ function todayIso(): string {
 }
 
 function slotRange(date: string, time: string): { start: string; end: string } {
-  // Local-time wall clock — server stores as timestamptz so it normalises consistently.
   const start = new Date(`${date}T${time}:00`);
   const end = new Date(start.getTime() + SLOT_HOURS * 60 * 60 * 1000);
   return { start: start.toISOString(), end: end.toISOString() };
@@ -49,6 +59,8 @@ export function CafeModule({ loc, content }: Props) {
   const menu = content.menu ?? [];
   const hours = content.hours ?? [];
   const contact = content.contact ?? {};
+
+  const desavanja = useLocationDesavanja(loc.id, loc.slug);
 
   const [seats, setSeats] = useState(2);
   const [date, setDate] = useState(todayIso());
@@ -76,7 +88,6 @@ export function CafeModule({ loc, content }: Props) {
       .catch(() => setFloorPlan(null));
   }, [loc.slug]);
 
-  // Tables fully blocked when ANY active reservation overlaps the picked time slot.
   const takenTableIds = useMemo(() => {
     const want = slotRange(date, time);
     const wantStart = Date.parse(want.start);
@@ -92,7 +103,6 @@ export function CafeModule({ loc, content }: Props) {
     return taken;
   }, [availability, date, time]);
 
-  // If the current selection becomes taken (e.g. user changed time), clear it.
   useEffect(() => {
     if (tableId && takenTableIds.has(tableId)) setTableId(null);
   }, [takenTableIds, tableId]);
@@ -124,133 +134,201 @@ export function CafeModule({ loc, content }: Props) {
 
   const loggedIn = !!ctx.currentUser;
 
-  return (
-    <div className="module-page">
-      <ModuleHero loc={loc} tagline={tagline} />
-      <div className="module-body">
-        <div>
-          <div className="module-section">
-            <div className="section-label">Rezervacija stola</div>
-            <div className="cafe-tables">
-              <div className="cafe-booking-form">
-                <div>
-                  <div className="field-label">Datum</div>
-                  <input
-                    className="field-input"
-                    type="date"
-                    value={date}
-                    min={todayIso()}
-                    onChange={(e) => setDate(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <div className="field-label">Broj osoba</div>
-                  <select className="field-select" value={seats} onChange={(e) => setSeats(+e.target.value)}>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                      <option key={n} value={n}>
-                        {n} {n === 1 ? 'osoba' : n < 5 ? 'osobe' : 'osoba'}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <div className="field-label">Vreme (rezervacija traje 2h)</div>
-                  <div className="time-grid">
-                    {TIMES.map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        className={`time-chip ${time === t ? 'selected' : ''}`}
-                        onClick={() => setTime(t)}
-                      >
-                        {t}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <div className="field-label">Sto {tableId ? `· odabran #${tableId}` : ''}</div>
-                  <div style={{ fontSize: 11, color: '#5B6878', marginTop: -4 }}>
-                    Kliknite na sto u rasporedu →
-                  </div>
-                </div>
-                {!loggedIn ? (
-                  <Link to="/prijava" className="btn-primary" style={{ textAlign: 'center', textDecoration: 'none' }}>
-                    Prijavite se za rezervaciju
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn-primary"
-                    disabled={!tableId || submitting || !!confirmed}
-                    onClick={submit}
-                  >
-                    {confirmed
-                      ? '✓ Zahtev poslat'
-                      : submitting
-                      ? 'Slanje…'
-                      : 'Rezerviši'}
-                  </button>
-                )}
-                {confirmed && (
-                  <div style={{ fontSize: 12, color: 'var(--moss)', textAlign: 'center', lineHeight: 1.5 }}>
-                    Rezervacija #{confirmed.id} — status: <strong>{confirmed.status}</strong>.
-                    <br />
-                    Sto #{tableId} · {date} u {time} · {seats} {seats === 1 ? 'osoba' : 'osobe'}
-                  </div>
-                )}
-                {error && <div className="login-error">{error}</div>}
-              </div>
-
+  const tabs: TabDef[] = [
+    {
+      key: 'osnovni',
+      label: 'Osnovni podaci',
+      render: () => (
+        <div className="module-section">
+          <div className="section-label">O kafiću</div>
+          <p className="prose-lead">{tagline}</p>
+          <div className="info-grid">
+            <div className="info-row">
+              <div className="info-icon"><IconPin /></div>
               <div>
-                <div className="field-label" style={{ marginBottom: 8 }}>Raspored sala</div>
-                {floorPlan ? (
-                  <FloorPlanView
-                    layout={floorPlan}
-                    unavailable={takenTableIds}
-                    selectedKey={tableId}
-                    onSelect={(key) => !confirmed && setTableId(key)}
-                  />
-                ) : (
-                  <div className="cafe-floorplan">
-                    <svg className="cafe-floorplan-svg" viewBox="0 0 280 280">
-                      <rect x="2" y="2" width="276" height="276" fill="none" stroke="#5B6878" strokeWidth="2" rx="4" />
-                      <line x1="2" y1="190" x2="180" y2="190" stroke="#5B6878" strokeWidth="1.5" strokeDasharray="4 3" />
-                      <text x="90" y="210" fontSize="9" textAnchor="middle" fill="#5B6878" fontFamily="Inter" letterSpacing="1">UNUTRA</text>
-                      <text x="220" y="270" fontSize="9" textAnchor="middle" fill="#5B6878" fontFamily="Inter" letterSpacing="1">BAŠTA</text>
-                      <rect x="20" y="10" width="240" height="18" fill="#E5D4B5" stroke="#5B6878" strokeWidth="1" />
-                      <text x="140" y="22" fontSize="9" textAnchor="middle" fill="#5B6878" fontFamily="Inter" letterSpacing="2">B A R</text>
-                      {TABLES.map((t) => {
-                        const taken = takenTableIds.has(t.id);
-                        return (
-                          <g
-                            key={t.id}
-                            className={`cafe-table ${taken ? 'taken' : ''} ${tableId === t.id ? 'selected' : ''}`}
-                            onClick={() => !taken && !confirmed && setTableId(t.id)}
-                          >
-                            <circle className="table-circle" cx={t.x} cy={t.y} r="16" />
-                            <text className="table-num" x={t.x} y={t.y}>{t.id}</text>
-                          </g>
-                        );
-                      })}
-                      <g transform="translate(8, 258)" fontSize="8" fontFamily="Inter" fill="#5B6878">
-                        <circle cx="6" cy="0" r="5" fill="#E0D6C0" stroke="#5B6878" strokeWidth="1" />
-                        <text x="16" y="2.5">slobodan</text>
-                        <circle cx="78" cy="0" r="5" fill="#C8B8B0" stroke="#5B6878" strokeWidth="1" opacity="0.6" />
-                        <text x="88" y="2.5">zauzet</text>
-                        <circle cx="138" cy="0" r="5" fill="#C9A961" stroke="#0B1B2B" strokeWidth="1" />
-                        <text x="148" y="2.5">odabran</text>
-                      </g>
-                    </svg>
-                  </div>
-                )}
+                <div className="info-row-label">Adresa</div>
+                <div className="info-row-val">{loc.address}<br />12374 Žabari</div>
               </div>
             </div>
+            {contact.phone && (
+              <div className="info-row">
+                <div className="info-icon"><IconPhone /></div>
+                <div>
+                  <div className="info-row-label">Telefon</div>
+                  <div className="info-row-val">{contact.phone}</div>
+                </div>
+              </div>
+            )}
+            {contact.web && (
+              <div className="info-row">
+                <div className="info-icon"><IconWeb /></div>
+                <div>
+                  <div className="info-row-label">Veb</div>
+                  <div className="info-row-val">{contact.web}</div>
+                </div>
+              </div>
+            )}
           </div>
+        </div>
+      ),
+    },
+    {
+      key: 'dogadjaji',
+      label: 'Najavljeni događaji',
+      isEmpty: !desavanja.loading && desavanja.events.length === 0,
+      render: () => (
+        <div className="module-section">
+          <div className="section-label">Najavljeni događaji</div>
+          <LocationEventsList items={desavanja.events} loading={desavanja.loading} />
+        </div>
+      ),
+    },
+    {
+      key: 'obavestenja',
+      label: 'Obaveštenja',
+      isEmpty: !desavanja.loading && desavanja.news.length === 0,
+      render: () => (
+        <div className="module-section">
+          <div className="section-label">Obaveštenja</div>
+          <LocationNewsList items={desavanja.news} loading={desavanja.loading} />
+        </div>
+      ),
+    },
+    {
+      key: 'rezervacije',
+      label: 'Rezervacije',
+      render: () => (
+        <div className="module-section">
+          <div className="section-label">Rezervacija stola</div>
+          <div className="cafe-tables">
+            <div className="cafe-booking-form">
+              <div>
+                <div className="field-label">Datum</div>
+                <input
+                  className="field-input"
+                  type="date"
+                  value={date}
+                  min={todayIso()}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </div>
+              <div>
+                <div className="field-label">Broj osoba</div>
+                <select className="field-select" value={seats} onChange={(e) => setSeats(+e.target.value)}>
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                    <option key={n} value={n}>
+                      {n} {n === 1 ? 'osoba' : n < 5 ? 'osobe' : 'osoba'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <div className="field-label">Vreme (rezervacija traje 2h)</div>
+                <div className="time-grid">
+                  {TIMES.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      className={`time-chip ${time === t ? 'selected' : ''}`}
+                      onClick={() => setTime(t)}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="field-label">Sto {tableId ? `· odabran #${tableId}` : ''}</div>
+                <div style={{ fontSize: 11, color: '#5B6878', marginTop: -4 }}>
+                  Kliknite na sto u rasporedu →
+                </div>
+              </div>
+              {!loggedIn ? (
+                <Link to="/prijava" className="btn-primary" style={{ textAlign: 'center', textDecoration: 'none' }}>
+                  Prijavite se za rezervaciju
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  disabled={!tableId || submitting || !!confirmed}
+                  onClick={submit}
+                >
+                  {confirmed
+                    ? '✓ Zahtev poslat'
+                    : submitting
+                    ? 'Slanje…'
+                    : 'Rezerviši'}
+                </button>
+              )}
+              {confirmed && (
+                <div style={{ fontSize: 12, color: 'var(--moss)', textAlign: 'center', lineHeight: 1.5 }}>
+                  Rezervacija #{confirmed.id} — status: <strong>{confirmed.status}</strong>.
+                  <br />
+                  Sto #{tableId} · {date} u {time} · {seats} {seats === 1 ? 'osoba' : 'osobe'}
+                </div>
+              )}
+              {error && <div className="login-error">{error}</div>}
+            </div>
 
-          <div className="module-section">
-            <div className="section-label">Meni i ponuda</div>
-            <h2 className="section-title">Posebnosti kuće</h2>
+            <div>
+              <div className="field-label" style={{ marginBottom: 8 }}>Raspored sala</div>
+              {floorPlan ? (
+                <FloorPlanView
+                  layout={floorPlan}
+                  unavailable={takenTableIds}
+                  selectedKey={tableId}
+                  onSelect={(key) => !confirmed && setTableId(key)}
+                />
+              ) : (
+                <div className="cafe-floorplan">
+                  <svg className="cafe-floorplan-svg" viewBox="0 0 280 280">
+                    <rect x="2" y="2" width="276" height="276" fill="none" stroke="#5B6878" strokeWidth="2" rx="4" />
+                    <line x1="2" y1="190" x2="180" y2="190" stroke="#5B6878" strokeWidth="1.5" strokeDasharray="4 3" />
+                    <text x="90" y="210" fontSize="9" textAnchor="middle" fill="#5B6878" fontFamily="Inter" letterSpacing="1">UNUTRA</text>
+                    <text x="220" y="270" fontSize="9" textAnchor="middle" fill="#5B6878" fontFamily="Inter" letterSpacing="1">BAŠTA</text>
+                    <rect x="20" y="10" width="240" height="18" fill="#E5D4B5" stroke="#5B6878" strokeWidth="1" />
+                    <text x="140" y="22" fontSize="9" textAnchor="middle" fill="#5B6878" fontFamily="Inter" letterSpacing="2">B A R</text>
+                    {TABLES.map((t) => {
+                      const taken = takenTableIds.has(t.id);
+                      return (
+                        <g
+                          key={t.id}
+                          className={`cafe-table ${taken ? 'taken' : ''} ${tableId === t.id ? 'selected' : ''}`}
+                          onClick={() => !taken && !confirmed && setTableId(t.id)}
+                        >
+                          <circle className="table-circle" cx={t.x} cy={t.y} r="16" />
+                          <text className="table-num" x={t.x} y={t.y}>{t.id}</text>
+                        </g>
+                      );
+                    })}
+                    <g transform="translate(8, 258)" fontSize="8" fontFamily="Inter" fill="#5B6878">
+                      <circle cx="6" cy="0" r="5" fill="#E0D6C0" stroke="#5B6878" strokeWidth="1" />
+                      <text x="16" y="2.5">slobodan</text>
+                      <circle cx="78" cy="0" r="5" fill="#C8B8B0" stroke="#5B6878" strokeWidth="1" opacity="0.6" />
+                      <text x="88" y="2.5">zauzet</text>
+                      <circle cx="138" cy="0" r="5" fill="#C9A961" stroke="#0B1B2B" strokeWidth="1" />
+                      <text x="148" y="2.5">odabran</text>
+                    </g>
+                  </svg>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'meni',
+      label: 'Meni',
+      isEmpty: menu.length === 0,
+      render: () => (
+        <div className="module-section">
+          <div className="section-label">Meni i ponuda</div>
+          <h2 className="section-title">Posebnosti kuće</h2>
+          {menu.length === 0 ? (
+            <div className="loc-desavanja-empty">Meni još nije unet.</div>
+          ) : (
             <div className="menu-list">
               {menu.map((group) => (
                 <Fragment key={group.cat}>
@@ -267,10 +345,43 @@ export function CafeModule({ loc, content }: Props) {
                 </Fragment>
               ))}
             </div>
-          </div>
+          )}
         </div>
+      ),
+    },
+    {
+      key: 'radno-vreme',
+      label: 'Radno vreme',
+      isEmpty: hours.length === 0,
+      render: () => (
+        <div className="module-section">
+          <div className="section-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <IconClock /> Radno vreme
+          </div>
+          {hours.length === 0 ? (
+            <div className="loc-desavanja-empty">Radno vreme još nije uneto.</div>
+          ) : (
+            <table className="hours-table hours-table-wide">
+              <tbody>
+                {hours.map((h, i) => (
+                  <tr key={i} className={i === TODAY_DOW ? 'today' : ''}>
+                    <td>{h.day}</td>
+                    <td>{h.hours}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      ),
+    },
+  ];
 
-        <InfoCard loc={loc} hours={hours} contact={contact} />
+  return (
+    <div className="module-page">
+      <ModuleHero loc={loc} tagline={tagline} />
+      <div className="module-body tabs">
+        <ModuleTabs tabs={tabs} />
       </div>
     </div>
   );

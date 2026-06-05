@@ -10,6 +10,7 @@ import { FieldRow, TextInput } from './forms/widgets';
 import { ReservationsInbox } from './ReservationsInbox';
 import { OwnerEventsEditor } from '../components/OwnerEventsEditor';
 import { OwnerNewsEditor } from '../components/OwnerNewsEditor';
+import { ModuleTabs, type TabDef } from '../modules/ModuleTabs';
 
 export function EditLocation() {
   const ctx = useOutletContext<AppContext>();
@@ -104,6 +105,125 @@ export function EditLocation() {
     }
   };
 
+  const saveBar = (
+    <>
+      <button
+        className="btn-primary"
+        style={{ marginTop: 18 }}
+        onClick={submit}
+        disabled={busy || !name || !address}
+      >
+        {busy ? 'Čuvanje…' : 'Sačuvaj izmene'}
+      </button>
+      {saved && <div style={{ fontSize: 12, color: 'var(--moss)', marginTop: 8, textAlign: 'center' }}>✓ Sačuvano</div>}
+      {error && <div className="login-error">{error}</div>}
+    </>
+  );
+
+  const tabs: TabDef[] = [
+    {
+      key: 'osnovni',
+      label: 'Osnovni podaci',
+      render: () => (
+        <div className="admin-card">
+          <FieldRow label="Naziv"><TextInput value={name} onChange={setName} /></FieldRow>
+          <FieldRow label="Podnaslov"><TextInput value={subtitle} onChange={setSubtitle} /></FieldRow>
+          <FieldRow label="Adresa"><TextInput value={address} onChange={setAddress} /></FieldRow>
+          <FieldRow label="Selo">
+            <select
+              className="field-input"
+              value={village}
+              onChange={(e) => setVillage(e.target.value)}
+            >
+              <option value="">— nije izabrano —</option>
+              {SELA_ZABARI.map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </FieldRow>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <FieldRow label="Lat"><TextInput value={lat} onChange={setLat} /></FieldRow>
+            <FieldRow label="Lng"><TextInput value={lng} onChange={setLng} /></FieldRow>
+          </div>
+
+          <div className="field-label" style={{ marginTop: 4 }}>Status</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              className={`time-chip ${status === 'draft' ? 'selected' : ''}`}
+              onClick={() => setStatus('draft')}
+              style={{ flex: 1 }}
+            >
+              nacrt
+            </button>
+            <button
+              type="button"
+              className={`time-chip ${status === 'published' ? 'selected' : ''}`}
+              onClick={() => setStatus('published')}
+              style={{ flex: 1 }}
+            >
+              objavljen
+            </button>
+          </div>
+
+          {saveBar}
+
+          <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px dashed var(--line)' }}>
+            <div className="field-label" style={{ color: 'var(--rust)' }}>Opasna zona</div>
+            <button
+              type="button"
+              className="row-action danger"
+              style={{ width: '100%', padding: '10px 14px', fontSize: 13 }}
+              onClick={remove}
+              disabled={busy}
+            >
+              Obriši objekat
+            </button>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'sadrzaj',
+      label: 'Sadržaj',
+      render: () => (
+        <div className="admin-card">
+          <LocationContentEditor catId={loc.catId} value={content} onChange={setContent} />
+          {saveBar}
+        </div>
+      ),
+    },
+    {
+      key: 'dogadjaji',
+      label: 'Najavljeni događaji',
+      render: () => (
+        <div className="admin-card">
+          <OwnerEventsEditor locationId={loc.id} />
+        </div>
+      ),
+    },
+    {
+      key: 'obavestenja',
+      label: 'Obaveštenja',
+      render: () => (
+        <div className="admin-card">
+          <OwnerNewsEditor locationId={loc.id} />
+        </div>
+      ),
+    },
+    {
+      key: 'rezervacije',
+      label: 'Rezervacije',
+      isEmpty: loc.catId !== 'cafe' && loc.catId !== 'hotel',
+      render: () => (
+        <div className="admin-card">
+          <ReservationsInbox locationId={loc.id} />
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="module-page">
@@ -140,99 +260,8 @@ export function EditLocation() {
         </div>
       </div>
 
-      <div className="admin-container">
-        <div className="edit-grid">
-          <div className="admin-card">
-            <div className="section-label" style={{ margin: 0, marginBottom: 16 }}>Osnovni podaci</div>
-            <FieldRow label="Naziv"><TextInput value={name} onChange={setName} /></FieldRow>
-            <FieldRow label="Podnaslov"><TextInput value={subtitle} onChange={setSubtitle} /></FieldRow>
-            <FieldRow label="Adresa"><TextInput value={address} onChange={setAddress} /></FieldRow>
-            <FieldRow label="Selo">
-              <select
-                className="field-input"
-                value={village}
-                onChange={(e) => setVillage(e.target.value)}
-              >
-                <option value="">— nije izabrano —</option>
-                {SELA_ZABARI.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </FieldRow>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <FieldRow label="Lat"><TextInput value={lat} onChange={setLat} /></FieldRow>
-              <FieldRow label="Lng"><TextInput value={lng} onChange={setLng} /></FieldRow>
-            </div>
-
-            <div className="field-label" style={{ marginTop: 4 }}>Status</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                type="button"
-                className={`time-chip ${status === 'draft' ? 'selected' : ''}`}
-                onClick={() => setStatus('draft')}
-                style={{ flex: 1 }}
-              >
-                nacrt
-              </button>
-              <button
-                type="button"
-                className={`time-chip ${status === 'published' ? 'selected' : ''}`}
-                onClick={() => setStatus('published')}
-                style={{ flex: 1 }}
-              >
-                objavljen
-              </button>
-            </div>
-
-            <button
-              className="btn-primary"
-              style={{ marginTop: 18, position: 'sticky', bottom: 16 }}
-              onClick={submit}
-              disabled={busy || !name || !address}
-            >
-              {busy ? 'Čuvanje…' : 'Sačuvaj izmene'}
-            </button>
-            {saved && <div style={{ fontSize: 12, color: 'var(--moss)', marginTop: 8, textAlign: 'center' }}>✓ Sačuvano</div>}
-            {error && <div className="login-error">{error}</div>}
-
-            <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px dashed var(--line)' }}>
-              <div className="field-label" style={{ color: 'var(--rust)' }}>Opasna zona</div>
-              <button
-                type="button"
-                className="row-action danger"
-                style={{ width: '100%', padding: '10px 14px', fontSize: 13 }}
-                onClick={remove}
-                disabled={busy}
-              >
-                Obriši objekat
-              </button>
-            </div>
-          </div>
-
-          <div className="admin-card">
-            <div className="section-label" style={{ margin: 0, marginBottom: 16 }}>Sadržaj modula</div>
-            <LocationContentEditor catId={loc.catId} value={content} onChange={setContent} />
-          </div>
-        </div>
-
-        <div className="admin-card" style={{ marginTop: 24 }}>
-          <div className="section-label" style={{ margin: 0, marginBottom: 16 }}>Najavljeni događaji</div>
-          <OwnerEventsEditor locationId={loc.id} />
-        </div>
-
-        <div className="admin-card" style={{ marginTop: 24 }}>
-          <div className="section-label" style={{ margin: 0, marginBottom: 16 }}>Obaveštenja</div>
-          <OwnerNewsEditor locationId={loc.id} />
-        </div>
-
-        {(loc.catId === 'cafe' || loc.catId === 'hotel') && (
-          <div className="admin-card" style={{ marginTop: 24 }}>
-            <div className="section-label" style={{ margin: 0, marginBottom: 16 }}>Rezervacije za ovaj objekat</div>
-            <ReservationsInbox locationId={loc.id} />
-          </div>
-        )}
+      <div className="module-body tabs">
+        <ModuleTabs tabs={tabs} />
       </div>
     </div>
   );

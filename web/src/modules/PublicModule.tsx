@@ -1,7 +1,12 @@
 import type { Location, PublicContent } from '../types';
 import { ModuleHero } from './ModuleHero';
-import { InfoCard } from './InfoCard';
-import { IconCheck } from '../components/Icons';
+import { ModuleTabs, type TabDef } from './ModuleTabs';
+import { IconCheck, IconClock, IconMail, IconPhone, IconPin } from '../components/Icons';
+import {
+  LocationEventsList,
+  LocationNewsList,
+  useLocationDesavanja,
+} from './LocationDesavanjaTabs';
 
 interface Props { loc: Location; content: PublicContent }
 
@@ -17,29 +22,89 @@ export function PublicModule({ loc, content }: Props) {
   const hours = content.hours ?? [];
   const contact = content.contact ?? { phone: '', email: '', address: loc.address };
   const tagline = content.tagline ?? 'Javna služba u opštini Žabari.';
-  return (
-    <div className="module-page">
-      <ModuleHero loc={loc} tagline={tagline} />
-      <div className="module-body">
-        <div>
-          <div className="module-section">
-            <div className="section-label">O ustanovi</div>
-            <div className="prose">
-              <p className="prose-lead">{tagline}</p>
-              <p>
-                Ustanova obavlja svoju delatnost u skladu sa važećim zakonskim okvirima i odlukama
-                Skupštine opštine Žabari. Šalter za građane je otvoren u radno vreme navedeno u
-                bočnoj kartici.
-              </p>
-              <p>
-                Za hitne slučajeve van radnog vremena pozovite glavnu liniju opštine:{' '}
-                <strong>+381 12 250 130</strong>, ili pišite na <strong>info@zabari.rs</strong>.
-              </p>
-            </div>
+
+  const desavanja = useLocationDesavanja(loc.id, loc.slug);
+
+  const tabs: TabDef[] = [
+    {
+      key: 'osnovni',
+      label: 'Osnovni podaci',
+      render: () => (
+        <div className="module-section">
+          <div className="section-label">O ustanovi</div>
+          <div className="prose">
+            <p className="prose-lead">{tagline}</p>
+            <p>
+              Ustanova obavlja svoju delatnost u skladu sa važećim zakonskim okvirima i odlukama
+              Skupštine opštine Žabari. Šalter za građane je otvoren u radno vreme navedeno u
+              kartici „Radno vreme”.
+            </p>
+            <p>
+              Za hitne slučajeve van radnog vremena pozovite glavnu liniju opštine:{' '}
+              <strong>+381 12 250 130</strong>, ili pišite na <strong>info@zabari.rs</strong>.
+            </p>
           </div>
 
-          {services?.length > 0 && (
-            <div className="module-section">
+          <div className="info-grid">
+            <div className="info-row">
+              <div className="info-icon"><IconPin /></div>
+              <div>
+                <div className="info-row-label">Adresa</div>
+                <div className="info-row-val">{contact.address || loc.address}<br />12374 Žabari</div>
+              </div>
+            </div>
+            {contact.phone && (
+              <div className="info-row">
+                <div className="info-icon"><IconPhone /></div>
+                <div>
+                  <div className="info-row-label">Telefon</div>
+                  <div className="info-row-val">{contact.phone}</div>
+                </div>
+              </div>
+            )}
+            {contact.email && (
+              <div className="info-row">
+                <div className="info-icon"><IconMail /></div>
+                <div>
+                  <div className="info-row-label">E-pošta</div>
+                  <div className="info-row-val">{contact.email}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'dogadjaji',
+      label: 'Najavljeni događaji',
+      isEmpty: !desavanja.loading && desavanja.events.length === 0,
+      render: () => (
+        <div className="module-section">
+          <div className="section-label">Najavljeni događaji</div>
+          <LocationEventsList items={desavanja.events} loading={desavanja.loading} />
+        </div>
+      ),
+    },
+    {
+      key: 'obavestenja',
+      label: 'Obaveštenja',
+      isEmpty: !desavanja.loading && desavanja.news.length === 0,
+      render: () => (
+        <div className="module-section">
+          <div className="section-label">Obaveštenja</div>
+          <LocationNewsList items={desavanja.news} loading={desavanja.loading} />
+        </div>
+      ),
+    },
+    {
+      key: 'usluge',
+      label: 'Usluge i dokumenti',
+      isEmpty: services.length === 0,
+      render: () => (
+        <>
+          {services.length > 0 && (
+            <div className="module-section" style={{ marginTop: 0 }}>
               <div className="section-label">Usluge i nadležnosti</div>
               <h2 className="section-title">Šta možete obaviti ovde</h2>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16 }}>
@@ -118,9 +183,42 @@ export function PublicModule({ loc, content }: Props) {
               ))}
             </div>
           </div>
+        </>
+      ),
+    },
+    {
+      key: 'radno-vreme',
+      label: 'Radno vreme',
+      isEmpty: hours.length === 0,
+      render: () => (
+        <div className="module-section">
+          <div className="section-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <IconClock /> Radno vreme
+          </div>
+          {hours.length === 0 ? (
+            <div className="loc-desavanja-empty">Radno vreme još nije uneto.</div>
+          ) : (
+            <table className="hours-table hours-table-wide">
+              <tbody>
+                {hours.map(([day, text], i) => (
+                  <tr key={i}>
+                    <td>{day}</td>
+                    <td>{text}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
+      ),
+    },
+  ];
 
-        <InfoCard loc={loc} hours={hours} contact={contact} />
+  return (
+    <div className="module-page">
+      <ModuleHero loc={loc} tagline={tagline} />
+      <div className="module-body tabs">
+        <ModuleTabs tabs={tabs} />
       </div>
     </div>
   );

@@ -691,6 +691,99 @@ button { font-family: inherit; }
 
 .module-body.single { grid-template-columns: 1fr; max-width: 880px; }
 
+.module-body.tabs {
+  display: block;
+  grid-template-columns: none;
+  max-width: 1100px;
+  padding-top: 0;
+}
+
+.module-tabs {
+  position: sticky;
+  top: var(--nav-h);
+  z-index: 5;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  margin: 0 -48px 32px;
+}
+
+.module-tabs-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 48px;
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+.module-tab {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 18px 18px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.module-tab:hover:not(.empty):not(.active) {
+  color: var(--ink);
+}
+
+.module-tab.active {
+  color: var(--navy);
+  border-bottom-color: var(--gold-2, var(--gold));
+  font-weight: 600;
+}
+
+.module-tab.empty {
+  color: var(--ink-2);
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.module-tab-panel { min-height: 280px; }
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0 32px;
+  margin-top: 18px;
+  max-width: 800px;
+}
+
+.info-grid .info-row { border-bottom: 1px dashed var(--line); }
+
+.hours-table-wide {
+  width: 100%;
+  max-width: 480px;
+  margin-top: 12px;
+  font-size: 14px;
+}
+.hours-table-wide tr td { padding: 10px 0; border-bottom: 1px dashed var(--line); }
+.hours-table-wide tr:last-child td { border-bottom: none; }
+
+.hotel-booking {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 32px;
+  align-items: start;
+}
+
+.hotel-booking-form { position: sticky; top: calc(var(--nav-h) + 80px); }
+
+@media (max-width: 900px) {
+  .hotel-booking { grid-template-columns: 1fr; }
+  .hotel-booking-form { position: static; }
+}
+
 .module-section + .module-section { margin-top: 56px; }
 
 .section-label {
@@ -2013,6 +2106,10 @@ button { font-family: inherit; }
   .admin-grid { grid-template-columns: 1fr; }
   .cafe-tables { grid-template-columns: 1fr; }
   .module-body, .admin-container { padding: 32px 20px 64px; }
+  .module-body.tabs { padding-top: 0; }
+  .module-tabs { margin: 0 -20px 24px; }
+  .module-tabs-inner { padding: 0 20px; }
+  .module-tab { padding: 14px 12px 10px; font-size: 12px; }
   .topnav { padding: 0 16px; gap: 16px; }
   .module-page-extras { padding: 24px 20px 48px; }
   .account-page { padding: 32px 20px 64px; }
