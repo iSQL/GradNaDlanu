@@ -33,11 +33,11 @@ export interface SeedLocation {
 }
 
 export const LOCATIONS: SeedLocation[] = [
-  { slug: 'kafana-stara-vodenica', catId: 'cafe',           name: 'Stara Vodenica',          subtitle: 'Restoran · domaća kuhinja',   address: 'Karađorđeva 14', lat: 44.3563, lng: 21.2168 },
-  { slug: 'opstina',               catId: 'public',         name: 'Opština Žabari',          subtitle: 'Gradska uprava',              address: 'Karađorđeva 1',  lat: 44.3568, lng: 21.2160 },
-  { slug: 'crkva-sv-arhandjel',    catId: 'landmark',       name: 'Crkva Sv. Arhanđela',     subtitle: 'Pravoslavna crkva, XIX vek',  address: 'Crkveni trg',    lat: 44.3580, lng: 21.2162 },
-  { slug: 'hotel-morava',          catId: 'hotel',          name: 'Hotel Morava',            subtitle: 'Smeštaj · 24 sobe',           address: 'Karađorđeva 30', lat: 44.3576, lng: 21.2185 },
-  { slug: 'os-dositej',            catId: 'school',         name: 'OŠ "Dositej Obradović"',  subtitle: 'Osnovna škola',               address: 'Đure Jakšića 2', lat: 44.3574, lng: 21.2152 },
+  { slug: 'caffe-bar-magacin',          catId: 'cafe',           name: 'Caffe-Bar Magacin',           subtitle: 'Restoran · domaća kuhinja',   address: 'Karađorđeva 14', lat: 44.3563, lng: 21.2168 },
+  { slug: 'opstina',                    catId: 'public',         name: 'Opština Žabari',              subtitle: 'Gradska uprava',              address: 'Karađorđeva 1',  lat: 44.3568, lng: 21.2160 },
+  { slug: 'crkva-vaznesenja-gospodnjeg', catId: 'landmark',      name: 'Crkva Vaznesenja Gospodnjeg', subtitle: 'Pravoslavna crkva, XIX vek',  address: 'Crkveni trg',    lat: 44.3580, lng: 21.2162 },
+  { slug: 'hotel-miroc',                catId: 'hotel',          name: 'Hotel Miroč',                 subtitle: 'Smeštaj · 24 sobe',           address: 'Karađorđeva 30', lat: 44.3576, lng: 21.2185 },
+  { slug: 'os-dude-jovica',             catId: 'school',         name: 'OŠ "Dude Jovića"',            subtitle: 'Osnovna škola',               address: 'Đure Jakšića 2', lat: 44.3574, lng: 21.2152 },
   { slug: 'vodoinstalater-marko',  catId: 'vodoinstalater', name: 'Vodoinstalater Marko',    subtitle: 'Vodovod i kanalizacija',      address: 'Vojvode Mišića 7', lat: 44.3559, lng: 21.2175 },
   { slug: 'elektro-stojan',        catId: 'elektricar',     name: 'Elektro Stojan',          subtitle: 'Elektroinstalacije i servis', address: 'Cara Lazara 12',  lat: 44.3571, lng: 21.2148 },
   { slug: 'auto-servis-zika',      catId: 'automehanicar',  name: 'Auto-servis Žika',        subtitle: 'Mehanika i dijagnostika',     address: 'Industrijska 4',  lat: 44.3554, lng: 21.2192 },
@@ -76,7 +76,7 @@ export const CAFE_DEFAULT = {
 };
 
 export const CAFE_OVERRIDES: Record<string, { tagline?: string; contact?: { phone?: string; web?: string } }> = {
-  'kafana-stara-vodenica': {
+  'caffe-bar-magacin': {
     tagline: 'Domaća kuhinja, riblji specijaliteti i miran ambijent uz reku Moravu.',
   },
 };
@@ -98,14 +98,14 @@ export const PUBLIC_BY_SLUG = {
 };
 
 export const HOTEL_BY_SLUG = {
-  'hotel-morava': {
+  'hotel-miroc': {
     tagline: 'Hotel sa 4 zvezdice u centru — restoran, sala za sastanke, parking.',
-    contact: { phone: '+381 12 251 500', email: 'rezervacije@hotelmorava.rs', address: 'Karađorđeva 30' },
+    contact: { phone: '+381 12 251 500', email: 'rezervacije@hotelmiroc.rs', address: 'Karađorđeva 30' },
     rooms: [
       { name: 'Standard sa pogledom',  beds: '1 bračni',          area: '22 m²', price: '6.800',  amen: 'TV · WiFi · klima' },
       { name: 'Twin sa parkingom',     beds: '2 zasebna',         area: '24 m²', price: '7.200',  amen: 'TV · WiFi · klima' },
       { name: 'Komfor sa balkonom',    beds: '1 bračni',          area: '28 m²', price: '8.400',  amen: 'TV · WiFi · balkon' },
-      { name: 'Apartman Morava',       beds: '1 bračni + kauč',   area: '38 m²', price: '11.200', amen: 'kuhinja · dnevna' },
+      { name: 'Apartman Miroč',        beds: '1 bračni + kauč',   area: '38 m²', price: '11.200', amen: 'kuhinja · dnevna' },
     ],
     facts: [
       { num: '24', label: 'Sobe' },
@@ -117,8 +117,8 @@ export const HOTEL_BY_SLUG = {
 };
 
 export const LANDMARK_BY_SLUG = {
-  'crkva-sv-arhandjel': {
-    tagline: 'Pravoslavna crkva posvećena Svetom Arhanđelu, podignuta sredinom XIX veka.',
+  'crkva-vaznesenja-gospodnjeg': {
+    tagline: 'Pravoslavna crkva posvećena Vaznesenju Gospodnjem, podignuta sredinom XIX veka.',
     facts: [
       { num: '1847', label: 'Godina osvećenja' },
       { num: '32',   label: 'Visina zvonika (m)' },
@@ -126,7 +126,7 @@ export const LANDMARK_BY_SLUG = {
       { num: '1',    em: '×', label: 'Ikonostas, originalan' },
     ],
     story: [
-      'Crkva Svetog Arhanđela je podignuta na temeljima starije bogomolje, koja je porušena u Prvom srpskom ustanku. Kamen je dovožen iz okoline Bele Crkve — što daje karakterističan svetlo-okerni ton fasadi.',
+      'Crkva Vaznesenja Gospodnjeg je podignuta na temeljima starije bogomolje, koja je porušena u Prvom srpskom ustanku. Kamen je dovožen iz okoline Bele Crkve — što daje karakterističan svetlo-okerni ton fasadi.',
       'Ikonostas je delo lokalnog majstora Petra Nikolića, završen 1851. godine. U crkvi se čuva i originalna srebrna kandila iz druge polovine XIX veka, donacija porodice Stojanović.',
       'Tokom letnjih meseci u crkvi se održavaju koncerti duhovne muzike — termini se objavljuju u kalendaru kulturnih dešavanja.',
     ],
@@ -134,9 +134,9 @@ export const LANDMARK_BY_SLUG = {
 };
 
 export const SCHOOL_BY_SLUG = {
-  'os-dositej': {
-    tagline: 'Osnovna škola "Dositej Obradović" — najstarija škola u opštini, osnovana 1857.',
-    contact: { phone: '+381 12 250 277', email: 'skola@osdositej.edu.rs', address: 'Đure Jakšića 2' },
+  'os-dude-jovica': {
+    tagline: 'Osnovna škola "Dude Jovića" — najstarija škola u opštini, osnovana 1857.',
+    contact: { phone: '+381 12 250 277', email: 'skola@osdudejovica.edu.rs', address: 'Đure Jakšića 2' },
     facts: [
       { num: '1857', label: 'Osnovana' },
       { num: '412',  label: 'Učenika' },
@@ -219,26 +219,26 @@ export interface SeedEvent {
 // refresh these or accept that includePast=1 is required to see them.
 export const EVENTS: SeedEvent[] = [
   {
-    slug: 'os-dositej',
+    slug: 'os-dude-jovica',
     title: 'Otvoreni dan za buduće đake',
     description: 'Roditelji i deca mogu da pogledaju učionice i razgovaraju sa nastavnicima.',
     startsAt: '2026-06-08T08:00:00Z',
     endsAt:   '2026-06-08T11:00:00Z',
   },
   {
-    slug: 'os-dositej',
+    slug: 'os-dude-jovica',
     title: 'Roditeljski sastanak (5—8 razred)',
     startsAt: '2026-06-15T16:00:00Z',
     endsAt:   '2026-06-15T18:00:00Z',
   },
   {
-    slug: 'os-dositej',
+    slug: 'os-dude-jovica',
     title: 'Završna priredba i izložba',
     description: 'Predstava đaka i izložba radova iz likovne i muzičke sekcije.',
     startsAt: '2026-06-22T15:30:00Z',
   },
   {
-    slug: 'os-dositej',
+    slug: 'os-dude-jovica',
     title: 'Svečana predaja svedočanstava',
     startsAt: '2026-06-29T09:00:00Z',
   },
@@ -257,14 +257,14 @@ export const EVENTS: SeedEvent[] = [
     endsAt:   '2026-06-04T14:00:00Z',
   },
   {
-    slug: 'crkva-sv-arhandjel',
-    title: 'Hramska slava — Sv. Arhanđel Mihailo',
+    slug: 'crkva-vaznesenja-gospodnjeg',
+    title: 'Hramska slava — Spasovdan (Vaznesenje Gospodnje)',
     description: 'Liturgija i osvećenje slavskog kolača.',
     startsAt: '2026-06-21T08:00:00Z',
     endsAt:   '2026-06-21T11:00:00Z',
   },
   {
-    slug: 'kafana-stara-vodenica',
+    slug: 'caffe-bar-magacin',
     title: 'Letnja muzička večer',
     description: 'Akustična svirka pred baštom, ulaz besplatan.',
     startsAt: '2026-06-14T19:00:00Z',
