@@ -89,19 +89,30 @@ export async function runSeed(): Promise<SeedResult> {
       eventCount++;
     }
 
-    const passwordHash = await bcrypt.hash(env.adminPassword, 12);
+    // users.email lives behind a PARTIAL unique index (WHERE email IS NOT NULL)
+    // so guests can have a NULL email. Postgres won't infer that index from a
+    // bare ON CONFLICT (email) → manual existence check keeps the seed idempotent.
     const adminEmail = `${env.adminUsername}@local`;
-    const insertedUser = await db
-      .insert(users)
-      .values({
-        email: adminEmail,
-        passwordHash,
-        displayName: env.adminUsername,
-        role: 'admin',
-        emailVerifiedAt: new Date(),
-      })
-      .onConflictDoNothing({ target: users.email })
-      .returning({ id: users.id });
+    const [existingAdmin] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, adminEmail))
+      .limit(1);
+
+    let insertedUser: { id: number }[] = [];
+    if (!existingAdmin) {
+      const passwordHash = await bcrypt.hash(env.adminPassword, 12);
+      insertedUser = await db
+        .insert(users)
+        .values({
+          email: adminEmail,
+          passwordHash,
+          displayName: env.adminUsername,
+          role: 'admin',
+          emailVerifiedAt: new Date(),
+        })
+        .returning({ id: users.id });
+    }
 
     return {
       categoryCount: CATEGORIES.length,

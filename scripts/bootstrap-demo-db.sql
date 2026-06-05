@@ -13,7 +13,7 @@
 -- =====================================================================
 
 -- 1) Nova rola sa LOGIN pravom.
-CREATE ROLE zabari_demo WITH LOGIN PASSWORD '28LktFFDhdfgIGupWdKJj99jpigifu6TvND2HXeoQW0=';
+CREATE ROLE zabari_demo WITH LOGIN PASSWORD 'SomeStrongPasswordHere';
 
 -- 2) Nova baza, vlasnik = nova rola. Vlasnistvo je vazno jer migrate.ts radi
 --    CREATE TABLE / CREATE INDEX iz aplikacije; vlasnik to moze bez extra GRANT-ova.
