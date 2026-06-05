@@ -72,7 +72,53 @@ function buildLogger(): FastifyBaseLogger {
 async function main() {
   // Fastify 5 splits the option: `logger` takes a config/boolean, while
   // `loggerInstance` takes a pre-built logger (our pino + multistream).
-  const app = Fastify({ loggerInstance: buildLogger(), trustProxy: env.isProduction });
+  // `disableRequestLogging` turns off the default per-request lines so we can
+  // emit them ourselves and skip high-volume / low-value paths (see hook below).
+  const app = Fastify({
+    loggerInstance: buildLogger(),
+    trustProxy: env.isProduction,
+    disableRequestLogging: true,
+  });
+
+  // Mirror Fastify's default request logging, minus the paths that flood the
+  // log without earning their keep: the health check (polled by Coolify) and
+  // anything served as a static asset out of web/dist. Errors and explicit
+  // `req.log.*` calls inside route handlers still surface normally.
+  const skipLogExact = new Set(['/api/health', '/favicon.ico', '/robots.txt']);
+  const skipLogPrefixes = ['/assets/'];
+  const skipLogExts = /\.(?:js|css|map|png|jpe?g|gif|svg|webp|ico|woff2?|ttf)$/i;
+  function shouldSkipLog(url: string): boolean {
+    const path = url.split('?', 1)[0];
+    if (skipLogExact.has(path)) return true;
+    for (const p of skipLogPrefixes) if (path.startsWith(p)) return true;
+    return skipLogExts.test(path);
+  }
+  app.addHook('onRequest', (req, _reply, done) => {
+    if (!shouldSkipLog(req.url)) {
+      req.log.info(
+        {
+          req: {
+            method: req.method,
+            url: req.url,
+            host: req.headers.host,
+            remoteAddress: req.ip,
+            remotePort: req.socket.remotePort,
+          },
+        },
+        'incoming request',
+      );
+    }
+    done();
+  });
+  app.addHook('onResponse', (req, reply, done) => {
+    if (!shouldSkipLog(req.url)) {
+      req.log.info(
+        { res: { statusCode: reply.statusCode }, responseTime: reply.elapsedTime },
+        'request completed',
+      );
+    }
+    done();
+  });
   app.log.info(
     { logDir: env.logDir, retentionDays: env.logRetentionDays },
     'Rolling file logger initialized',
