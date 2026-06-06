@@ -144,8 +144,12 @@ async function main() {
         scriptSrc: [
           "'self'",
           // Cloudflare Web Analytics — injected automatically by Cloudflare in
-          // front of the app. Drop this entry if you disable CF Analytics.
+          // front of the app. Drop these two entries if you disable CF Analytics.
+          // The sha256 covers the inline init snippet Cloudflare injects ahead of
+          // the external beacon.js — if CF rotates the snippet, the browser
+          // console will print the new hash; paste it here verbatim.
           'https://static.cloudflareinsights.com',
+          "'sha256-AAQ0bLohq1NPfCZlO86bgOBHB9YIM7lOruWG2t/5xWM='",
         ],
         styleSrc: [
           "'self'",

@@ -213,6 +213,31 @@ export interface SeedEvent {
   endsAt?: string;
 }
 
+export interface SeedNews {
+  /** Location slug this news item belongs to. */
+  locationSlug: string;
+  /** Globally unique news slug (URL path under /obavestenje/...). */
+  slug: string;
+  title: string;
+  body: string;
+  publishedAt: string;
+}
+
+export interface SeedUser {
+  email: string;
+  displayName: string;
+  /** Plain text — gets bcrypt-hashed at insert time. Shared across all demo users. */
+  password: string;
+}
+
+export interface SeedComment {
+  locationSlug: string;
+  /** Matches a SeedUser email; resolved to user_id at insert. */
+  authorEmail: string;
+  body: string;
+  rating?: number;
+}
+
 // Sample upcoming events shipped with the seed so the Pregled panel and module
 // calendars have visible content out of the box. Dates are deliberately a few
 // months out from the seed date; if you re-seed in late 2026+ you should
@@ -270,6 +295,74 @@ export const EVENTS: SeedEvent[] = [
     startsAt: '2026-06-14T19:00:00Z',
     endsAt:   '2026-06-14T23:00:00Z',
   },
+];
+
+// Sample published news so the homepage "Najnovija dešavanja" tile grid and the
+// per-location "Obaveštenja" tab have content out of the box. Authored by the
+// seeded admin (authorId resolved in seed.ts at insert time). publishedAt is set
+// to recent past dates so listNews ORDER BY publishedAt DESC keeps them at top.
+export const NEWS: SeedNews[] = [
+  {
+    locationSlug: 'opstina',
+    slug: 'opstina-plansko-iskljucenje-vode',
+    title: 'Plansko isključenje vode u centru Žabara',
+    body: 'U sredu, 3. juna 2026. godine, planirano je isključenje vode u centralnom delu Žabara od 06:00 do 14:00 zbog radova na vodovodnoj mreži. Preporučuje se da građani obezbede zalihe vode za pijenje i osnovne potrebe.',
+    publishedAt: '2026-06-02T08:00:00Z',
+  },
+  {
+    locationSlug: 'hotel-miroc',
+    slug: 'hotel-miroc-nova-terasa',
+    title: 'Nova letnja terasa otvorena za rezervacije',
+    body: 'Hotel Miroč je obnovio letnju terasu sa pogledom na Moravu. Kapacitet 60 mesta, otvorena svakog dana od 10 do 23h. Rezervacije se primaju preko sajta i recepcije.',
+    publishedAt: '2026-06-01T10:00:00Z',
+  },
+  {
+    locationSlug: 'caffe-bar-magacin',
+    slug: 'caffe-bar-magacin-ziva-muzika-cetvrtkom',
+    title: 'Svakog četvrtka — živa muzika u Magacinu',
+    body: 'Od 1. juna pa do kraja avgusta, svakog četvrtka od 20h sviraju lokalni bendovi. Ulaz besplatan, rezervacija stola preporučena preko sajta.',
+    publishedAt: '2026-05-30T18:00:00Z',
+  },
+  {
+    locationSlug: 'os-dude-jovica',
+    slug: 'os-dude-jovica-upis-2026',
+    title: 'Upis u prvi razred za 2026/2027',
+    body: 'Prijava i upis učenika u prvi razred za školsku 2026/2027. godinu počinju 1. juna. Potrebna dokumenta: izvod iz matične knjige rođenih, potvrda o prebivalištu i lekarsko uverenje.',
+    publishedAt: '2026-05-28T09:00:00Z',
+  },
+  {
+    locationSlug: 'crkva-vaznesenja-gospodnjeg',
+    slug: 'crkva-vaznesenja-bogosluzenje-jun',
+    title: 'Raspored bogosluženja za jun',
+    body: 'Sveta liturgija nedeljom u 9h. Večernje subotom u 18h. Krštenja se obavljaju nedeljom posle liturgije — kontakt na +381 12 250 100.',
+    publishedAt: '2026-06-03T07:00:00Z',
+  },
+];
+
+// Sample visitor accounts that author the seeded comments. Same password for
+// all so a demo reviewer can log in as any of them — useful when poking at
+// favorites / reservations from the visitor perspective. Do NOT use these
+// credentials in production seeds.
+export const DEMO_USER_PASSWORD = 'demo1234';
+export const USERS: SeedUser[] = [
+  { email: 'marko@example.com',  displayName: 'Marko P.',  password: DEMO_USER_PASSWORD },
+  { email: 'jelena@example.com', displayName: 'Jelena S.', password: DEMO_USER_PASSWORD },
+  { email: 'milos@example.com',  displayName: 'Miloš M.',  password: DEMO_USER_PASSWORD },
+  { email: 'ana@example.com',    displayName: 'Ana R.',    password: DEMO_USER_PASSWORD },
+];
+
+// Sample comments authored by USERS above. Powers the homepage "Najnoviji utisci"
+// row and per-location comment list. Idempotent at insert time via
+// (userId, locationId, body) tuple — same body from same user on same location
+// is skipped. status defaults to 'visible'.
+export const COMMENTS: SeedComment[] = [
+  { locationSlug: 'caffe-bar-magacin',           authorEmail: 'marko@example.com',  rating: 5, body: 'Najbolja kafa u Žabarima i opuštena atmosfera. Konobari su izuzetno ljubazni.' },
+  { locationSlug: 'caffe-bar-magacin',           authorEmail: 'jelena@example.com', rating: 4, body: 'Sviđa mi se bašta uveče, preporučujem koktel "Magacin". Muzika ume da bude malo glasna.' },
+  { locationSlug: 'hotel-miroc',                 authorEmail: 'ana@example.com',    rating: 5, body: 'Soba prostrana, pogled odličan. Doručak bogat i osoblje veoma profesionalno.' },
+  { locationSlug: 'hotel-miroc',                 authorEmail: 'milos@example.com',  rating: 4, body: 'Dobar smeštaj za poslovnu posetu. Parking i WiFi rade bez zamerke.' },
+  { locationSlug: 'os-dude-jovica',              authorEmail: 'jelena@example.com', rating: 5, body: 'Učiteljica naše ćerke je sjajna — dete jedva čeka da pođe u školu svaki dan.' },
+  { locationSlug: 'crkva-vaznesenja-gospodnjeg', authorEmail: 'marko@example.com',  rating: 5, body: 'Predivna crkva, mirno mesto za molitvu. Sveštenik veoma srdačan prema posetiocima.' },
+  { locationSlug: 'opstina',                     authorEmail: 'ana@example.com',    rating: 3, body: 'Procedure su brze, ali parking u centru je problem ujutru.' },
 ];
 
 export function buildModuleContent(slug: string, catId: CategoryId): unknown {
