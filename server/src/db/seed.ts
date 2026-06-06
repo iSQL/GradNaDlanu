@@ -3,8 +3,8 @@ import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { eq, and } from 'drizzle-orm';
 import * as schema from './schema.js';
-import { events, locations, moduleContent, users } from './schema.js';
-import { CATEGORIES, EVENTS, LOCATIONS, buildModuleContent } from './seed-data.js';
+import { comments, events, locations, moduleContent, news, users } from './schema.js';
+import { CATEGORIES, COMMENTS, EVENTS, LOCATIONS, NEWS, USERS, buildModuleContent } from './seed-data.js';
 import { env } from '../env.js';
 
 export interface SeedResult {
@@ -12,6 +12,9 @@ export interface SeedResult {
   locationCount: number;
   moduleContentCount: number;
   eventCount: number;
+  newsCount: number;
+  userCount: number;
+  commentCount: number;
   adminInserted: boolean;
   adminEmail: string;
 }
@@ -89,25 +92,133 @@ export async function runSeed(): Promise<SeedResult> {
       eventCount++;
     }
 
-    const passwordHash = await bcrypt.hash(env.adminPassword, 12);
+    // users.email lives behind a PARTIAL unique index (WHERE email IS NOT NULL)
+    // so guests can have a NULL email. Postgres won't infer that index from a
+    // bare ON CONFLICT (email) → manual existence check keeps the seed idempotent.
     const adminEmail = `${env.adminUsername}@local`;
-    const insertedUser = await db
-      .insert(users)
-      .values({
-        email: adminEmail,
-        passwordHash,
-        displayName: env.adminUsername,
-        role: 'admin',
-        emailVerifiedAt: new Date(),
-      })
-      .onConflictDoNothing({ target: users.email })
-      .returning({ id: users.id });
+    const [existingAdmin] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, adminEmail))
+      .limit(1);
+
+    let insertedUser: { id: number }[] = [];
+    if (!existingAdmin) {
+      const passwordHash = await bcrypt.hash(env.adminPassword, 12);
+      insertedUser = await db
+        .insert(users)
+        .values({
+          email: adminEmail,
+          passwordHash,
+          displayName: env.adminUsername,
+          role: 'admin',
+          emailVerifiedAt: new Date(),
+        })
+        .returning({ id: users.id });
+    }
+
+    // Seed news. Requires the admin row to exist (authorId is NOT NULL); resolve
+    // it via either the freshly inserted row or the existing one. Idempotent —
+    // skips rows whose globally-unique slug is already present.
+    const adminId = insertedUser[0]?.id ?? existingAdmin?.id;
+    let newsCount = 0;
+    if (adminId) {
+      for (const n of NEWS) {
+        const [loc] = await db
+          .select({ id: locations.id })
+          .from(locations)
+          .where(eq(locations.slug, n.locationSlug))
+          .limit(1);
+        if (!loc) continue;
+        const [existing] = await db
+          .select({ id: news.id })
+          .from(news)
+          .where(eq(news.slug, n.slug))
+          .limit(1);
+        if (existing) continue;
+        await db.insert(news).values({
+          locationId: loc.id,
+          authorId: adminId,
+          title: n.title,
+          slug: n.slug,
+          body: n.body,
+          status: 'published',
+          publishedAt: new Date(n.publishedAt),
+        });
+        newsCount++;
+      }
+    }
+
+    // Demo visitor accounts + their comments. Visitor accounts populate the
+    // "Najnoviji utisci" homepage row and per-location comment threads. Idempotent
+    // on (users.email) and (userId, locationId, body).
+    let userCount = 0;
+    const userIdByEmail = new Map<string, number>();
+    for (const u of USERS) {
+      const [existing] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, u.email))
+        .limit(1);
+      if (existing) {
+        userIdByEmail.set(u.email, existing.id);
+        continue;
+      }
+      const passwordHash = await bcrypt.hash(u.password, 12);
+      const [inserted] = await db
+        .insert(users)
+        .values({
+          email: u.email,
+          passwordHash,
+          displayName: u.displayName,
+          role: 'user',
+          emailVerifiedAt: new Date(),
+        })
+        .returning({ id: users.id });
+      if (inserted) {
+        userIdByEmail.set(u.email, inserted.id);
+        userCount++;
+      }
+    }
+
+    let commentCount = 0;
+    for (const c of COMMENTS) {
+      const userId = userIdByEmail.get(c.authorEmail);
+      if (!userId) continue;
+      const [loc] = await db
+        .select({ id: locations.id })
+        .from(locations)
+        .where(eq(locations.slug, c.locationSlug))
+        .limit(1);
+      if (!loc) continue;
+      const [existing] = await db
+        .select({ id: comments.id })
+        .from(comments)
+        .where(and(
+          eq(comments.userId, userId),
+          eq(comments.locationId, loc.id),
+          eq(comments.body, c.body),
+        ))
+        .limit(1);
+      if (existing) continue;
+      await db.insert(comments).values({
+        userId,
+        locationId: loc.id,
+        body: c.body,
+        rating: c.rating ?? null,
+        status: 'visible',
+      });
+      commentCount++;
+    }
 
     return {
       categoryCount: CATEGORIES.length,
       locationCount: locCount,
       moduleContentCount: modCount,
       eventCount,
+      newsCount,
+      userCount,
+      commentCount,
       adminInserted: insertedUser.length > 0,
       adminEmail,
     };
@@ -123,7 +234,7 @@ if (isCli) {
   runSeed()
     .then((r) => {
       console.log(
-        `Seeded ${r.categoryCount} categories, ${r.locationCount} locations, ${r.moduleContentCount} module_content rows, ${r.eventCount} events, ${r.adminInserted ? 1 : 0} admin user (email: ${r.adminEmail}).`,
+        `Seeded ${r.categoryCount} categories, ${r.locationCount} locations, ${r.moduleContentCount} module_content rows, ${r.eventCount} events, ${r.newsCount} news, ${r.userCount} demo users, ${r.commentCount} comments, ${r.adminInserted ? 1 : 0} admin user (email: ${r.adminEmail}).`,
       );
       process.exit(0);
     })
