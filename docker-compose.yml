@@ -59,26 +59,22 @@ services:
       db:
         condition: service_healthy
         required: false
-    # Coolify reads these to provision a domain + Let's Encrypt cert via Traefik.
-    # Set APP_DOMAIN in Coolify's env panel (e.g. gradnadlanu.example.com).
-    # TRAEFIK_ROUTER_NAME must be unique per Coolify env on the same host —
-    # production stays at the default ("gradnadlanu"); secondary envs (demo,
-    # staging, …) MUST set their own (e.g. "gradnadlanu_demo") to avoid the
-    # second container's router silently replacing the first inside Traefik.
+    # Coolify auto-generates the actual Traefik routers + services per app
+    # (with UUID-unique names based on the "Domain" field in its UI) so each
+    # env on the same host stays isolated. We only opt-in to Traefik routing
+    # via the enable flag; defining our own routers/services here collides
+    # with Coolify's by creating a shared, env-interpolation-broken service
+    # pool that round-robins traffic across all containers.
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.${TRAEFIK_ROUTER_NAME:-gradnadlanu}.rule=Host(`${APP_DOMAIN:-localhost}`)"
-      - "traefik.http.routers.${TRAEFIK_ROUTER_NAME:-gradnadlanu}.entrypoints=websecure"
-      - "traefik.http.routers.${TRAEFIK_ROUTER_NAME:-gradnadlanu}.tls=true"
-      - "traefik.http.routers.${TRAEFIK_ROUTER_NAME:-gradnadlanu}.tls.certresolver=letsencrypt"
-      - "traefik.http.services.${TRAEFIK_ROUTER_NAME:-gradnadlanu}.loadbalancer.server.port=3000"
-    # Host port binding — only useful for direct debugging. On Coolify Traefik
-    # routes via the internal docker network, so a host port is not strictly
-    # required; if you run two Coolify envs on the same host (prod + demo),
-    # each MUST pick a distinct APP_HOST_PORT (e.g. 3000 for prod, 3001 for demo)
-    # because docker can't bind the same host port twice.
+    # Host port binding — bound to 127.0.0.1 ONLY so the backend isn't reachable
+    # from the public internet (Traefik handles real traffic via the docker
+    # network). Useful for SSH-tunnel debugging from the Coolify host. If you
+    # run two Coolify envs on the same host (prod + demo), each MUST pick a
+    # distinct APP_HOST_PORT (e.g. 3000 for prod, 3001 for demo) because docker
+    # can't bind the same host port twice — even on loopback.
     ports:
-      - "${APP_HOST_PORT:-3000}:3000"
+      - "127.0.0.1:${APP_HOST_PORT:-3000}:3000"
     # Persistent storage.
     # - `uploads` is a named docker volume (dev) / Coolify Persistent Storage (prod) for photos.
     # - Logs are a HOST BIND so files end up on the Coolify host where the Loki

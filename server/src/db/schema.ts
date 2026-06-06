@@ -213,6 +213,21 @@ export const newsletterSubscribers = pgTable('newsletter_subscribers', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const alumni = pgTable('alumni', {
+  id: serial('id').primaryKey(),
+  locationId: integer('location_id')
+    .references(() => locations.id, { onDelete: 'cascade' })
+    .notNull(),
+  fullName: text('full_name').notNull(),
+  graduationYear: integer('graduation_year').notNull(),
+  homeroomTeacher: text('homeroom_teacher').notNull(),
+  motto: text('motto').notNull(),
+  email: text('email'),
+  photoMediaId: integer('photo_media_id').references(() => media.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 export const serviceRequests = pgTable('service_requests', {
   id: serial('id').primaryKey(),
   userId: integer('user_id')
@@ -254,4 +269,5 @@ export type ServiceRequestStatus = ServiceRequest['status'];
 export type News = typeof news.$inferSelect;
 export type NewsStatus = News['status'];
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
+export type Alumnus = typeof alumni.$inferSelect;
 export type Role = User['role'];

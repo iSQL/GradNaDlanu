@@ -7,12 +7,13 @@ import { pipeline } from 'node:stream/promises';
 import { tmpdir } from 'node:os';
 import { and, eq, inArray, lt, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { media, objectOwners, serviceRequests } from '../db/schema.js';
-import { requireAuth } from '../lib/auth.js';
+import { alumni, media, objectOwners, serviceRequests } from '../db/schema.js';
+import { getOptionalUser, requireAuth } from '../lib/auth.js';
 import { env } from '../env.js';
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const ALLOWED_KINDS = new Set(['service_photo', 'alumni_photo']);
 const SNIFF_BYTES = 12;
 
 // Read just the first SNIFF_BYTES of a file and infer its image type.
@@ -61,7 +62,7 @@ async function gcOrphanMedia(uploadRoot: string, log: { info: (o: object, msg: s
     if (candidates.length === 0) return;
 
     const ids = candidates.map((c) => c.id);
-    const referenced = await db
+    const referencedFromServiceRequests = await db
       .select({ id: media.id })
       .from(media)
       .innerJoin(
@@ -69,7 +70,14 @@ async function gcOrphanMedia(uploadRoot: string, log: { info: (o: object, msg: s
         sql`(${serviceRequests.payload}->'photoIds') @> to_jsonb(${media.id})`,
       )
       .where(inArray(media.id, ids));
-    const refSet = new Set(referenced.map((r) => r.id));
+    const referencedFromAlumni = await db
+      .select({ id: media.id })
+      .from(media)
+      .innerJoin(alumni, eq(alumni.photoMediaId, media.id))
+      .where(inArray(media.id, ids));
+    const refSet = new Set<number>();
+    for (const r of referencedFromServiceRequests) refSet.add(r.id);
+    for (const r of referencedFromAlumni) refSet.add(r.id);
     const orphans = candidates.filter((c) => !refSet.has(c.id));
     if (orphans.length === 0) return;
 
@@ -119,6 +127,17 @@ export async function mediaRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: 'Unsupported file type' });
     }
 
+    // Optional `kind` field — sent alongside the file in the multipart body.
+    // Defaults to 'service_photo' for back-compat with majstor flows.
+    const kindField = file.fields?.kind;
+    let kind = 'service_photo';
+    if (kindField && !Array.isArray(kindField) && 'value' in kindField && typeof kindField.value === 'string') {
+      if (!ALLOWED_KINDS.has(kindField.value)) {
+        return reply.code(400).send({ error: 'Unsupported kind' });
+      }
+      kind = kindField.value;
+    }
+
     // Stream to a temp file rather than buffering in RAM. We sniff the magic
     // bytes from disk, then rename into the final location on success.
     const tmpPath = join(tmpdir(), `gnd-upload-${randomUUID()}`);
@@ -155,7 +174,7 @@ export async function mediaRoutes(app: FastifyInstance) {
           ownerUserId: req.user.sub,
           mimeType: trustedMime,
           sizeBytes: totalBytes,
-          kind: 'service_photo',
+          kind,
           storagePath: relPath.split('\\').join('/'),
         })
         .returning({ id: media.id });
@@ -167,11 +186,11 @@ export async function mediaRoutes(app: FastifyInstance) {
     }
   });
 
-  // Serve a single media file. Authenticated; ACL gates access to owner,
-  // tradesperson assigned to a service request that references the media, or admin.
+  // Serve a single media file. Public for alumni photos referenced by an alumni
+  // row; otherwise gated to admin, the upload owner, or a tradesperson whose
+  // assigned service request references the media.
   app.get<{ Params: { id: string } }>(
     '/api/media/:id',
-    { preHandler: requireAuth },
     async (req, reply) => {
       const id = Number(req.params.id);
       if (!Number.isFinite(id)) return reply.code(400).send({ error: 'Invalid id' });
@@ -180,32 +199,48 @@ export async function mediaRoutes(app: FastifyInstance) {
       if (!m) return reply.code(404).send({ error: 'Not found' });
 
       let allowed = false;
-      if (req.user.role === 'admin') {
-        allowed = true;
-      } else if (m.ownerUserId === req.user.sub) {
-        allowed = true;
-      } else {
-        const owned = await db
-          .select({ locationId: objectOwners.locationId })
-          .from(objectOwners)
-          .where(eq(objectOwners.userId, req.user.sub));
-        if (owned.length > 0) {
-          const ownedIds = owned.map((o) => o.locationId);
-          const [hit] = await db
-            .select({ id: serviceRequests.id })
-            .from(serviceRequests)
-            .where(
-              and(
-                inArray(serviceRequests.locationId, ownedIds),
-                sql`(${serviceRequests.payload}->'photoIds') @> ${JSON.stringify([id])}::jsonb`,
-              ),
-            )
-            .limit(1);
-          if (hit) allowed = true;
-        }
+
+      // Alumni photos are public iff they're still referenced by an alumni row.
+      // The alumni table is the gating index: deletes drop the FK to null and
+      // the GC sweep eventually reaps the orphan file.
+      if (m.kind === 'alumni_photo') {
+        const [hit] = await db
+          .select({ id: alumni.id })
+          .from(alumni)
+          .where(eq(alumni.photoMediaId, id))
+          .limit(1);
+        if (hit) allowed = true;
       }
 
-      if (!allowed) return reply.code(403).send({ error: 'Forbidden' });
+      if (!allowed) {
+        const user = await getOptionalUser(req);
+        if (!user) return reply.code(401).send({ error: 'Unauthorized' });
+        if (user.role === 'admin') {
+          allowed = true;
+        } else if (m.ownerUserId === user.sub) {
+          allowed = true;
+        } else {
+          const owned = await db
+            .select({ locationId: objectOwners.locationId })
+            .from(objectOwners)
+            .where(eq(objectOwners.userId, user.sub));
+          if (owned.length > 0) {
+            const ownedIds = owned.map((o) => o.locationId);
+            const [hit] = await db
+              .select({ id: serviceRequests.id })
+              .from(serviceRequests)
+              .where(
+                and(
+                  inArray(serviceRequests.locationId, ownedIds),
+                  sql`(${serviceRequests.payload}->'photoIds') @> ${JSON.stringify([id])}::jsonb`,
+                ),
+              )
+              .limit(1);
+            if (hit) allowed = true;
+          }
+        }
+        if (!allowed) return reply.code(403).send({ error: 'Forbidden' });
+      }
 
       const absPath = join(uploadRoot, m.storagePath);
       // Defense-in-depth: stored paths are server-generated UUIDs, but verify
@@ -214,7 +249,10 @@ export async function mediaRoutes(app: FastifyInstance) {
         return reply.code(500).send({ error: 'Invalid storage path' });
       }
       reply.header('Content-Type', m.mimeType);
-      reply.header('Cache-Control', 'private, max-age=300');
+      reply.header(
+        'Cache-Control',
+        m.kind === 'alumni_photo' ? 'public, max-age=3600' : 'private, max-age=300',
+      );
       return reply.send(createReadStream(absPath));
     },
   );

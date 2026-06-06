@@ -1,5 +1,6 @@
 import type {
   AdminUserRow,
+  Alumnus,
   AvailabilityRow,
   Category,
   CityEvent,
@@ -16,6 +17,7 @@ import type {
   MyServiceRequest,
   NewsItem,
   NewsStatus,
+  OwnerAlumnus,
   OwnerNewsItem,
   OwnerReservation,
   OwnerServiceRequest,
@@ -265,9 +267,10 @@ export const api = {
     request<{ ok: true }>(`/api/owner/locations/${locationId}/map`, { method: 'DELETE' }),
 
   // Media
-  uploadMedia: (file: File) => {
+  uploadMedia: (file: File, kind?: 'service_photo' | 'alumni_photo') => {
     const fd = new FormData();
     fd.append('file', file, file.name);
+    if (kind) fd.append('kind', kind);
     return uploadRequest<{ id: number }>(`/api/uploads`, fd);
   },
 
@@ -400,4 +403,46 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email }),
     }),
+
+  // Alumni
+  listAlumni: (slug: string, params: { year?: number; q?: string; limit?: number } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.year !== undefined) qs.set('year', String(params.year));
+    if (params.q) qs.set('q', params.q);
+    if (params.limit !== undefined) qs.set('limit', String(params.limit));
+    const s = qs.toString();
+    return request<Alumnus[]>(`/api/locations/${slug}/alumni${s ? `?${s}` : ''}`);
+  },
+  ownerListAlumni: (params: { locationId?: number } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.locationId !== undefined) qs.set('locationId', String(params.locationId));
+    const s = qs.toString();
+    return request<OwnerAlumnus[]>(`/api/owner/alumni${s ? `?${s}` : ''}`);
+  },
+  ownerCreateAlumnus: (body: {
+    locationId: number;
+    fullName: string;
+    graduationYear: number;
+    homeroomTeacher: string;
+    motto: string;
+    email?: string | null;
+    photoMediaId?: number | null;
+  }) => request<OwnerAlumnus>('/api/owner/alumni', { method: 'POST', body: JSON.stringify(body) }),
+  ownerUpdateAlumnus: (
+    id: number,
+    body: Partial<{
+      fullName: string;
+      graduationYear: number;
+      homeroomTeacher: string;
+      motto: string;
+      email: string | null;
+      photoMediaId: number | null;
+    }>,
+  ) =>
+    request<OwnerAlumnus>(`/api/owner/alumni/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  ownerDeleteAlumnus: (id: number) =>
+    request<{ ok: true }>(`/api/owner/alumni/${id}`, { method: 'DELETE' }),
 };
