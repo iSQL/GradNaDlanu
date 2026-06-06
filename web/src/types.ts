@@ -279,6 +279,26 @@ export interface OwnerNewsItem extends NewsItem {
   updatedAt: string;
 }
 
+export interface Alumnus {
+  id: number;
+  locationId: number;
+  fullName: string;
+  graduationYear: number;
+  homeroomTeacher: string;
+  motto: string;
+  // Absent in public responses when caller is not authenticated.
+  email?: string | null;
+  photoMediaId: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OwnerAlumnus extends Alumnus {
+  locationName?: string;
+  locationSlug?: string;
+  locationCatId?: CategoryId;
+}
+
 export const CATEGORY_LABELS: Record<CategoryId, string> = {
   cafe: 'Kafić · restoran',
   public: 'Javna služba',

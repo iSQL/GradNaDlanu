@@ -188,6 +188,20 @@ const statements = [
     email      TEXT NOT NULL UNIQUE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
   )`,
+  `CREATE TABLE IF NOT EXISTS alumni (
+    id                SERIAL PRIMARY KEY,
+    location_id       INTEGER NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+    full_name         TEXT NOT NULL,
+    graduation_year   INTEGER NOT NULL,
+    homeroom_teacher  TEXT NOT NULL,
+    motto             TEXT NOT NULL,
+    email             TEXT,
+    photo_media_id    INTEGER REFERENCES media(id) ON DELETE SET NULL,
+    created_at        TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at        TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS alumni_loc_year_idx ON alumni(location_id, graduation_year)`,
+  `CREATE INDEX IF NOT EXISTS alumni_loc_name_idx ON alumni(location_id, full_name)`,
   // One-shot backfill: grandfather every user that existed before email
   // verification shipped. Gated on an app_settings sentinel so subsequent boots
   // don't re-verify users who refused to confirm their email.

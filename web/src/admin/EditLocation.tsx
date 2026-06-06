@@ -10,6 +10,7 @@ import { FieldRow, TextInput } from './forms/widgets';
 import { ReservationsInbox } from './ReservationsInbox';
 import { OwnerEventsEditor } from '../components/OwnerEventsEditor';
 import { OwnerNewsEditor } from '../components/OwnerNewsEditor';
+import { OwnerAlumniEditor } from '../components/OwnerAlumniEditor';
 import { ModuleTabs, type TabDef } from '../modules/ModuleTabs';
 
 export function EditLocation() {
@@ -223,6 +224,17 @@ export function EditLocation() {
         </div>
       ),
     },
+    ...(loc.catId === 'school'
+      ? [{
+          key: 'alumni',
+          label: 'Alumni',
+          render: () => (
+            <div className="admin-card">
+              <OwnerAlumniEditor locationId={loc.id} />
+            </div>
+          ),
+        }]
+      : []),
   ];
 
   return (

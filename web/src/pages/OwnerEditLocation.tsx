@@ -8,6 +8,7 @@ import { defaultContentFor } from '../admin/defaults';
 import { FieldRow, TextInput } from '../admin/forms/widgets';
 import { OwnerEventsEditor } from '../components/OwnerEventsEditor';
 import { OwnerNewsEditor } from '../components/OwnerNewsEditor';
+import { OwnerAlumniEditor } from '../components/OwnerAlumniEditor';
 import { ReservationsInbox } from '../admin/ReservationsInbox';
 import { ModuleTabs, type TabDef } from '../modules/ModuleTabs';
 import type { Location, LocationWithContent } from '../types';
@@ -163,6 +164,17 @@ export function OwnerEditLocation() {
         </div>
       ),
     },
+    ...(loc.catId === 'school'
+      ? [{
+          key: 'alumni',
+          label: 'Alumni',
+          render: () => (
+            <div className="admin-card">
+              <OwnerAlumniEditor locationId={loc.id} />
+            </div>
+          ),
+        }]
+      : []),
   ];
 
   return (

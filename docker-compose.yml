@@ -72,13 +72,14 @@ services:
       - "traefik.http.routers.${TRAEFIK_ROUTER_NAME:-gradnadlanu}.tls=true"
       - "traefik.http.routers.${TRAEFIK_ROUTER_NAME:-gradnadlanu}.tls.certresolver=letsencrypt"
       - "traefik.http.services.${TRAEFIK_ROUTER_NAME:-gradnadlanu}.loadbalancer.server.port=3000"
-    # Host port binding — only useful for direct debugging. On Coolify Traefik
-    # routes via the internal docker network, so a host port is not strictly
-    # required; if you run two Coolify envs on the same host (prod + demo),
-    # each MUST pick a distinct APP_HOST_PORT (e.g. 3000 for prod, 3001 for demo)
-    # because docker can't bind the same host port twice.
+    # Host port binding — bound to 127.0.0.1 ONLY so the backend isn't reachable
+    # from the public internet (Traefik handles real traffic via the docker
+    # network). Useful for SSH-tunnel debugging from the Coolify host. If you
+    # run two Coolify envs on the same host (prod + demo), each MUST pick a
+    # distinct APP_HOST_PORT (e.g. 3000 for prod, 3001 for demo) because docker
+    # can't bind the same host port twice — even on loopback.
     ports:
-      - "${APP_HOST_PORT:-3000}:3000"
+      - "127.0.0.1:${APP_HOST_PORT:-3000}:3000"
     # Persistent storage.
     # - `uploads` is a named docker volume (dev) / Coolify Persistent Storage (prod) for photos.
     # - Logs are a HOST BIND so files end up on the Coolify host where the Loki
