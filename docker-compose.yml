@@ -59,19 +59,14 @@ services:
       db:
         condition: service_healthy
         required: false
-    # Coolify reads these to provision a domain + Let's Encrypt cert via Traefik.
-    # Set APP_DOMAIN in Coolify's env panel (e.g. gradnadlanu.example.com).
-    # TRAEFIK_ROUTER_NAME must be unique per Coolify env on the same host —
-    # production stays at the default ("gradnadlanu"); secondary envs (demo,
-    # staging, …) MUST set their own (e.g. "gradnadlanu_demo") to avoid the
-    # second container's router silently replacing the first inside Traefik.
+    # Coolify auto-generates the actual Traefik routers + services per app
+    # (with UUID-unique names based on the "Domain" field in its UI) so each
+    # env on the same host stays isolated. We only opt-in to Traefik routing
+    # via the enable flag; defining our own routers/services here collides
+    # with Coolify's by creating a shared, env-interpolation-broken service
+    # pool that round-robins traffic across all containers.
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.${TRAEFIK_ROUTER_NAME:-gradnadlanu}.rule=Host(`${APP_DOMAIN:-localhost}`)"
-      - "traefik.http.routers.${TRAEFIK_ROUTER_NAME:-gradnadlanu}.entrypoints=websecure"
-      - "traefik.http.routers.${TRAEFIK_ROUTER_NAME:-gradnadlanu}.tls=true"
-      - "traefik.http.routers.${TRAEFIK_ROUTER_NAME:-gradnadlanu}.tls.certresolver=letsencrypt"
-      - "traefik.http.services.${TRAEFIK_ROUTER_NAME:-gradnadlanu}.loadbalancer.server.port=3000"
     # Host port binding — bound to 127.0.0.1 ONLY so the backend isn't reachable
     # from the public internet (Traefik handles real traffic via the docker
     # network). Useful for SSH-tunnel debugging from the Coolify host. If you
