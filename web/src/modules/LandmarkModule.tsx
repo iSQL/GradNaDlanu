@@ -2,7 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import type { LandmarkContent, Location } from '../types';
 import { ModuleHero } from './ModuleHero';
 import { ModuleTabs, type TabDef } from './ModuleTabs';
-import { IconArrow, IconPin } from '../components/Icons';
+import { OpsteTab } from './OpsteTab';
+import { IconArrow } from '../components/Icons';
 import {
   LocationEventsList,
   LocationNewsList,
@@ -22,64 +23,26 @@ export function LandmarkModule({ loc, content }: Props) {
   const tabs: TabDef[] = [
     {
       key: 'osnovni',
-      label: 'Osnovni podaci',
+      label: 'Opšte',
       render: () => (
-        <div className="module-section">
-          <div className="section-label">O znamenitosti</div>
-          <p className="prose-lead">{tagline}</p>
-
-          {facts.length > 0 && (
-            <div className="facts-grid" style={{ marginTop: 24 }}>
-              {facts.map((f, i) => (
-                <div className="fact" key={i}>
-                  <div className="fact-num">
-                    {f.num}{f.em && <em>{f.em}</em>}
-                  </div>
-                  <div className="fact-label">{f.label}</div>
-                </div>
-              ))}
+        <OpsteTab
+          loc={loc}
+          infoLabel="O znamenitosti"
+          tagline={tagline}
+          facts={facts}
+          desavanja={desavanja}
+          extraSidebar={
+            <div style={{ paddingTop: 16, marginTop: 4, borderTop: '1px dashed var(--line)' }}>
+              <button
+                className="btn-primary"
+                style={{ width: '100%' }}
+                onClick={() => navigate('/mapa')}
+              >
+                Pokaži na mapi <IconArrow />
+              </button>
             </div>
-          )}
-
-          <div className="info-grid" style={{ marginTop: 24 }}>
-            <div className="info-row">
-              <div className="info-icon"><IconPin /></div>
-              <div>
-                <div className="info-row-label">Lokacija</div>
-                <div className="info-row-val">{loc.address}<br />12374 Žabari</div>
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              marginTop: 32,
-              padding: 24,
-              background: 'var(--paper-2)',
-              border: '1px solid var(--line)',
-              borderRadius: 10,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: 16,
-            }}
-          >
-            <div>
-              <div className="section-label" style={{ margin: 0 }}>Posetite</div>
-              <div style={{ fontFamily: 'Fraunces, serif', fontSize: 18, color: 'var(--navy)', marginTop: 4 }}>
-                {loc.address}, 12374 Žabari
-              </div>
-            </div>
-            <button
-              className="btn-primary"
-              style={{ width: 'auto', padding: '12px 22px' }}
-              onClick={() => navigate('/mapa')}
-            >
-              Pokaži na mapi <IconArrow />
-            </button>
-          </div>
-        </div>
+          }
+        />
       ),
     },
     {

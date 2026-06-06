@@ -786,6 +786,87 @@ button { font-family: inherit; }
 
 .module-section + .module-section { margin-top: 56px; }
 
+.module-opste {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 40px;
+  align-items: start;
+}
+
+.module-opste-main {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  min-width: 0;
+}
+
+.module-opste-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.module-opste-more {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--navy);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.module-opste-more:hover { text-decoration: underline; }
+
+.module-opste-card { padding: 22px 22px 18px; }
+
+.module-opste-tagline {
+  margin: 10px 0 6px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.module-opste-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 18px;
+  margin: 14px 0 6px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--line);
+}
+
+.module-opste-fact-num {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--navy);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.module-opste-fact-num em { font-style: italic; color: var(--gold-2); font-weight: 400; }
+
+.module-opste-fact-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+.module-opste-hours { padding-top: 14px; }
+
+.module-opste-hours-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
 .section-label {
   font-size: 11px;
   font-weight: 700;
@@ -2097,6 +2178,7 @@ button { font-family: inherit; }
 /* Responsive */
 @media (max-width: 900px) {
   .module-body { grid-template-columns: 1fr; }
+  .module-opste { grid-template-columns: 1fr; gap: 32px; }
   .info-card { position: static; }
   .facts-grid { grid-template-columns: repeat(2, 1fr); }
   .rooms-grid { grid-template-columns: 1fr; }
