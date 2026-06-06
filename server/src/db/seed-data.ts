@@ -238,6 +238,16 @@ export interface SeedComment {
   rating?: number;
 }
 
+export interface SeedAlumnus {
+  /** Slug of the school location (only school category supports alumni). */
+  schoolSlug: string;
+  fullName: string;
+  graduationYear: number;
+  homeroomTeacher: string;
+  motto: string;
+  email?: string;
+}
+
 // Sample upcoming events shipped with the seed so the Pregled panel and module
 // calendars have visible content out of the box. Dates are deliberately a few
 // months out from the seed date; if you re-seed in late 2026+ you should
@@ -363,6 +373,28 @@ export const COMMENTS: SeedComment[] = [
   { locationSlug: 'os-dude-jovica',              authorEmail: 'jelena@example.com', rating: 5, body: 'Učiteljica naše ćerke je sjajna — dete jedva čeka da pođe u školu svaki dan.' },
   { locationSlug: 'crkva-vaznesenja-gospodnjeg', authorEmail: 'marko@example.com',  rating: 5, body: 'Predivna crkva, mirno mesto za molitvu. Sveštenik veoma srdačan prema posetiocima.' },
   { locationSlug: 'opstina',                     authorEmail: 'ana@example.com',    rating: 3, body: 'Procedure su brze, ali parking u centru je problem ujutru.' },
+];
+
+// Sample alumni — spread across 5 graduation years so the year-filter dropdown
+// and the search box on the Alumni tab both have visible content to play with.
+// Idempotent on (location, fullName, graduationYear) at insert time.
+export const ALUMNI: SeedAlumnus[] = [
+  // 2024
+  { schoolSlug: 'os-dude-jovica', fullName: 'Petar Stojanović',  graduationYear: 2024, homeroomTeacher: 'Mirjana Đorđević',  motto: 'Hvala što ste nam dali krila.' },
+  { schoolSlug: 'os-dude-jovica', fullName: 'Marija Pavlović',   graduationYear: 2024, homeroomTeacher: 'Mirjana Đorđević',  motto: 'Najlepše godine života.' },
+  { schoolSlug: 'os-dude-jovica', fullName: 'Stefan Jovanović',  graduationYear: 2024, homeroomTeacher: 'Mirjana Đorđević',  motto: 'Idemo dalje sa ponosom.' },
+  // 2023
+  { schoolSlug: 'os-dude-jovica', fullName: 'Jovana Mitić',      graduationYear: 2023, homeroomTeacher: 'Dragan Lazić',      motto: 'Putovanje je tek počelo.' },
+  { schoolSlug: 'os-dude-jovica', fullName: 'Nikola Ranković',   graduationYear: 2023, homeroomTeacher: 'Dragan Lazić',      motto: 'Beskonačno hvala učiteljima.' },
+  { schoolSlug: 'os-dude-jovica', fullName: 'Anastasija Ilić',   graduationYear: 2023, homeroomTeacher: 'Dragan Lazić',      motto: 'Snovi se ostvaruju.' },
+  // 2022
+  { schoolSlug: 'os-dude-jovica', fullName: 'Luka Marinković',   graduationYear: 2022, homeroomTeacher: 'Snežana Petrović',  motto: 'Pamtićemo svaki čas.' },
+  { schoolSlug: 'os-dude-jovica', fullName: 'Mila Tomić',        graduationYear: 2022, homeroomTeacher: 'Snežana Petrović',  motto: 'Sa srcem u Žabarima, sa očima ka horizontu.' },
+  // 2021
+  { schoolSlug: 'os-dude-jovica', fullName: 'Dušan Nikolić',     graduationYear: 2021, homeroomTeacher: 'Branko Stanković',  motto: 'Generacija koja je naučila da uči i online.' },
+  { schoolSlug: 'os-dude-jovica', fullName: 'Sara Milić',        graduationYear: 2021, homeroomTeacher: 'Branko Stanković',  motto: 'Ko ne uči, ne pamti.' },
+  // 2020
+  { schoolSlug: 'os-dude-jovica', fullName: 'Aleksandar Vasić',  graduationYear: 2020, homeroomTeacher: 'Vesna Kostić',      motto: 'Učili smo i kad su škole bile zatvorene.' },
 ];
 
 export function buildModuleContent(slug: string, catId: CategoryId): unknown {

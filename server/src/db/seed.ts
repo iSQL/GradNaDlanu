@@ -3,8 +3,8 @@ import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { eq, and } from 'drizzle-orm';
 import * as schema from './schema.js';
-import { comments, events, locations, moduleContent, news, users } from './schema.js';
-import { CATEGORIES, COMMENTS, EVENTS, LOCATIONS, NEWS, USERS, buildModuleContent } from './seed-data.js';
+import { alumni, comments, events, locations, moduleContent, news, users } from './schema.js';
+import { ALUMNI, CATEGORIES, COMMENTS, EVENTS, LOCATIONS, NEWS, USERS, buildModuleContent } from './seed-data.js';
 import { env } from '../env.js';
 
 export interface SeedResult {
@@ -15,6 +15,7 @@ export interface SeedResult {
   newsCount: number;
   userCount: number;
   commentCount: number;
+  alumniCount: number;
   adminInserted: boolean;
   adminEmail: string;
 }
@@ -211,6 +212,38 @@ export async function runSeed(): Promise<SeedResult> {
       commentCount++;
     }
 
+    // Demo alumni — populates the school's Alumni tab. Idempotent on
+    // (locationId, fullName, graduationYear). Skips silently if the alumni
+    // table doesn't exist yet (e.g. running an older migration locally).
+    let alumniCount = 0;
+    for (const a of ALUMNI) {
+      const [loc] = await db
+        .select({ id: locations.id })
+        .from(locations)
+        .where(eq(locations.slug, a.schoolSlug))
+        .limit(1);
+      if (!loc) continue;
+      const [existing] = await db
+        .select({ id: alumni.id })
+        .from(alumni)
+        .where(and(
+          eq(alumni.locationId, loc.id),
+          eq(alumni.fullName, a.fullName),
+          eq(alumni.graduationYear, a.graduationYear),
+        ))
+        .limit(1);
+      if (existing) continue;
+      await db.insert(alumni).values({
+        locationId: loc.id,
+        fullName: a.fullName,
+        graduationYear: a.graduationYear,
+        homeroomTeacher: a.homeroomTeacher,
+        motto: a.motto,
+        email: a.email ?? null,
+      });
+      alumniCount++;
+    }
+
     return {
       categoryCount: CATEGORIES.length,
       locationCount: locCount,
@@ -219,6 +252,7 @@ export async function runSeed(): Promise<SeedResult> {
       newsCount,
       userCount,
       commentCount,
+      alumniCount,
       adminInserted: insertedUser.length > 0,
       adminEmail,
     };
@@ -234,7 +268,7 @@ if (isCli) {
   runSeed()
     .then((r) => {
       console.log(
-        `Seeded ${r.categoryCount} categories, ${r.locationCount} locations, ${r.moduleContentCount} module_content rows, ${r.eventCount} events, ${r.newsCount} news, ${r.userCount} demo users, ${r.commentCount} comments, ${r.adminInserted ? 1 : 0} admin user (email: ${r.adminEmail}).`,
+        `Seeded ${r.categoryCount} categories, ${r.locationCount} locations, ${r.moduleContentCount} module_content rows, ${r.eventCount} events, ${r.newsCount} news, ${r.userCount} demo users, ${r.commentCount} comments, ${r.alumniCount} alumni, ${r.adminInserted ? 1 : 0} admin user (email: ${r.adminEmail}).`,
       );
       process.exit(0);
     })
