@@ -120,6 +120,22 @@ async function main() {
     }
     done();
   });
+
+  // Cache policy at the application layer so CDN/browser/intermediate proxies
+  // get an explicit signal regardless of CDN-side rules.
+  //   /api/*    → no-store. Avoids stale auth data, stale availability windows
+  //              (reservations), and stale owner-edited content. Cost is
+  //              negligible for this site's traffic profile.
+  //   /assets/* → immutable, 1 year. Vite hashes the filename on every build, so
+  //              old URLs are physically replaced — safe to cache forever.
+  // Index.html and everything else: leave headers alone, CDN/browser defaults apply.
+  app.addHook('onSend', async (req, reply) => {
+    if (req.url.startsWith('/api/')) {
+      reply.header('Cache-Control', 'no-store');
+    } else if (req.url.startsWith('/assets/')) {
+      reply.header('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  });
   app.log.info(
     { logDir: env.logDir, retentionDays: env.logRetentionDays },
     'Rolling file logger initialized',
