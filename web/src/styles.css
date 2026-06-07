@@ -39,6 +39,15 @@ html, body {
 
 body { overflow-x: hidden; }
 
+/* Sticky-footer pattern: #root je flex kolona pune visine ekrana, footer dobija
+   margin-top: auto, pa kratak sadržaj gura footer na dno viewport-a (bez praznog
+   "praznika"), a dug sadržaj prirodno gura footer ispod, kao i pre. */
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
 a { color: inherit; text-decoration: none; }
 
 button { font-family: inherit; }
@@ -607,7 +616,6 @@ button { font-family: inherit; }
    ============================================ */
 
 .module-page {
-  min-height: calc(100vh - var(--nav-h));
   padding: 0;
   background: var(--paper);
 }
@@ -2548,7 +2556,6 @@ button { font-family: inherit; }
    ============================================ */
 
 .home {
-  min-height: calc(100vh - var(--nav-h));
   background: var(--paper);
 }
 
@@ -2930,7 +2937,6 @@ button { font-family: inherit; }
    ============================================ */
 
 .page {
-  min-height: calc(100vh - var(--nav-h));
   background: var(--paper);
   padding: 40px 32px 80px;
 }
@@ -3652,6 +3658,7 @@ button { font-family: inherit; }
    ============================================ */
 
 .foot {
+  margin-top: auto;
   border-top: 1px solid var(--line);
   background: var(--paper-2);
   padding: 40px 32px 24px;
