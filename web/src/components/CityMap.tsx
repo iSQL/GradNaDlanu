@@ -17,6 +17,10 @@ interface Props {
   // Called when the user wheels over the map without a modifier key. The page
   // scroll proceeds naturally — this is just for the parent to show a hint.
   onModifierlessWheel?: () => void;
+  // Kad je postavljeno, mapa fly-to-uje na te koordinate kad se promene.
+  // Koristi se za "Prikaži na mapi" link iz pojedinačnih objekata
+  // (/mapa?focus=<slug> → Hero rešava slug u lat/lng).
+  focusLatLng?: { lat: number; lng: number } | null;
 }
 
 export function CityMap({
@@ -26,6 +30,7 @@ export function CityMap({
   onPinHover,
   onLongPress,
   onModifierlessWheel,
+  focusLatLng,
 }: Props) {
   const visible = useMemo(
     () => locations.filter((l) => activeFilter === 'all' || l.catId === activeFilter),
@@ -55,6 +60,7 @@ export function CityMap({
       <ZoomBottomRight />
       <ModifierWheelZoom onModifierlessWheel={onModifierlessWheel} />
       {onLongPress && <LongPress onLongPress={onLongPress} />}
+      {focusLatLng && <FocusOnChange latlng={focusLatLng} />}
       {visible.map((loc) => (
         <Marker
           key={loc.id}
@@ -80,6 +86,22 @@ function makeIcon(cat: CategoryId): L.DivIcon {
     iconSize: [34, 42],
     iconAnchor: [17, 42],
   });
+}
+
+// Fly-to na zadate koordinate svaki put kad se promene. Koristi se kad
+// korisnik dođe na /mapa?focus=<slug> — Hero rešava slug u lat/lng i prosleđuje.
+function FocusOnChange({ latlng }: { latlng: { lat: number; lng: number } }) {
+  const map = useMap();
+  const key = `${latlng.lat.toFixed(5)},${latlng.lng.toFixed(5)}`;
+  useEffect(() => {
+    map.flyTo([latlng.lat, latlng.lng], Math.max(map.getZoom(), 18), {
+      duration: 0.9,
+    });
+    // Namerno gledamo `key` da reagujemo tek na suštinsku promenu koordinata,
+    // ne na svaki render Hero-a.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, map]);
+  return null;
 }
 
 function ZoomBottomRight() {

@@ -18,14 +18,35 @@ function homeRouteFor(user: CurrentUser): string {
   return '/dashboard';
 }
 
-const MENU = [
+interface MenuItem {
+  to: string;
+  label: string;
+  end?: boolean;
+  submenu?: { to: string; label: string; end?: boolean }[];
+}
+
+const MENU: MenuItem[] = [
   { to: '/', label: 'Početna', end: true },
   { to: '/desavanja', label: 'Dešavanja' },
-  { to: '/mapa', label: 'Mapa' },
   { to: '/naselja', label: 'Naselja' },
-  { to: '/objekti', label: 'Objekti' },
+  {
+    to: '/objekti',
+    label: 'Objekti',
+    submenu: [
+      { to: '/objekti', label: 'Lista objekata', end: true },
+      { to: '/mapa', label: 'Mapa' },
+    ],
+  },
   { to: '/dashboard', label: 'Moj prostor' },
 ];
+
+function IconCaret() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" style={{ marginLeft: 4 }}>
+      <path d="M2 4l3 3 3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 function IconMenu() {
   return (
@@ -85,7 +106,11 @@ export function Nav({ search, onSearchChange, currentUser }: Props) {
 
         <ul className="nav-links" role="menubar">
           {MENU.map((item) => (
-            <li key={item.to} role="none">
+            <li
+              key={item.to}
+              role="none"
+              className={item.submenu ? 'nav-link-group' : undefined}
+            >
               <NavLink
                 to={item.to}
                 end={item.end}
@@ -93,7 +118,24 @@ export function Nav({ search, onSearchChange, currentUser }: Props) {
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               >
                 {item.label}
+                {item.submenu && <IconCaret />}
               </NavLink>
+              {item.submenu && (
+                <ul className="nav-submenu" role="menu">
+                  {item.submenu.map((sub) => (
+                    <li key={sub.to} role="none">
+                      <NavLink
+                        to={sub.to}
+                        end={sub.end}
+                        role="menuitem"
+                        className={({ isActive }) => `nav-submenu-link ${isActive ? 'active' : ''}`}
+                      >
+                        {sub.label}
+                      </NavLink>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </li>
           ))}
         </ul>
@@ -162,6 +204,23 @@ export function Nav({ search, onSearchChange, currentUser }: Props) {
                   >
                     {item.label}
                   </NavLink>
+                  {item.submenu && (
+                    <ul className="nav-drawer-sublist">
+                      {item.submenu.map((sub) => (
+                        <li key={sub.to}>
+                          <NavLink
+                            to={sub.to}
+                            end={sub.end}
+                            className={({ isActive }) =>
+                              `nav-drawer-sublink ${isActive ? 'active' : ''}`
+                            }
+                          >
+                            {sub.label}
+                          </NavLink>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>

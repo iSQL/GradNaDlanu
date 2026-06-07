@@ -19,7 +19,7 @@ interface Contact {
 }
 
 interface Props {
-  loc: { address: string };
+  loc: { slug: string; address: string };
   infoLabel: string;
   tagline: string;
   contact?: Contact;
@@ -100,6 +100,9 @@ export function OpsteTab({
                 {contact?.address || loc.address}
                 <br />12374 Žabari
               </div>
+              <Link to={`/mapa?focus=${loc.slug}`} className="info-row-map-link">
+                Prikaži na mapi →
+              </Link>
             </div>
           </div>
 

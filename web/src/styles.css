@@ -119,7 +119,10 @@ button { font-family: inherit; }
   gap: 4px;
   flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
+  /* `overflow: visible` je obavezno da hover-dropdown ("Objekti" → Lista / Mapa)
+     ne bude isečen ivicom flex containera. min-width: 0 zadržavamo zbog flex
+     shrink-a, ali bez clip-a. */
+  overflow: visible;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -4853,5 +4856,107 @@ button { font-family: inherit; }
   color: var(--paper);
   border-radius: 999px;
   font-weight: 600;
+}
+
+/* ============================================
+   Nav podmeni (Objekti → Lista / Mapa)
+   ============================================ */
+
+.nav-link-group {
+  position: relative;
+  /* Bez ovoga `<li>` ima visinu samo svog teksta i `top: 100%` na submeniju
+     padne usred topnav-a (gde je topnav pozadina prekriva). align-self: stretch
+     dovodi `<li>` do pune visine topnav-a, pa `top: 100%` izlazi tačno ispod. */
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+.nav-link-group > .nav-link {
+  display: inline-flex;
+  align-items: center;
+}
+.nav-submenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 200px;
+  list-style: none;
+  padding: 4px;
+  margin: 0;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: var(--shadow-lg);
+  /* Skriveno dok rodi tački ne dobije hover/focus-within. */
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  /* Mora preko Leaflet-ovog popup-pane-a (700) i preko topnav-a, koji je 1000
+     u dokument-stacking-kontekstu. Submenu je dete topnav-a, pa je 1200 ovde
+     unutar topnav-stacking-konteksta dovoljno da nadvisi sve drugo iz topnav-a. */
+  z-index: 1200;
+}
+.nav-link-group:hover > .nav-submenu,
+.nav-link-group:focus-within > .nav-submenu {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.nav-submenu li {
+  list-style: none;
+}
+.nav-submenu-link {
+  display: block;
+  padding: 9px 12px;
+  font-size: 13.5px;
+  color: var(--ink);
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.nav-submenu-link:hover {
+  background: var(--paper-3);
+}
+.nav-submenu-link.active {
+  background: var(--navy);
+  color: var(--paper);
+}
+
+/* Mobile drawer — indentirana podlista ispod glavne stavke. */
+.nav-drawer-sublist {
+  list-style: none;
+  padding: 0 0 4px 14px;
+  margin: 0 0 0 8px;
+  border-left: 1px solid var(--line);
+}
+.nav-drawer-sublink {
+  display: block;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--ink-2);
+  text-decoration: none;
+  border-radius: 4px;
+}
+.nav-drawer-sublink:hover {
+  background: var(--paper-3);
+  color: var(--ink);
+}
+.nav-drawer-sublink.active {
+  color: var(--navy);
+  font-weight: 600;
+}
+
+/* Sidebar "Prikaži na mapi" link u info kartici objekta. */
+.info-row-map-link {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--navy);
+  text-decoration: none;
+  border-bottom: 1px solid var(--gold);
+}
+.info-row-map-link:hover {
+  color: var(--gold-2);
 }
 

@@ -1,9 +1,7 @@
-import { useNavigate } from 'react-router-dom';
 import type { LandmarkContent, Location } from '../types';
 import { ModuleHero } from './ModuleHero';
 import { ModuleTabs, type TabDef } from './ModuleTabs';
 import { OpsteTab } from './OpsteTab';
-import { IconArrow } from '../components/Icons';
 import {
   LocationEventsList,
   LocationNewsList,
@@ -13,7 +11,6 @@ import {
 interface Props { loc: Location; content: LandmarkContent }
 
 export function LandmarkModule({ loc, content }: Props) {
-  const navigate = useNavigate();
   const facts = content.facts ?? [];
   const story = content.story ?? [];
   const tagline = content.tagline ?? 'Znamenitost u opštini Žabari.';
@@ -31,17 +28,6 @@ export function LandmarkModule({ loc, content }: Props) {
           tagline={tagline}
           facts={facts}
           desavanja={desavanja}
-          extraSidebar={
-            <div style={{ paddingTop: 16, marginTop: 4, borderTop: '1px dashed var(--line)' }}>
-              <button
-                className="btn-primary"
-                style={{ width: '100%' }}
-                onClick={() => navigate('/mapa')}
-              >
-                Pokaži na mapi <IconArrow />
-              </button>
-            </div>
-          }
         />
       ),
     },
