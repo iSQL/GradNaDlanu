@@ -136,7 +136,7 @@ const statements = [
   // version of Postgres / Drizzle initially created them, so we drop both.
   `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check`,
   `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_role_check`,
-  `ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin','business','user','guest'))`,
+  `ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin','business','user','guest','curator'))`,
   // Allow null email / password_hash for guest rows. ALTER … DROP NOT NULL is
   // a no-op when the column is already nullable.
   `ALTER TABLE users ALTER COLUMN email DROP NOT NULL`,
@@ -202,6 +202,31 @@ const statements = [
   )`,
   `CREATE INDEX IF NOT EXISTS alumni_loc_year_idx ON alumni(location_id, graduation_year)`,
   `CREATE INDEX IF NOT EXISTS alumni_loc_name_idx ON alumni(location_id, full_name)`,
+  // --- Naselja + village_curators ---
+  // `villages.name` je PK i mora odgovarati SELA_ZABARI listi u lib/villages.ts —
+  // ali ne stavljamo FK constraint na locations.village ovde, da bismo zadržali
+  // postojeću application-layer validaciju (isVillage).
+  `CREATE TABLE IF NOT EXISTS villages (
+    name                    TEXT PRIMARY KEY,
+    population_census_2002  INTEGER,
+    population_census_2022  INTEGER,
+    area_km2                NUMERIC(6,2),
+    distance_km             NUMERIC(5,2),
+    direction               TEXT,
+    lat                     NUMERIC(8,5),
+    lon                     NUMERIC(8,5),
+    is_seat                 BOOLEAN NOT NULL DEFAULT FALSE,
+    story                   TEXT,
+    updated_at              TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE TABLE IF NOT EXISTS village_curators (
+    user_id              INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    village_name         TEXT NOT NULL REFERENCES villages(name) ON DELETE CASCADE,
+    granted_by_admin_id  INTEGER REFERENCES users(id),
+    granted_at           TIMESTAMP NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, village_name)
+  )`,
+  `CREATE INDEX IF NOT EXISTS village_curators_village_idx ON village_curators(village_name)`,
   // One-shot backfill: grandfather every user that existed before email
   // verification shipped. Gated on an app_settings sentinel so subsequent boots
   // don't re-verify users who refused to confirm their email.

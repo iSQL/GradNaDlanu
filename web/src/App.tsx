@@ -119,18 +119,18 @@ export function App() {
             </div>
             <div className="foot-col">
               <h4>Kontakt</h4>
-              <p>Opština Žabari</p>
-              <p>Kneza Miloša 103, 12374 Žabari</p>
+              <p>Žabari team</p>
+              <p>Kneza Miloša bb, 12374 Žabari</p>
               <p>
-                <a href="tel:+38112250130">+381 12 250 130</a>
+                <a href="https://www.instagram.com/zabarinet">@zabarinet</a>
               </p>
               <p>
-                <a href="mailto:info@zabari.rs">info@zabari.rs</a>
+                <a href="mailto:info@zabari.net">info@zabari.net</a>
               </p>
             </div>
             <div className="foot-col">
               <h4>Budi u toku</h4>
-              <p>Prijavi se da dobijaš najnovija dešavanja iz opštine.</p>
+              <p>Prijavi se da dobijaš najnovija dešavanja iz okoline.</p>
               <NewsletterForm />
             </div>
           </div>

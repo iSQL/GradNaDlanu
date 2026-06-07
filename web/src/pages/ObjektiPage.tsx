@@ -1,15 +1,32 @@
 import { useMemo, useState } from 'react';
-import { Link, useOutletContext } from 'react-router-dom';
+import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
 import type { AppContext } from '../App';
-import { SELA_ZABARI } from '../lib/villages';
+import { SELA_ZABARI, isVillage } from '../lib/villages';
 import { CATEGORY_LABELS, type CategoryId } from '../types';
 import { PinGlyph } from '../components/PinGlyph';
 
 export function ObjektiPage() {
   const { categories, locations, activeFilter, setActiveFilter, search } =
     useOutletContext<AppContext>();
-  const [village, setVillage] = useState<string>('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Inicijalizuj iz URL-a (deep-link iz /naselja → /objekti?village=Žabari).
+  // Validiramo da ?village= pripada SELA_ZABARI da loš query param ne ostavi
+  // korisnika sa praznom listom i nevažećom selekcijom u dropdown-u.
+  const initialVillage = (() => {
+    const raw = searchParams.get('village');
+    return raw && isVillage(raw) ? raw : '';
+  })();
+  const [village, setVillageState] = useState<string>(initialVillage);
   const [localSearch, setLocalSearch] = useState(search);
+
+  // URL ↔ state sync: kad korisnik promeni dropdown, ažuriramo query param tako
+  // da je trenutno stanje share-abilno (i back-dugme se ponaša razumno).
+  const setVillage = (next: string) => {
+    setVillageState(next);
+    const params = new URLSearchParams(searchParams);
+    if (next) params.set('village', next); else params.delete('village');
+    setSearchParams(params, { replace: true });
+  };
 
   // Search state je deljen sa AppContext-om (top-nav search se preliva ovde),
   // ali držimo i lokalni input za nezavisno tipkanje na samoj stranici.

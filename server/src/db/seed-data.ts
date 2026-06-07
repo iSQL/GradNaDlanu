@@ -85,7 +85,7 @@ export const PUBLIC_BY_SLUG = {
   'opstina': {
     tagline: 'Centralna gradska uprava — usluge za građane, matičar, pisarnica, lokalni porez.',
     hours: [['pon — pet', '07:30 — 15:30'], ['subota', 'zatvoreno'], ['nedelja', 'zatvoreno']],
-    contact: { phone: '+381 12 250 130', email: 'info@zabari.rs', address: 'Knez Mihailova 1, 12374 Žabari' },
+    contact: { phone: '+381 12 250 130', email: 'info@zabari.net', address: 'Knez Mihailova 1, 12374 Žabari' },
     services: [
       'Izdavanje izvoda iz matičnih knjiga',
       'Lična stanja i venčanja',
@@ -203,6 +203,39 @@ export const MAJSTOR_BY_SLUG = {
     note: 'Specijalizacija za VW grupu i francuske marke — Renault, Peugeot, Citroën.',
   },
 };
+
+// Naselja opštine Žabari — statički fakti za /naselja stranicu. Brojke su iz
+// popisa 2002 (RZS); površine su procena iz Voronoi-podele opštine na 264 km²
+// (videti zabari-naselja.html u korenu repoa). Idempotentno upisuju se u seed.ts.
+export interface SeedVillage {
+  name: string;
+  populationCensus2002: number;
+  populationCensus2022: number | null;
+  areaKm2: number;
+  distanceKm: number;
+  direction: string;
+  lat: number;
+  lon: number;
+  isSeat: boolean;
+}
+
+export const VILLAGES: SeedVillage[] = [
+  { name: 'Žabari',        populationCensus2002: 1442, populationCensus2022: null, areaKm2: 23.9, distanceKm:  0.0, direction: 'sever',         lat: 44.35657, lon: 21.21468, isSeat: true  },
+  { name: 'Aleksandrovac', populationCensus2002: 1546, populationCensus2022: null, areaKm2: 20.0, distanceKm:  9.8, direction: 'sever',         lat: 44.44500, lon: 21.21167, isSeat: false },
+  { name: 'Brzohode',      populationCensus2002:  825, populationCensus2022: null, areaKm2: 17.1, distanceKm:  5.1, direction: 'istok',         lat: 44.36694, lon: 21.27694, isSeat: false },
+  { name: 'Vitežovo',      populationCensus2002:  863, populationCensus2022: null, areaKm2: 34.9, distanceKm:  8.6, direction: 'jug',           lat: 44.28300, lon: 21.25000, isSeat: false },
+  { name: 'Vlaški Do',     populationCensus2002: 1310, populationCensus2022: null, areaKm2: 11.4, distanceKm: 14.3, direction: 'sever',         lat: 44.48556, lon: 21.21222, isSeat: false },
+  { name: 'Kočetin',       populationCensus2002:  404, populationCensus2022: null, areaKm2:  5.2, distanceKm:  8.2, direction: 'severoistok',   lat: 44.39889, lon: 21.29917, isSeat: false },
+  { name: 'Mirijevo',      populationCensus2002:  474, populationCensus2022: null, areaKm2:  6.7, distanceKm:  9.8, direction: 'severoistok',   lat: 44.43528, lon: 21.27000, isSeat: false },
+  { name: 'Oreovica',      populationCensus2002:  862, populationCensus2022: null, areaKm2: 23.3, distanceKm:  7.8, direction: 'sever',         lat: 44.42694, lon: 21.20778, isSeat: false },
+  { name: 'Polatna',       populationCensus2002:  281, populationCensus2022: null, areaKm2:  7.7, distanceKm:  7.8, direction: 'sever',         lat: 44.42222, lon: 21.24833, isSeat: false },
+  { name: 'Porodin',       populationCensus2002: 2036, populationCensus2022: null, areaKm2: 43.3, distanceKm:  4.9, direction: 'jug',           lat: 44.31250, lon: 21.22333, isSeat: false },
+  { name: 'Svinjarevo',    populationCensus2002:  213, populationCensus2022: null, areaKm2:  0.1, distanceKm: 11.4, direction: 'severoistok',   lat: 44.44694, lon: 21.28333, isSeat: false },
+  { name: 'Sibnica',       populationCensus2002:  407, populationCensus2022: null, areaKm2: 12.2, distanceKm:  6.0, direction: 'severoistok',   lat: 44.40472, lon: 21.24972, isSeat: false },
+  { name: 'Simićevo',      populationCensus2002: 1465, populationCensus2022: null, areaKm2: 42.2, distanceKm:  3.2, direction: 'sever',         lat: 44.38300, lon: 21.20000, isSeat: false },
+  { name: 'Tićevac',       populationCensus2002:  265, populationCensus2022: null, areaKm2:  4.7, distanceKm: 12.2, direction: 'sever',         lat: 44.46194, lon: 21.25639, isSeat: false },
+  { name: 'Četereže',      populationCensus2002:  641, populationCensus2022: null, areaKm2: 12.0, distanceKm:  2.6, direction: 'severoistok',   lat: 44.36861, lon: 21.24278, isSeat: false },
+];
 
 /** Build the per-location module content blob for the DB. */
 export interface SeedEvent {

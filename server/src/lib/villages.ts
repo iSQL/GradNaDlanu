@@ -1,20 +1,21 @@
-// Lista sela opštine Žabari (Braničevski okrug, 12374).
+// Lista sela opštine Žabari (Braničevski okrug, 12374). Kanonskih 15 naselja
+// po klasifikaciji RZS, redosled prati Voronoi-mapu u zabari-naselja.html.
 // Mora odgovarati web/src/lib/villages.ts — kopirano namerno, dva workspace-a.
 export const SELA_ZABARI = [
   'Žabari',
   'Aleksandrovac',
   'Brzohode',
+  'Vitežovo',
   'Vlaški Do',
-  'Polatna',
-  'Sibnica',
-  'Tićevac',
-  'Točka',
   'Kočetin',
+  'Mirijevo',
+  'Oreovica',
+  'Polatna',
   'Porodin',
   'Svinjarevo',
-  'Oreovica',
-  'Mišljenovac',
+  'Sibnica',
   'Simićevo',
+  'Tićevac',
   'Četereže',
 ] as const;
 

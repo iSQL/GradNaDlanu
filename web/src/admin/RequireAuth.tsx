@@ -7,7 +7,7 @@ interface Props {
   children: ReactNode;
   // When set, the logged-in user must have this role (or be an admin).
   // When omitted, any logged-in user passes.
-  role?: Exclude<Role, 'user'>;
+  role?: Exclude<Role, 'user' | 'guest'>;
 }
 
 export function RequireAuth({ children, role }: Props) {

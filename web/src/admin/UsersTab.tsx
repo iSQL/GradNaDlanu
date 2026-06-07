@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { api } from '../lib/api';
 import { formatDate } from '../lib/format';
+import { SELA_ZABARI } from '../lib/villages';
 import type { AdminUserRow, Location } from '../types';
 import type { Role } from '../lib/auth';
 
@@ -11,6 +12,7 @@ const ROLE_LABELS: Record<Role, string> = {
   business: 'vlasnik',
   user: 'posetilac',
   guest: 'gost',
+  curator: 'kustos',
 };
 
 export function UsersTab() {
@@ -21,6 +23,7 @@ export function UsersTab() {
   const [error, setError] = useState<string | null>(null);
   const [allObjects, setAllObjects] = useState<Location[]>([]);
   const [grantPicker, setGrantPicker] = useState<{ userId: number; locationId: number } | null>(null);
+  const [curatorPicker, setCuratorPicker] = useState<{ userId: number; village: string } | null>(null);
 
   const reload = async () => {
     setUsers(await api.adminListUsers(q || undefined));
@@ -88,6 +91,43 @@ export function UsersTab() {
     return allObjects.filter((o) => !owned.has(o.id));
   }, [grantPicker, allObjects, users]);
 
+  const curatorOptions = useMemo(() => {
+    if (!curatorPicker) return [];
+    const already = new Set(
+      users.find((u) => u.id === curatorPicker.userId)?.curatedVillages ?? [],
+    );
+    return SELA_ZABARI.filter((v) => !already.has(v));
+  }, [curatorPicker, users]);
+
+  const grantCurator = async (u: AdminUserRow, village: string) => {
+    setBusyId(u.id);
+    setError(null);
+    try {
+      await api.adminGrantCurator(u.id, village);
+      setCuratorPicker(null);
+      await reload();
+      await ctx.reloadCurrentUser();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const revokeCurator = async (u: AdminUserRow, village: string) => {
+    if (!window.confirm(`Ukinuti kustoska prava za "${village}"?`)) return;
+    setBusyId(u.id);
+    setError(null);
+    try {
+      await api.adminRevokeCurator(u.id, village);
+      await reload();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <div className="users-tab">
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -117,6 +157,18 @@ export function UsersTab() {
                       {i > 0 && ', '}
                       <span>{o.name}</span>
                       <button className="user-owned-x" onClick={() => revoke(u, o.id)} title="Ukini">×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              {u.curatedVillages.length > 0 && (
+                <div className="user-owned">
+                  Kustos sela:&nbsp;
+                  {u.curatedVillages.map((v, i) => (
+                    <span key={v}>
+                      {i > 0 && ', '}
+                      <span>{v}</span>
+                      <button className="user-owned-x" onClick={() => revokeCurator(u, v)} title="Ukini">×</button>
                     </span>
                   ))}
                 </div>
@@ -155,10 +207,36 @@ export function UsersTab() {
                   </button>
                   <button className="row-action" onClick={() => setGrantPicker(null)}>×</button>
                 </div>
+              ) : curatorPicker?.userId === u.id ? (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <select
+                    className="field-select"
+                    value={curatorPicker.village}
+                    onChange={(e) => setCuratorPicker({ userId: u.id, village: e.target.value })}
+                  >
+                    <option value="">— odaberi selo —</option>
+                    {curatorOptions.map((v) => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
+                  <button
+                    className="row-action"
+                    disabled={!curatorPicker.village || busyId === u.id}
+                    onClick={() => grantCurator(u, curatorPicker.village)}
+                  >
+                    OK
+                  </button>
+                  <button className="row-action" onClick={() => setCuratorPicker(null)}>×</button>
+                </div>
               ) : (
-                <button className="row-action" onClick={() => setGrantPicker({ userId: u.id, locationId: 0 })}>
-                  + Dodeli objekat
-                </button>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  <button className="row-action" onClick={() => setGrantPicker({ userId: u.id, locationId: 0 })}>
+                    + Dodeli objekat
+                  </button>
+                  <button className="row-action" onClick={() => setCuratorPicker({ userId: u.id, village: '' })}>
+                    + Dodeli selo
+                  </button>
+                </div>
               )}
             </div>
           </div>

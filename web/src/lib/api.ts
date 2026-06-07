@@ -24,6 +24,7 @@ import type {
   RecentComment,
   ReservationPayload,
   ServiceRequestQuote,
+  VillageInfo,
 } from '../types';
 import { getToken, type Role } from './auth';
 
@@ -35,6 +36,22 @@ export interface CurrentUser {
   role: Role;
   emailVerifiedAt: string | null;
   ownedLocationIds: number[];
+  curatedVillages: string[];
+}
+
+export interface CuratorCommentRow {
+  id: number;
+  body: string;
+  rating: number | null;
+  status: 'visible' | 'hidden' | 'flagged';
+  createdAt: string;
+  parentId: number | null;
+  locationId: number;
+  locationSlug: string;
+  locationName: string;
+  village: string | null;
+  authorId: number;
+  authorName: string;
 }
 
 export interface AuthResponse {
@@ -254,6 +271,16 @@ export const api = {
       `/api/admin/users/${userId}/grant-ownership/${locationId}`,
       { method: 'DELETE' },
     ),
+  adminGrantCurator: (userId: number, village: string) =>
+    request<{ ok: true; userId: number; village: string }>(
+      `/api/admin/users/${userId}/grant-curator`,
+      { method: 'POST', body: JSON.stringify({ village }) },
+    ),
+  adminRevokeCurator: (userId: number, village: string) =>
+    request<{ ok: true }>(
+      `/api/admin/users/${userId}/grant-curator/${encodeURIComponent(village)}`,
+      { method: 'DELETE' },
+    ),
 
   // Floor plan
   getFloorPlan: (slug: string) =>
@@ -445,4 +472,33 @@ export const api = {
     }),
   ownerDeleteAlumnus: (id: number) =>
     request<{ ok: true }>(`/api/owner/alumni/${id}`, { method: 'DELETE' }),
+
+  // Villages (public — drives /naselja and /naseljageo)
+  listVillages: () => request<VillageInfo[]>('/api/villages'),
+
+  // Curator (kustos) side
+  curatorVillages: () => request<string[]>('/api/curator/villages'),
+  curatorLocations: () => request<Location[]>('/api/curator/locations'),
+  curatorCreateLocation: (body: {
+    name: string;
+    address: string;
+    catId: string;
+    village: string;
+    subtitle?: string | null;
+    lat?: number;
+    lng?: number;
+    content?: unknown;
+  }) =>
+    request<Location>('/api/curator/locations', { method: 'POST', body: JSON.stringify(body) }),
+  curatorUpdateLocation: (
+    id: number,
+    patch: Partial<{ name: string; subtitle: string | null; address: string; content: unknown }>,
+  ) =>
+    request<Location>(`/api/curator/locations/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  curatorComments: () => request<CuratorCommentRow[]>('/api/curator/comments'),
+  curatorSetCommentStatus: (id: number, status: 'visible' | 'hidden') =>
+    request<{ id: number; status: 'visible' | 'hidden' | 'flagged' }>(
+      `/api/curator/comments/${id}`,
+      { method: 'PATCH', body: JSON.stringify({ status }) },
+    ),
 };

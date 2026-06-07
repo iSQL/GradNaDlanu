@@ -3,8 +3,8 @@ import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { eq, and } from 'drizzle-orm';
 import * as schema from './schema.js';
-import { alumni, comments, events, locations, moduleContent, news, users } from './schema.js';
-import { ALUMNI, CATEGORIES, COMMENTS, EVENTS, LOCATIONS, NEWS, USERS, buildModuleContent } from './seed-data.js';
+import { alumni, comments, events, locations, moduleContent, news, users, villages } from './schema.js';
+import { ALUMNI, CATEGORIES, COMMENTS, EVENTS, LOCATIONS, NEWS, USERS, VILLAGES, buildModuleContent } from './seed-data.js';
 import { env } from '../env.js';
 
 export interface SeedResult {
@@ -16,6 +16,7 @@ export interface SeedResult {
   userCount: number;
   commentCount: number;
   alumniCount: number;
+  villageCount: number;
   adminInserted: boolean;
   adminEmail: string;
 }
@@ -244,6 +245,29 @@ export async function runSeed(): Promise<SeedResult> {
       alumniCount++;
     }
 
+    // Naselja — statički fakti za /naselja stranicu. ON CONFLICT DO NOTHING
+    // znači da admin/kustos edit kroz UI (jednom kad uvedemo PATCH) preživljava
+    // ponovne seedove.
+    let villageCount = 0;
+    for (const v of VILLAGES) {
+      const [row] = await db
+        .insert(villages)
+        .values({
+          name: v.name,
+          populationCensus2002: v.populationCensus2002,
+          populationCensus2022: v.populationCensus2022,
+          areaKm2: String(v.areaKm2),
+          distanceKm: String(v.distanceKm),
+          direction: v.direction,
+          lat: String(v.lat),
+          lon: String(v.lon),
+          isSeat: v.isSeat,
+        })
+        .onConflictDoNothing({ target: villages.name })
+        .returning({ name: villages.name });
+      if (row) villageCount++;
+    }
+
     return {
       categoryCount: CATEGORIES.length,
       locationCount: locCount,
@@ -253,6 +277,7 @@ export async function runSeed(): Promise<SeedResult> {
       userCount,
       commentCount,
       alumniCount,
+      villageCount,
       adminInserted: insertedUser.length > 0,
       adminEmail,
     };
@@ -268,7 +293,7 @@ if (isCli) {
   runSeed()
     .then((r) => {
       console.log(
-        `Seeded ${r.categoryCount} categories, ${r.locationCount} locations, ${r.moduleContentCount} module_content rows, ${r.eventCount} events, ${r.newsCount} news, ${r.userCount} demo users, ${r.commentCount} comments, ${r.alumniCount} alumni, ${r.adminInserted ? 1 : 0} admin user (email: ${r.adminEmail}).`,
+        `Seeded ${r.categoryCount} categories, ${r.locationCount} locations, ${r.moduleContentCount} module_content rows, ${r.eventCount} events, ${r.newsCount} news, ${r.userCount} demo users, ${r.commentCount} comments, ${r.alumniCount} alumni, ${r.villageCount} villages, ${r.adminInserted ? 1 : 0} admin user (email: ${r.adminEmail}).`,
       );
       process.exit(0);
     })

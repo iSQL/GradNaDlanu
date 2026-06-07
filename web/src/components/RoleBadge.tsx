@@ -9,13 +9,25 @@ interface Props {
 }
 
 export function RoleBadge({ role }: Props) {
-  if (role !== 'guest') return null;
-  return (
-    <span
-      className="role-badge role-badge-guest"
-      title="Privremeni nalog — istice za 7 dana neaktivnosti"
-    >
-      gost
-    </span>
-  );
+  if (role === 'guest') {
+    return (
+      <span
+        className="role-badge role-badge-guest"
+        title="Privremeni nalog — istice za 7 dana neaktivnosti"
+      >
+        gost
+      </span>
+    );
+  }
+  if (role === 'curator') {
+    return (
+      <span
+        className="role-badge role-badge-curator"
+        title="Kustos sela — održava objekte i komentare u svom selu"
+      >
+        kustos
+      </span>
+    );
+  }
+  return null;
 }

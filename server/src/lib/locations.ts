@@ -58,3 +58,55 @@ export function validateContent(content: unknown): { ok: true } | { ok: false; e
   if (size > MAX_CONTENT_BYTES) return { ok: false, error: `content too large (max ${MAX_CONTENT_BYTES} bytes)` };
   return { ok: true };
 }
+
+// Whitelist ključeva koje kustos sme da edituje u `module_content.content` po
+// kategoriji. Sve van whitelist-a se zadržava iz `oldContent` (npr. menu/services/
+// rooms/programs ostaju netaknuti čak i ako klijent pokuša da ih pošalje).
+// Landmark dobija pun pristup.
+const CURATOR_ALLOWED_CONTENT_KEYS: Record<string, ReadonlySet<string> | 'ALL'> = {
+  cafe:           new Set(['tagline', 'hours', 'contact']),
+  public:         new Set(['tagline', 'hours', 'contact']),
+  landmark:       'ALL',
+  hotel:          new Set(['tagline', 'contact', 'facts']),
+  school:         new Set(['tagline', 'contact', 'facts']),
+  vodoinstalater: new Set(['tagline', 'contact', 'note']),
+  elektricar:     new Set(['tagline', 'contact', 'note']),
+  automehanicar:  new Set(['tagline', 'contact', 'note']),
+};
+
+/**
+ * Spaja patch sa starim sadržajem za kustos PATCH put. Pravi rezultat sa:
+ *   - svim ključevima koje kustos NE sme da edituje preslikanim iz oldContent
+ *   - ključevima iz patch-a koji jesu na whitelist-i
+ * Ako klijent pošalje ključ van whitelist-a koji bi modifikovao postojeću
+ * vrednost, vraćamo grešku — tiho ignorisanje bi sakrilo silentne greške u UI.
+ */
+export function mergeCuratorContent(
+  catId: string,
+  oldContent: unknown,
+  patch: unknown,
+): { ok: true; merged: Record<string, unknown> } | { ok: false; error: string } {
+  if (patch === null || patch === undefined) return { ok: true, merged: (oldContent as Record<string, unknown>) ?? {} };
+  if (typeof patch !== 'object' || Array.isArray(patch)) {
+    return { ok: false, error: 'content must be an object' };
+  }
+  const allowed = CURATOR_ALLOWED_CONTENT_KEYS[catId];
+  if (allowed === undefined) {
+    return { ok: false, error: `kustos ne sme da edituje sadržaj kategorije '${catId}'` };
+  }
+  const oldObj = (oldContent && typeof oldContent === 'object' && !Array.isArray(oldContent))
+    ? (oldContent as Record<string, unknown>)
+    : {};
+  if (allowed === 'ALL') {
+    return { ok: true, merged: { ...oldObj, ...(patch as Record<string, unknown>) } };
+  }
+  const patchObj = patch as Record<string, unknown>;
+  // Refuse the request if it touches a forbidden key — explicit failure beats
+  // silently dropping a field the curator clearly intended to save.
+  for (const key of Object.keys(patchObj)) {
+    if (!allowed.has(key)) {
+      return { ok: false, error: `kustos ne sme da edituje '${key}' u kategoriji '${catId}'` };
+    }
+  }
+  return { ok: true, merged: { ...oldObj, ...patchObj } };
+}

@@ -14,6 +14,7 @@ interface Props {
 function homeRouteFor(user: CurrentUser): string {
   if (user.role === 'admin') return '/admin';
   if (user.role === 'business') return '/poslovni';
+  if (user.role === 'curator') return '/kustos';
   return '/dashboard';
 }
 
@@ -21,6 +22,7 @@ const MENU = [
   { to: '/', label: 'Početna', end: true },
   { to: '/desavanja', label: 'Dešavanja' },
   { to: '/mapa', label: 'Mapa' },
+  { to: '/naselja', label: 'Naselja' },
   { to: '/objekti', label: 'Objekti' },
   { to: '/dashboard', label: 'Moj prostor' },
 ];

@@ -26,6 +26,8 @@ import { settingsRoutes } from './routes/settings.js';
 import { newsRoutes } from './routes/news.js';
 import { newsletterRoutes } from './routes/newsletter.js';
 import { alumniRoutes } from './routes/alumni.js';
+import { villagesRoutes } from './routes/villages.js';
+import { curatorRoutes } from './routes/curator.js';
 import { startGuestCleanup } from './lib/guest-cleanup.js';
 import { startDesavanjaCleanup } from './lib/desavanja-cleanup.js';
 import { runMigrations } from './db/migrate.js';
@@ -242,6 +244,8 @@ async function main() {
   await app.register(newsRoutes);
   await app.register(newsletterRoutes);
   await app.register(alumniRoutes);
+  await app.register(villagesRoutes);
+  await app.register(curatorRoutes);
 
   // Daily sweep: deletes guest accounts inactive for >7 days, CASCADE clears
   // their favorites/comments/checkins along with the row.

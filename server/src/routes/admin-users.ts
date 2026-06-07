@@ -1,11 +1,12 @@
 import type { FastifyInstance } from 'fastify';
 import { and, count, desc, eq, ilike, or } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { locations, objectOwners, users } from '../db/schema.js';
+import { locations, objectOwners, users, villageCurators } from '../db/schema.js';
 import { bumpTokenVersion, requireRole } from '../lib/auth.js';
 import { escapeLikePattern } from '../lib/locations.js';
+import { isVillage } from '../lib/villages.js';
 
-const ROLES = ['admin', 'business', 'user'] as const;
+const ROLES = ['admin', 'business', 'user', 'curator'] as const;
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
 
@@ -68,9 +69,23 @@ export async function adminUsersRoutes(app: FastifyInstance) {
         byUser.set(o.userId, arr);
       }
 
+      const curatorRows = await db
+        .select({ userId: villageCurators.userId, villageName: villageCurators.villageName })
+        .from(villageCurators);
+      const curatedByUser = new Map<number, string[]>();
+      for (const c of curatorRows) {
+        const arr = curatedByUser.get(c.userId) ?? [];
+        arr.push(c.villageName);
+        curatedByUser.set(c.userId, arr);
+      }
+
       const [{ total }] = await db.select({ total: count() }).from(users).where(where);
       reply.header('X-Total-Count', String(total));
-      return userRows.map((u) => ({ ...u, ownedLocations: byUser.get(u.id) ?? [] }));
+      return userRows.map((u) => ({
+        ...u,
+        ownedLocations: byUser.get(u.id) ?? [],
+        curatedVillages: curatedByUser.get(u.id) ?? [],
+      }));
     },
   );
 
@@ -136,6 +151,63 @@ export async function adminUsersRoutes(app: FastifyInstance) {
         .onConflictDoNothing();
       if (promoted) await bumpTokenVersion(userId);
       return { ok: true, userId, locationId };
+    },
+  );
+
+  // Dodeli kustosa za jedno selo. Auto-promoviše korisnika u rolu 'curator' ako
+  // je trenutno 'user'. Admin i business role se NE diraju (rola admin/business
+  // ima pristup svemu i mimo curator skupa).
+  app.post<{ Params: { id: string }; Body: { village: string } }>(
+    '/api/admin/users/:id/grant-curator',
+    { preHandler: requireRole('admin') },
+    async (req, reply) => {
+      const userId = Number(req.params.id);
+      const village = req.body?.village;
+      if (typeof village !== 'string' || !isVillage(village)) {
+        return reply.code(400).send({ error: 'village mora biti jedno od sela opštine Žabari' });
+      }
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!user) return reply.code(404).send({ error: 'User not found' });
+
+      let promoted = false;
+      if (user.role === 'user') {
+        await db.update(users).set({ role: 'curator' }).where(eq(users.id, userId));
+        promoted = true;
+      }
+
+      await db
+        .insert(villageCurators)
+        .values({ userId, villageName: village, grantedByAdminId: req.user.sub })
+        .onConflictDoNothing();
+      if (promoted) await bumpTokenVersion(userId);
+      return { ok: true, userId, village };
+    },
+  );
+
+  // Ukloni kustosa za jedno selo. Ako mu ostane nula sela i rola je 'curator',
+  // demotuj nazad u 'user' (admin/business se ne diraju).
+  app.delete<{ Params: { id: string; village: string } }>(
+    '/api/admin/users/:id/grant-curator/:village',
+    { preHandler: requireRole('admin') },
+    async (req, reply) => {
+      const userId = Number(req.params.id);
+      const village = decodeURIComponent(req.params.village);
+      await db
+        .delete(villageCurators)
+        .where(and(eq(villageCurators.userId, userId), eq(villageCurators.villageName, village)));
+
+      const [{ remaining }] = await db
+        .select({ remaining: count() })
+        .from(villageCurators)
+        .where(eq(villageCurators.userId, userId));
+      if (Number(remaining) === 0) {
+        await db
+          .update(users)
+          .set({ role: 'user' })
+          .where(and(eq(users.id, userId), eq(users.role, 'curator')));
+      }
+      await bumpTokenVersion(userId);
+      return reply.send({ ok: true });
     },
   );
 
