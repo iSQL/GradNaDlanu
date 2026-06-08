@@ -473,7 +473,7 @@ export const api = {
   ownerDeleteAlumnus: (id: number) =>
     request<{ ok: true }>(`/api/owner/alumni/${id}`, { method: 'DELETE' }),
 
-  // Villages (public — drives /naselja and /naseljageo)
+  // Villages (public — drives /naselja)
   listVillages: () => request<VillageInfo[]>('/api/villages'),
 
   // Curator (kustos) side
