@@ -1,8 +1,8 @@
 # Grad na dlanu
 
-City directory web app for **Žabari** (Braničevo District, Serbia, ZIP 12374). Landing page with CTA cards as the front door; the Leaflet satellite map is lazy-loaded on `/mapa` so the initial bundle stays light. Sticky top nav with a hamburger drawer on mobile, dedicated module pages per object type (kafići, javne službe, znamenitosti, smeštaj, obrazovanje), and a `/desavanja` feed merging news items and announced events across all villages of the municipality.
+City directory web app for **Žabari** (Braničevo District, Serbia, ZIP 12374). Landing page with CTA cards as the front door; the Leaflet satellite map is lazy-loaded on `/mapa` so the initial bundle stays light. Sticky top nav with a hamburger drawer on mobile, dedicated module pages per object type (kafići, javne službe, znamenitosti, smeštaj, obrazovanje), a `/desavanja` feed merging news items and announced events across all villages of the municipality, and a `/naselja` page with a Voronoi map showing population, area, distance and curators for each of the 15 villages.
 
-Three user roles — admin, business owner, visitor — with reservations, favorites, comments, check-ins, news/announcements per object, an owner-managed floor-plan editor for cafés and hotels, and a newsletter sign-up in the footer. UI copy is Serbian (Latin script).
+Four user roles — admin, business owner, village curator ("kustos"), visitor — with reservations, favorites, comments, check-ins, news/announcements per object, an owner-managed floor-plan editor for cafés and hotels, and a newsletter sign-up in the footer. UI copy is Serbian (Latin script).
 
 ## Stack
 
@@ -24,7 +24,7 @@ cp .env.example .env
 npm install
 npm run db:up          # start the bundled Postgres (dev profile)
 npm run db:migrate     # create tables (idempotent)
-npm run db:seed        # 5 categories + 5 starter locations (one per category) + admin user
+npm run db:seed        # 8 categories + 8 starter locations + 15 villages + admin user
 ```
 
 ## Run (dev)
@@ -37,21 +37,24 @@ Open http://localhost:5173.
 
 **Default admin:** `admin@local` / `admin` (set `ADMIN_USERNAME` / `ADMIN_PASSWORD` in `.env` **before** seeding — the password is hashed at seed time).
 
-Visitors register at `/registracija`. Business owners are visitors who've been granted ownership of an object by an admin (admin panel → **Korisnici** → **+ Dodeli objekat**).
+Visitors register at `/registracija`. Business owners are visitors who've been granted ownership of an object by an admin (admin panel → **Korisnici** → **+ Dodeli objekat**). Village curators ("kustosi") are visitors granted oversight of one or more villages (**Korisnici** → **+ Dodeli selo**).
 
 ## Roles & flows
 
 | Role | Surface | Can do |
 | --- | --- | --- |
-| Visitor (`/nalog`) | landing, map, module pages, `/desavanja`, `/objekti` | favorite objects, comment + rate, check in, request reservations, cancel own reservations |
+| Visitor (`/nalog`) | landing, map, module pages, `/desavanja`, `/objekti`, `/naselja` | favorite objects, comment + rate, check in, request reservations, cancel own reservations |
 | Business owner (`/poslovni`) | dashboard | edit owned objects (name/subtitle/address/village/content), approve/decline reservations, draw floor plans, publish events and news ("obaveštenja") per object, reply to comments on own objects |
-| Admin (`/admin`) | full panel | everything; tabs: **Objekti** (CRUD all locations including `village`), **Rezervacije** (cross-location inbox), **Korisnici** (search, change role, grant/revoke ownership) |
+| Village curator (`/kustos`) | per-village dashboard | add new objects in their village(s) as draft, edit general fields (name/subtitle/address) and a whitelisted slice of `content` per category (no `menu`/`services`/`rooms`/`programs`), full edit of landmark content, hide/restore comments on objects in their villages — **cannot** publish events/news, view reservations, edit `village` itself |
+| Admin (`/admin`) | full panel | everything; tabs: **Objekti** (CRUD all locations including `village`), **Rezervacije** (cross-location inbox), **Korisnici** (search, change role, grant/revoke object ownership *and* village curatorship) |
 
 Reservations enforce real availability — café tables use a half-open `tstzrange` overlap check per `(location_id, tableId)`; hotels use a `daterange '[)'` per `(location_id, roomKey)`. Pending reservations block new ones until declined or cancelled.
 
 The floor-plan editor (`/poslovni/objekti/<slug>/mapa`) is an SVG canvas with drag/resize, snap-to-grid, and a side panel for label/capacity/roomKey. Visitor reservation pickers automatically render the saved layout in place of the illustrative SVG, greying out items that are booked in the chosen window.
 
 The `/desavanja` feed merges `news` (per-object announcements) and `events` (timed happenings — concerts, performances) in a single timeline, with tabs **Sva dešavanja / Događaji / Obaveštenja** and a per-village dropdown. News older than 7 days and events whose `endsAt` (or `startsAt` if `endsAt` is null) is more than 7 days in the past are hidden by default; a **"Prikaži stara obaveštenja"** checkbox reveals them. A daily background job in [server/src/lib/desavanja-cleanup.ts](server/src/lib/desavanja-cleanup.ts) permanently deletes both news and events older than 30 days.
+
+The `/naselja` page renders the 15 villages of Opština Žabari as a Voronoi SVG (preboji u site paletu paper/navy/gold), with hover for a transient preview and click to pin a selection. A side panel shows population (popis 2002), area estimate, distance and direction from Žabari, coordinates, and the list of curators assigned to the village. An experimental `/naseljageo` page hosts the same data on a real Leaflet satellite map with village seat markers and a placeholder GeoJSON layer for the polygons (real boundaries TBD). Object info cards expose **"Prikaži na mapi →"** which deep-links to `/mapa?focus=<slug>` and flies the map to that pin on load.
 
 ## Scripts
 
@@ -80,9 +83,9 @@ The `/desavanja` feed merges `news` (per-object announcements) and `events` (tim
     └── src/db/seed-data.ts    # source of truth for the starter locations
 ```
 
-The starter dataset (one location per category — Stara Vodenica, Opština, Crkva Sv. Arhanđela, Hotel Morava, OŠ "Dositej Obradović") lives in [server/src/db/seed-data.ts](server/src/db/seed-data.ts). Real objects are added through the admin panel; to extend the seed itself, edit that file and run `npm run db:reset`.
+The starter dataset (one location per category, plus three "majstor" entries) lives in [server/src/db/seed-data.ts](server/src/db/seed-data.ts) alongside the `VILLAGES` seed (15 RZS-canonical villages with population, area, distance, direction, coordinates). Real objects are added through the admin or curator panels; to extend the seed itself, edit that file and run `npm run db:reset`.
 
-Villages of opština Žabari are a hardcoded enum mirrored in two places — [server/src/lib/villages.ts](server/src/lib/villages.ts) and [web/src/lib/villages.ts](web/src/lib/villages.ts). Both files must change together. Backend validates `village` writes against the enum; the seed dataset leaves `village = NULL` and admins/owners assign it through the edit forms.
+Villages of opština Žabari are a hardcoded enum mirrored in two places — [server/src/lib/villages.ts](server/src/lib/villages.ts) and [web/src/lib/villages.ts](web/src/lib/villages.ts). Both files must change together. The canonical 15 are: Žabari, Aleksandrovac, Brzohode, Vitežovo, Vlaški Do, Kočetin, Mirijevo, Oreovica, Polatna, Porodin, Svinjarevo, Sibnica, Simićevo, Tićevac, Četereže. Backend validates `village` writes against the enum; the seed dataset leaves locations' `village = NULL` and admins/owners/curators assign it through the edit forms. The `villages` DB table carries the per-village facts surfaced on `/naselja` and is the join target for `village_curators(user_id, village_name)`.
 
 Production data flow on a single image: Fastify boots → runs migrations on boot (`RUN_MIGRATIONS_ON_BOOT=true` is the default in `NODE_ENV=production`) → registers `@fastify/static` against `web/dist` → falls back to `index.html` for non-`/api/*` requests so React Router's client-side routes work on hard refresh.
 

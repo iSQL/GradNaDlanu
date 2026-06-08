@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { CATEGORY_LABELS, type CategoryId, type Location } from '../types';
-import { isAuthed } from '../lib/auth';
 import { CityMap } from './CityMap';
 import { PinGlyph } from './PinGlyph';
 import { AddObjectDialog } from './AddObjectDialog';
@@ -20,7 +19,18 @@ export function Hero() {
   const [pendingCoords, setPendingCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [wheelHintVisible, setWheelHintVisible] = useState(false);
   const wheelHintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const canEdit = isAuthed();
+
+  // Dodavanje preko mape: admin svuda; kustos samo ako ima bar jedno dodeljeno
+  // selo (drugačije bi dialog bio neupotrebljiv). Posetioci i biznis vlasnici
+  // ne mogu da dodaju objekte iz mape — biznis ih dobija samo preko admin grant-a,
+  // posetilac/gost uopšte ne.
+  const canEdit = useMemo(() => {
+    const u = ctx.currentUser;
+    if (!u) return false;
+    if (u.role === 'admin') return true;
+    if (u.role === 'curator' && u.curatedVillages.length > 0) return true;
+    return false;
+  }, [ctx.currentUser]);
 
   useEffect(
     () => () => {
@@ -114,11 +124,12 @@ export function Hero() {
         <div className="long-press-hint">Dugi klik na mapu — dodaj objekat</div>
       )}
 
-      {pendingCoords && (
+      {pendingCoords && ctx.currentUser && (
         <AddObjectDialog
           categories={categories}
           lat={pendingCoords.lat}
           lng={pendingCoords.lng}
+          currentUser={ctx.currentUser}
           onClose={() => setPendingCoords(null)}
           onCreated={async () => {
             await ctx.reloadLocations();
