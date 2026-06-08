@@ -4579,8 +4579,6 @@ button { font-family: inherit; }
   box-shadow: var(--shadow);
 }
 
-.naselja-mapcard-geo { padding: 0; overflow: hidden; }
-
 .naselja-map {
   width: 100%;
   height: auto;
@@ -4651,10 +4649,6 @@ button { font-family: inherit; }
   opacity: 0.75;
   line-height: 1.5;
   text-align: center;
-}
-
-.naselja-mapcard-geo .naselja-foot-note {
-  padding: 10px 14px 14px;
 }
 
 .naselja-panel {
@@ -4822,9 +4816,6 @@ button { font-family: inherit; }
   color: var(--ink-2);
   font-style: italic;
 }
-
-/* Leaflet pin override za /naseljageo — Leaflet stilovi inače dodaju background. */
-.naselja-geo-pin { background: none !important; border: none !important; }
 
 /* ============================================
    Kustos panel (curator dashboard)

@@ -3,7 +3,7 @@ import { asc, eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { users, villageCurators, villages } from '../db/schema.js';
 
-// Javna ruta za /naselja i /naseljageo stranice. Vraća statičke fakte iz
+// Javna ruta za /naselja stranicu. Vraća statičke fakte iz
 // `villages` tabele plus, za svako selo, niz kustosa ({ id, displayName }).
 // Email se NE vraća javno (privacy).
 export async function villagesRoutes(app: FastifyInstance) {

@@ -1,8 +1,7 @@
 // SVG geometrija opštine Žabari — izvučena iz priloženog Voronoi prototype-a
 // (c:\Stuff\Zabari.net\zabari-naselja.html). Ovo NIJE pravi geografski GeoJSON,
 // već dekorativni Voronoi-podela opštine na teritorije najbliže centru svakog
-// naselja, namenjen /naselja stranici. Pravi GeoJSON je u villageBoundaries.geojson
-// i koristi se na /naseljageo stranici.
+// naselja, namenjen /naselja stranici.
 
 export const MAP_VIEWBOX = { w: 560, h: 966.5 } as const;
 

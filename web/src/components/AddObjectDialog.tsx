@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '../lib/api';
+import { api, type CurrentUser } from '../lib/api';
 import { SELA_ZABARI } from '../lib/villages';
 import type { Category, CategoryId } from '../types';
 import { PinGlyph } from './PinGlyph';
@@ -8,15 +8,25 @@ interface Props {
   categories: Category[];
   lat: number;
   lng: number;
+  currentUser: CurrentUser;
   onClose: () => void;
   onCreated: () => void;
 }
 
-export function AddObjectDialog({ categories, lat, lng, onClose, onCreated }: Props) {
+export function AddObjectDialog({ categories, lat, lng, currentUser, onClose, onCreated }: Props) {
+  // Kustos sme da dodaje objekte samo u svojim selima i uvek u draft statusu;
+  // admin sme svuda i može da bira publish/draft. Selo izbor i `status` toggle
+  // se prema tome menjaju.
+  const isCurator = currentUser.role === 'curator';
+  const villageOptions = isCurator ? currentUser.curatedVillages : [...SELA_ZABARI];
+
   const [catId, setCatId] = useState<CategoryId>('cafe');
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
-  const [village, setVillage] = useState<string>('');
+  const [village, setVillage] = useState<string>(
+    // Pre-selektuj prvo sopstveno selo kustosa da je obavezno polje već popunjeno.
+    isCurator && currentUser.curatedVillages.length > 0 ? currentUser.curatedVillages[0] : '',
+  );
   const [publishNow, setPublishNow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,18 +40,33 @@ export function AddObjectDialog({ categories, lat, lng, onClose, onCreated }: Pr
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !address || busy) return;
+    if (isCurator && !village) {
+      setError('Selo je obavezno za kustosa.');
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
-      await api.adminCreateLocation({
-        name,
-        address,
-        catId,
-        village: village || null,
-        lat,
-        lng,
-        status: publishNow ? 'published' : 'draft',
-      });
+      if (isCurator) {
+        await api.curatorCreateLocation({
+          name,
+          address,
+          catId,
+          village,
+          lat,
+          lng,
+        });
+      } else {
+        await api.adminCreateLocation({
+          name,
+          address,
+          catId,
+          village: village || null,
+          lat,
+          lng,
+          status: publishNow ? 'published' : 'draft',
+        });
+      }
       onCreated();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -99,14 +124,17 @@ export function AddObjectDialog({ categories, lat, lng, onClose, onCreated }: Pr
         </div>
 
         <div style={{ marginTop: 12 }}>
-          <div className="field-label">Selo</div>
+          <div className="field-label">
+            Selo{isCurator ? ' (vaše kuratorsko)' : ''}
+          </div>
           <select
             className="field-input"
             value={village}
             onChange={(e) => setVillage(e.target.value)}
+            disabled={isCurator && villageOptions.length <= 1}
           >
-            <option value="">— nije izabrano —</option>
-            {SELA_ZABARI.map((v) => (
+            {!isCurator && <option value="">— nije izabrano —</option>}
+            {villageOptions.map((v) => (
               <option key={v} value={v}>
                 {v}
               </option>
@@ -114,29 +142,43 @@ export function AddObjectDialog({ categories, lat, lng, onClose, onCreated }: Pr
           </select>
         </div>
 
-        <label
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            marginTop: 16,
-            fontSize: 13,
-            color: 'var(--ink-2)',
-            cursor: 'pointer',
-            userSelect: 'none',
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={publishNow}
-            onChange={(e) => setPublishNow(e.target.checked)}
-            style={{ width: 16, height: 16, accentColor: 'var(--navy)' }}
-          />
-          Objavi odmah (ne kao nacrt)
-        </label>
+        {!isCurator && (
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              marginTop: 16,
+              fontSize: 13,
+              color: 'var(--ink-2)',
+              cursor: 'pointer',
+              userSelect: 'none',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={publishNow}
+              onChange={(e) => setPublishNow(e.target.checked)}
+              style={{ width: 16, height: 16, accentColor: 'var(--navy)' }}
+            />
+            Objavi odmah (ne kao nacrt)
+          </label>
+        )}
+        {isCurator && (
+          <div
+            style={{
+              marginTop: 14,
+              fontSize: 12,
+              color: 'var(--ink-2)',
+              lineHeight: 1.5,
+            }}
+          >
+            Objekat se čuva kao nacrt — admin ga pregledava i objavljuje.
+          </div>
+        )}
 
-        <button className="btn-primary" style={{ marginTop: 14 }} disabled={!name || !address || busy} type="submit">
-          {busy ? 'Čuvanje…' : publishNow ? 'Sačuvaj i objavi' : 'Sačuvaj kao nacrt'}
+        <button className="btn-primary" style={{ marginTop: 14 }} disabled={!name || !address || (isCurator && !village) || busy} type="submit">
+          {busy ? 'Čuvanje…' : isCurator ? 'Sačuvaj kao nacrt' : publishNow ? 'Sačuvaj i objavi' : 'Sačuvaj kao nacrt'}
         </button>
 
         {error && <div className="login-error">{error}</div>}
