@@ -26,6 +26,8 @@ import { settingsRoutes } from './routes/settings.js';
 import { newsRoutes } from './routes/news.js';
 import { newsletterRoutes } from './routes/newsletter.js';
 import { alumniRoutes } from './routes/alumni.js';
+import { villagesRoutes } from './routes/villages.js';
+import { curatorRoutes } from './routes/curator.js';
 import { startGuestCleanup } from './lib/guest-cleanup.js';
 import { startDesavanjaCleanup } from './lib/desavanja-cleanup.js';
 import { runMigrations } from './db/migrate.js';
@@ -119,6 +121,22 @@ async function main() {
       );
     }
     done();
+  });
+
+  // Cache policy at the application layer so CDN/browser/intermediate proxies
+  // get an explicit signal regardless of CDN-side rules.
+  //   /api/*    → no-store. Avoids stale auth data, stale availability windows
+  //              (reservations), and stale owner-edited content. Cost is
+  //              negligible for this site's traffic profile.
+  //   /assets/* → immutable, 1 year. Vite hashes the filename on every build, so
+  //              old URLs are physically replaced — safe to cache forever.
+  // Index.html and everything else: leave headers alone, CDN/browser defaults apply.
+  app.addHook('onSend', async (req, reply) => {
+    if (req.url.startsWith('/api/')) {
+      reply.header('Cache-Control', 'no-store');
+    } else if (req.url.startsWith('/assets/')) {
+      reply.header('Cache-Control', 'public, max-age=31536000, immutable');
+    }
   });
   app.log.info(
     { logDir: env.logDir, retentionDays: env.logRetentionDays },
@@ -226,6 +244,8 @@ async function main() {
   await app.register(newsRoutes);
   await app.register(newsletterRoutes);
   await app.register(alumniRoutes);
+  await app.register(villagesRoutes);
+  await app.register(curatorRoutes);
 
   // Daily sweep: deletes guest accounts inactive for >7 days, CASCADE clears
   // their favorites/comments/checkins along with the row.

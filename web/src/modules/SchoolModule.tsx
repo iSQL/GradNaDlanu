@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Alumnus, Location, SchoolContent } from '../types';
 import { ModuleHero } from './ModuleHero';
 import { ModuleTabs, type TabDef } from './ModuleTabs';
-import { IconMail, IconPhone, IconPin } from '../components/Icons';
+import { OpsteTab } from './OpsteTab';
 import { api, mediaUrl } from '../lib/api';
 import {
   LocationEventsList,
@@ -23,53 +23,16 @@ export function SchoolModule({ loc, content }: Props) {
   const tabs: TabDef[] = [
     {
       key: 'osnovni',
-      label: 'Osnovni podaci',
+      label: 'Opšte',
       render: () => (
-        <div className="module-section">
-          <div className="section-label">O ustanovi</div>
-          <p className="prose-lead">{tagline}</p>
-
-          {facts.length > 0 && (
-            <div className="facts-grid" style={{ marginTop: 24 }}>
-              {facts.map((f, i) => (
-                <div className="fact" key={i}>
-                  <div className="fact-num">
-                    {f.num}{f.em && <em>{f.em}</em>}
-                  </div>
-                  <div className="fact-label">{f.label}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="info-grid">
-            <div className="info-row">
-              <div className="info-icon"><IconPin /></div>
-              <div>
-                <div className="info-row-label">Adresa</div>
-                <div className="info-row-val">{contact.address || loc.address}<br />12374 Žabari</div>
-              </div>
-            </div>
-            {contact.phone && (
-              <div className="info-row">
-                <div className="info-icon"><IconPhone /></div>
-                <div>
-                  <div className="info-row-label">Telefon</div>
-                  <div className="info-row-val">{contact.phone}</div>
-                </div>
-              </div>
-            )}
-            {contact.email && (
-              <div className="info-row">
-                <div className="info-icon"><IconMail /></div>
-                <div>
-                  <div className="info-row-label">E-pošta</div>
-                  <div className="info-row-val">{contact.email}</div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <OpsteTab
+          loc={loc}
+          infoLabel="O ustanovi"
+          tagline={tagline}
+          contact={contact}
+          facts={facts}
+          desavanja={desavanja}
+        />
       ),
     },
     {

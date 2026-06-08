@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { CATEGORY_LABELS, type CategoryId, type Location } from '../types';
 import { isAuthed } from '../lib/auth';
@@ -11,6 +11,8 @@ import { IconArrow, IconEye, IconEyeOff } from './Icons';
 export function Hero() {
   const ctx = useOutletContext<AppContext>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const focusSlug = searchParams.get('focus');
 
   const [hovered, setHovered] = useState<Location | null>(null);
   const [pos, setPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -42,6 +44,16 @@ export function Hero() {
     });
   }, [locations, search]);
 
+  // Kada dolazimo iz "Prikaži na mapi" sa nekog objekta, fokusiramo mapu na
+  // tu lokaciju kad se locations učitaju. CityMap dobija (lat,lng) jednom —
+  // efekat u njemu radi flyTo. `focusSlug` se ne osvežava posle prvog hit-a
+  // dok korisnik ne promeni URL ponovo.
+  const focusLatLng = useMemo(() => {
+    if (!focusSlug) return null;
+    const hit = locations.find((l) => l.slug === focusSlug);
+    return hit ? { lat: hit.lat, lng: hit.lng } : null;
+  }, [focusSlug, locations]);
+
   const counts = useMemo(() => {
     const c: Partial<Record<CategoryId, number>> = {};
     for (const l of locations) c[l.catId] = (c[l.catId] ?? 0) + 1;
@@ -63,6 +75,7 @@ export function Hero() {
         <CityMap
           locations={filtered}
           activeFilter={activeFilter}
+          focusLatLng={focusLatLng}
           onPinClick={(loc) => navigate(`/objekat/${loc.slug}`)}
           onPinHover={(loc, pt) => {
             setHovered(loc);

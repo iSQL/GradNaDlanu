@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import type { Location } from '../types';
 import { IconClock, IconMail, IconPhone, IconPin, IconWeb } from '../components/Icons';
 
@@ -23,6 +24,9 @@ export function InfoCard({ loc, hours, contact, todayLabel = 'Radno vreme' }: Pr
         <div>
           <div className="info-row-label">Adresa</div>
           <div className="info-row-val">{loc.address}<br />12374 Žabari</div>
+          <Link to={`/mapa?focus=${loc.slug}`} className="info-row-map-link">
+            Prikaži na mapi →
+          </Link>
         </div>
       </div>
 

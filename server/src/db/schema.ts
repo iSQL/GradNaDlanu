@@ -7,6 +7,8 @@ import {
   timestamp,
   jsonb,
   primaryKey,
+  numeric,
+  boolean,
 } from 'drizzle-orm/pg-core';
 
 export const categories = pgTable('categories', {
@@ -49,7 +51,7 @@ export const users = pgTable('users', {
   email: text('email'),
   passwordHash: text('password_hash'),
   displayName: text('display_name').notNull(),
-  role: text('role', { enum: ['admin', 'business', 'user', 'guest'] })
+  role: text('role', { enum: ['admin', 'business', 'user', 'guest', 'curator'] })
     .default('user')
     .notNull(),
   // Bumped on role change / ownership revoke / forced logout so previously-issued
@@ -228,6 +230,39 @@ export const alumni = pgTable('alumni', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// Per-naselje statički fakti — popunjeni iz seed-data.ts pri seed-u, ali su deo
+// schema-e jer ih kustosi (i kasnije admini) mogu uređivati kroz UI.
+export const villages = pgTable('villages', {
+  name: text('name').primaryKey(),
+  populationCensus2002: integer('population_census_2002'),
+  populationCensus2022: integer('population_census_2022'),
+  areaKm2: numeric('area_km2', { precision: 6, scale: 2 }),
+  distanceKm: numeric('distance_km', { precision: 5, scale: 2 }),
+  direction: text('direction'),
+  lat: numeric('lat', { precision: 8, scale: 5 }),
+  lon: numeric('lon', { precision: 8, scale: 5 }),
+  isSeat: boolean('is_seat').default(false).notNull(),
+  story: text('story'),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Many-to-many: jedan korisnik može biti kustos više sela, jedno selo može imati
+// više kustosa. Mirrors `object_owners` po obrascu (granted_by + granted_at audit).
+export const villageCurators = pgTable(
+  'village_curators',
+  {
+    userId: integer('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    villageName: text('village_name')
+      .references(() => villages.name, { onDelete: 'cascade' })
+      .notNull(),
+    grantedByAdminId: integer('granted_by_admin_id').references(() => users.id),
+    grantedAt: timestamp('granted_at').defaultNow().notNull(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.userId, t.villageName] }) }),
+);
+
 export const serviceRequests = pgTable('service_requests', {
   id: serial('id').primaryKey(),
   userId: integer('user_id')
@@ -264,6 +299,8 @@ export type Event = typeof events.$inferSelect;
 export type EventStatus = Event['status'];
 export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
 export type AppSetting = typeof appSettings.$inferSelect;
+export type Village = typeof villages.$inferSelect;
+export type VillageCurator = typeof villageCurators.$inferSelect;
 export type ServiceRequest = typeof serviceRequests.$inferSelect;
 export type ServiceRequestStatus = ServiceRequest['status'];
 export type News = typeof news.$inferSelect;

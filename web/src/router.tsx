@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { App } from './App';
 import { HomePage } from './components/HomePage';
@@ -19,6 +20,13 @@ import { DesavanjaPage } from './pages/DesavanjaPage';
 import { NewsDetailPage } from './pages/NewsDetailPage';
 import { EventDetailPage } from './pages/EventDetailPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { NaseljaPage } from './pages/NaseljaPage';
+import { CuratorDashboard } from './pages/CuratorDashboard';
+import { CuratorLocationEdit } from './pages/CuratorLocationEdit';
+// Lazy: Leaflet ne treba na /naselja, samo na /naseljageo.
+const NaseljaGeoPage = lazy(() =>
+  import('./pages/NaseljaGeoPage').then((m) => ({ default: m.NaseljaGeoPage })),
+);
 
 export const router = createBrowserRouter([
   {
@@ -27,6 +35,15 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: 'mapa', element: <MapPage /> },
+      { path: 'naselja', element: <NaseljaPage /> },
+      {
+        path: 'naseljageo',
+        element: (
+          <Suspense fallback={<div className="page" style={{ padding: 40 }}>Učitavanje mape…</div>}>
+            <NaseljaGeoPage />
+          </Suspense>
+        ),
+      },
       { path: 'objekti', element: <ObjektiPage /> },
       { path: 'desavanja', element: <DesavanjaPage /> },
       { path: 'obavestenje/:slug', element: <NewsDetailPage /> },
@@ -61,6 +78,22 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth role="business">
             <FloorPlanEditPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'kustos',
+        element: (
+          <RequireAuth role="curator">
+            <CuratorDashboard />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'kustos/objekti/:slug',
+        element: (
+          <RequireAuth role="curator">
+            <CuratorLocationEdit />
           </RequireAuth>
         ),
       },

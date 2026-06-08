@@ -1,7 +1,8 @@
 import type { Location, PublicContent } from '../types';
 import { ModuleHero } from './ModuleHero';
 import { ModuleTabs, type TabDef } from './ModuleTabs';
-import { IconCheck, IconClock, IconMail, IconPhone, IconPin } from '../components/Icons';
+import { OpsteTab } from './OpsteTab';
+import { IconCheck } from '../components/Icons';
 import {
   LocationEventsList,
   LocationNewsList,
@@ -28,51 +29,16 @@ export function PublicModule({ loc, content }: Props) {
   const tabs: TabDef[] = [
     {
       key: 'osnovni',
-      label: 'Osnovni podaci',
+      label: 'Opšte',
       render: () => (
-        <div className="module-section">
-          <div className="section-label">O ustanovi</div>
-          <div className="prose">
-            <p className="prose-lead">{tagline}</p>
-            <p>
-              Ustanova obavlja svoju delatnost u skladu sa važećim zakonskim okvirima i odlukama
-              Skupštine opštine Žabari. Šalter za građane je otvoren u radno vreme navedeno u
-              kartici „Radno vreme”.
-            </p>
-            <p>
-              Za hitne slučajeve van radnog vremena pozovite glavnu liniju opštine:{' '}
-              <strong>+381 12 250 130</strong>, ili pišite na <strong>info@zabari.rs</strong>.
-            </p>
-          </div>
-
-          <div className="info-grid">
-            <div className="info-row">
-              <div className="info-icon"><IconPin /></div>
-              <div>
-                <div className="info-row-label">Adresa</div>
-                <div className="info-row-val">{contact.address || loc.address}<br />12374 Žabari</div>
-              </div>
-            </div>
-            {contact.phone && (
-              <div className="info-row">
-                <div className="info-icon"><IconPhone /></div>
-                <div>
-                  <div className="info-row-label">Telefon</div>
-                  <div className="info-row-val">{contact.phone}</div>
-                </div>
-              </div>
-            )}
-            {contact.email && (
-              <div className="info-row">
-                <div className="info-icon"><IconMail /></div>
-                <div>
-                  <div className="info-row-label">E-pošta</div>
-                  <div className="info-row-val">{contact.email}</div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <OpsteTab
+          loc={loc}
+          infoLabel="O ustanovi"
+          tagline={tagline}
+          contact={contact}
+          hours={hours}
+          desavanja={desavanja}
+        />
       ),
     },
     {
@@ -184,32 +150,6 @@ export function PublicModule({ loc, content }: Props) {
             </div>
           </div>
         </>
-      ),
-    },
-    {
-      key: 'radno-vreme',
-      label: 'Radno vreme',
-      isEmpty: hours.length === 0,
-      render: () => (
-        <div className="module-section">
-          <div className="section-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <IconClock /> Radno vreme
-          </div>
-          {hours.length === 0 ? (
-            <div className="loc-desavanja-empty">Radno vreme još nije uneto.</div>
-          ) : (
-            <table className="hours-table hours-table-wide">
-              <tbody>
-                {hours.map(([day, text], i) => (
-                  <tr key={i}>
-                    <td>{day}</td>
-                    <td>{text}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
       ),
     },
   ];

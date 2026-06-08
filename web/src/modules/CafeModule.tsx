@@ -11,8 +11,8 @@ import type {
 } from '../types';
 import { ModuleHero } from './ModuleHero';
 import { ModuleTabs, type TabDef } from './ModuleTabs';
+import { OpsteTab } from './OpsteTab';
 import { FloorPlanView } from '../components/floorplan/FloorPlanView';
-import { IconClock, IconPhone, IconPin, IconWeb } from '../components/Icons';
 import {
   LocationEventsList,
   LocationNewsList,
@@ -35,11 +35,6 @@ const TABLES = [
   { id: '12', x: 230, y: 230 },
 ];
 const SLOT_HOURS = 2;
-
-const TODAY_DOW = (() => {
-  const d = new Date().getDay();
-  return d === 0 ? 6 : d - 1;
-})();
 
 interface Props { loc: Location; content: CafeContent }
 
@@ -137,39 +132,16 @@ export function CafeModule({ loc, content }: Props) {
   const tabs: TabDef[] = [
     {
       key: 'osnovni',
-      label: 'Osnovni podaci',
+      label: 'Opšte',
       render: () => (
-        <div className="module-section">
-          <div className="section-label">O kafiću</div>
-          <p className="prose-lead">{tagline}</p>
-          <div className="info-grid">
-            <div className="info-row">
-              <div className="info-icon"><IconPin /></div>
-              <div>
-                <div className="info-row-label">Adresa</div>
-                <div className="info-row-val">{loc.address}<br />12374 Žabari</div>
-              </div>
-            </div>
-            {contact.phone && (
-              <div className="info-row">
-                <div className="info-icon"><IconPhone /></div>
-                <div>
-                  <div className="info-row-label">Telefon</div>
-                  <div className="info-row-val">{contact.phone}</div>
-                </div>
-              </div>
-            )}
-            {contact.web && (
-              <div className="info-row">
-                <div className="info-icon"><IconWeb /></div>
-                <div>
-                  <div className="info-row-label">Veb</div>
-                  <div className="info-row-val">{contact.web}</div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <OpsteTab
+          loc={loc}
+          infoLabel="O kafiću"
+          tagline={tagline}
+          contact={{ phone: contact.phone, web: contact.web }}
+          hours={hours}
+          desavanja={desavanja}
+        />
       ),
     },
     {
@@ -345,32 +317,6 @@ export function CafeModule({ loc, content }: Props) {
                 </Fragment>
               ))}
             </div>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'radno-vreme',
-      label: 'Radno vreme',
-      isEmpty: hours.length === 0,
-      render: () => (
-        <div className="module-section">
-          <div className="section-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <IconClock /> Radno vreme
-          </div>
-          {hours.length === 0 ? (
-            <div className="loc-desavanja-empty">Radno vreme još nije uneto.</div>
-          ) : (
-            <table className="hours-table hours-table-wide">
-              <tbody>
-                {hours.map((h, i) => (
-                  <tr key={i} className={i === TODAY_DOW ? 'today' : ''}>
-                    <td>{h.day}</td>
-                    <td>{h.hours}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           )}
         </div>
       ),

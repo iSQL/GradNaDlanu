@@ -98,7 +98,7 @@ export interface LocationWithContent extends Location {
 export interface CommentAuthor {
   id: number;
   displayName: string;
-  role: 'admin' | 'business' | 'user' | 'guest';
+  role: 'admin' | 'business' | 'user' | 'guest' | 'curator';
 }
 
 export interface CommentNode {
@@ -190,9 +190,24 @@ export interface AdminUserRow {
   id: number;
   email: string;
   displayName: string;
-  role: 'admin' | 'business' | 'user';
+  role: 'admin' | 'business' | 'user' | 'curator';
   createdAt: string;
   ownedLocations: { id: number; slug: string; name: string }[];
+  curatedVillages: string[];
+}
+
+export interface VillageInfo {
+  name: string;
+  populationCensus2002: number | null;
+  populationCensus2022: number | null;
+  areaKm2: number | null;
+  distanceKm: number | null;
+  direction: string | null;
+  lat: number | null;
+  lon: number | null;
+  isSeat: boolean;
+  story: string | null;
+  curators: { id: number; displayName: string }[];
 }
 
 export type ServiceRequestStatus =

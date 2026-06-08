@@ -39,6 +39,15 @@ html, body {
 
 body { overflow-x: hidden; }
 
+/* Sticky-footer pattern: #root je flex kolona pune visine ekrana, footer dobija
+   margin-top: auto, pa kratak sadržaj gura footer na dno viewport-a (bez praznog
+   "praznika"), a dug sadržaj prirodno gura footer ispod, kao i pre. */
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
 a { color: inherit; text-decoration: none; }
 
 button { font-family: inherit; }
@@ -110,7 +119,10 @@ button { font-family: inherit; }
   gap: 4px;
   flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
+  /* `overflow: visible` je obavezno da hover-dropdown ("Objekti" → Lista / Mapa)
+     ne bude isečen ivicom flex containera. min-width: 0 zadržavamo zbog flex
+     shrink-a, ali bez clip-a. */
+  overflow: visible;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -607,7 +619,6 @@ button { font-family: inherit; }
    ============================================ */
 
 .module-page {
-  min-height: calc(100vh - var(--nav-h));
   padding: 0;
   background: var(--paper);
 }
@@ -785,6 +796,87 @@ button { font-family: inherit; }
 }
 
 .module-section + .module-section { margin-top: 56px; }
+
+.module-opste {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 40px;
+  align-items: start;
+}
+
+.module-opste-main {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  min-width: 0;
+}
+
+.module-opste-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.module-opste-more {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--navy);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.module-opste-more:hover { text-decoration: underline; }
+
+.module-opste-card { padding: 22px 22px 18px; }
+
+.module-opste-tagline {
+  margin: 10px 0 6px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.module-opste-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 18px;
+  margin: 14px 0 6px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--line);
+}
+
+.module-opste-fact-num {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--navy);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.module-opste-fact-num em { font-style: italic; color: var(--gold-2); font-weight: 400; }
+
+.module-opste-fact-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+.module-opste-hours { padding-top: 14px; }
+
+.module-opste-hours-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
 
 .section-label {
   font-size: 11px;
@@ -2097,6 +2189,7 @@ button { font-family: inherit; }
 /* Responsive */
 @media (max-width: 900px) {
   .module-body { grid-template-columns: 1fr; }
+  .module-opste { grid-template-columns: 1fr; gap: 32px; }
   .info-card { position: static; }
   .facts-grid { grid-template-columns: repeat(2, 1fr); }
   .rooms-grid { grid-template-columns: 1fr; }
@@ -2466,7 +2559,6 @@ button { font-family: inherit; }
    ============================================ */
 
 .home {
-  min-height: calc(100vh - var(--nav-h));
   background: var(--paper);
 }
 
@@ -2848,7 +2940,6 @@ button { font-family: inherit; }
    ============================================ */
 
 .page {
-  min-height: calc(100vh - var(--nav-h));
   background: var(--paper);
   padding: 40px 32px 80px;
 }
@@ -3570,6 +3661,7 @@ button { font-family: inherit; }
    ============================================ */
 
 .foot {
+  margin-top: auto;
   border-top: 1px solid var(--line);
   background: var(--paper-2);
   padding: 40px 32px 24px;
@@ -4425,3 +4517,446 @@ button { font-family: inherit; }
     letter-spacing: 0.12em;
   }
 }
+
+/* ============================================
+   /naselja — Voronoi SVG i hibridna mapa
+   ============================================ */
+
+.naselja-page { padding: 40px 24px 80px; }
+
+.naselja-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.naselja-head {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.naselja-kicker {
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  font-size: 11px;
+  color: var(--gold-2);
+  font-weight: 600;
+}
+
+.naselja-head h1 {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: clamp(28px, 4vw, 40px);
+  color: var(--navy);
+  letter-spacing: -0.01em;
+  margin: 6px 0 8px;
+}
+
+.naselja-sub {
+  font-style: italic;
+  color: var(--ink-2);
+  font-size: 15px;
+  max-width: 640px;
+  margin: 0 auto;
+  line-height: 1.55;
+}
+
+.naselja-layout {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 22px;
+  align-items: start;
+}
+
+@media (max-width: 880px) {
+  .naselja-layout { grid-template-columns: 1fr; }
+}
+
+.naselja-mapcard {
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+
+.naselja-mapcard-geo { padding: 0; overflow: hidden; }
+
+.naselja-map {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.naselja-region {
+  fill: var(--paper-3);
+  stroke: var(--line-2);
+  stroke-width: 1.1;
+  cursor: pointer;
+  transition: fill 0.15s ease, stroke 0.15s ease, stroke-width 0.15s ease;
+}
+/* Privremeni preview (mouseover) — suptilna naznaka, jasno različito od `.pinned`. */
+.naselja-region.hovered {
+  fill: var(--gold);
+  fill-opacity: 0.45;
+  stroke: var(--line-2);
+}
+/* Trajno fiksirano selo (klik). Mora vizuelno da nadjača hover na susednoj regiji. */
+.naselja-region.pinned {
+  fill: var(--gold);
+  stroke: var(--navy);
+  stroke-width: 2;
+}
+/* Kad je nešto fiksirano i miš pređe na drugo selo, pinned ostaje vidljiv —
+   hover overlay je suptilan da ne baci čitaoca u zabunu šta je odabrano. */
+.naselja-region.pinned.hovered {
+  fill: var(--gold);
+  stroke: var(--navy);
+}
+
+.naselja-outer {
+  fill: none;
+  stroke: var(--navy);
+  stroke-width: 3;
+}
+
+.naselja-seat {
+  fill: var(--gold);
+  stroke: var(--paper);
+  stroke-width: 1.5;
+}
+.naselja-dot {
+  fill: var(--navy);
+}
+
+.naselja-lbl {
+  font-size: 10.5px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  fill: var(--navy);
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: rgba(245, 241, 232, 0.85);
+  stroke-width: 2.4px;
+}
+.naselja-lbl.seat {
+  fill: var(--gold-2);
+  font-size: 12px;
+}
+
+.naselja-foot-note {
+  margin-top: 10px;
+  padding: 0 4px;
+  font-size: 11.5px;
+  color: var(--ink-2);
+  opacity: 0.75;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.naselja-mapcard-geo .naselja-foot-note {
+  padding: 10px 14px 14px;
+}
+
+.naselja-panel {
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+
+.naselja-pname {
+  font-family: 'Fraunces', serif;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--navy);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.naselja-preview-tag {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 2px 8px;
+  background: transparent;
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.naselja-ptag {
+  font-style: italic;
+  color: var(--ink-2);
+  margin-bottom: 16px;
+  font-size: 13.5px;
+}
+
+.naselja-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--line);
+}
+.naselja-stat .k {
+  color: var(--ink-2);
+  font-size: 13px;
+}
+.naselja-stat .v {
+  font-weight: 600;
+  font-size: 17px;
+  color: var(--ink);
+}
+.naselja-stat-last { border-bottom: none; }
+.naselja-coord {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.naselja-bar {
+  height: 6px;
+  background: var(--paper-3);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+.naselja-bar > i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--navy), var(--gold));
+}
+
+.naselja-curators {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.naselja-curators-label {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin-bottom: 8px;
+}
+.naselja-curators-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.naselja-curator-chip {
+  font-size: 12.5px;
+  padding: 5px 10px;
+  background: var(--navy);
+  color: var(--paper);
+  border-radius: 999px;
+}
+.naselja-curators-empty {
+  font-size: 12.5px;
+  color: var(--ink-2);
+  font-style: italic;
+  line-height: 1.55;
+}
+
+.naselja-link {
+  margin-top: 14px;
+  font-size: 13px;
+}
+.naselja-link a {
+  color: var(--navy);
+  font-weight: 600;
+  border-bottom: 1px solid var(--gold);
+}
+.naselja-link a:hover { color: var(--gold-2); }
+
+.naselja-hint {
+  margin-top: 12px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  line-height: 1.55;
+}
+
+.naselja-chips-label {
+  margin-top: 16px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.naselja-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.naselja-chip {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--navy);
+  background: var(--paper);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.naselja-chip:hover {
+  background: var(--paper-3);
+  border-color: var(--line-2);
+}
+.naselja-chip.on {
+  background: var(--navy);
+  color: var(--paper);
+  border-color: var(--navy);
+}
+.naselja-chip-clear {
+  margin-left: 4px;
+  color: var(--ink-2);
+  font-style: italic;
+}
+
+/* Leaflet pin override za /naseljageo — Leaflet stilovi inače dodaju background. */
+.naselja-geo-pin { background: none !important; border: none !important; }
+
+/* ============================================
+   Kustos panel (curator dashboard)
+   ============================================ */
+
+.curator-status-draft {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 1px 7px;
+  background: var(--gold);
+  color: var(--ink);
+  border-radius: 999px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.role-badge-curator {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 7px;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: var(--navy);
+  color: var(--paper);
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+/* ============================================
+   Nav podmeni (Objekti → Lista / Mapa)
+   ============================================ */
+
+.nav-link-group {
+  position: relative;
+  /* Bez ovoga `<li>` ima visinu samo svog teksta i `top: 100%` na submeniju
+     padne usred topnav-a (gde je topnav pozadina prekriva). align-self: stretch
+     dovodi `<li>` do pune visine topnav-a, pa `top: 100%` izlazi tačno ispod. */
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+.nav-link-group > .nav-link {
+  display: inline-flex;
+  align-items: center;
+}
+.nav-submenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 200px;
+  list-style: none;
+  padding: 4px;
+  margin: 0;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: var(--shadow-lg);
+  /* Skriveno dok rodi tački ne dobije hover/focus-within. */
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  /* Mora preko Leaflet-ovog popup-pane-a (700) i preko topnav-a, koji je 1000
+     u dokument-stacking-kontekstu. Submenu je dete topnav-a, pa je 1200 ovde
+     unutar topnav-stacking-konteksta dovoljno da nadvisi sve drugo iz topnav-a. */
+  z-index: 1200;
+}
+.nav-link-group:hover > .nav-submenu,
+.nav-link-group:focus-within > .nav-submenu {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.nav-submenu li {
+  list-style: none;
+}
+.nav-submenu-link {
+  display: block;
+  padding: 9px 12px;
+  font-size: 13.5px;
+  color: var(--ink);
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.nav-submenu-link:hover {
+  background: var(--paper-3);
+}
+.nav-submenu-link.active {
+  background: var(--navy);
+  color: var(--paper);
+}
+
+/* Mobile drawer — indentirana podlista ispod glavne stavke. */
+.nav-drawer-sublist {
+  list-style: none;
+  padding: 0 0 4px 14px;
+  margin: 0 0 0 8px;
+  border-left: 1px solid var(--line);
+}
+.nav-drawer-sublink {
+  display: block;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--ink-2);
+  text-decoration: none;
+  border-radius: 4px;
+}
+.nav-drawer-sublink:hover {
+  background: var(--paper-3);
+  color: var(--ink);
+}
+.nav-drawer-sublink.active {
+  color: var(--navy);
+  font-weight: 600;
+}
+
+/* Sidebar "Prikaži na mapi" link u info kartici objekta. */
+.info-row-map-link {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--navy);
+  text-decoration: none;
+  border-bottom: 1px solid var(--gold);
+}
+.info-row-map-link:hover {
+  color: var(--gold-2);
+}
+

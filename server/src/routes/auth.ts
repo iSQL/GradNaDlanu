@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { users, objectOwners } from '../db/schema.js';
+import { users, objectOwners, villageCurators } from '../db/schema.js';
 import { bumpTokenVersion, requireAuth } from '../lib/auth.js';
 import { isRegistrationEnabled } from '../lib/settings.js';
 import { sendVerificationEmail } from '../lib/email.js';
@@ -279,6 +279,10 @@ export async function authRoutes(app: FastifyInstance) {
       .select({ locationId: objectOwners.locationId })
       .from(objectOwners)
       .where(eq(objectOwners.userId, user.id));
+    const curated = await db
+      .select({ village: villageCurators.villageName })
+      .from(villageCurators)
+      .where(eq(villageCurators.userId, user.id));
     return {
       id: user.id,
       email: user.email,
@@ -286,6 +290,7 @@ export async function authRoutes(app: FastifyInstance) {
       role: user.role,
       emailVerifiedAt: user.emailVerifiedAt,
       ownedLocationIds: owned.map((o) => o.locationId),
+      curatedVillages: curated.map((c) => c.village),
     };
   });
 

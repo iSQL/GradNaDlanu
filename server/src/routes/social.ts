@@ -19,7 +19,7 @@ import { touchGuestActivity } from '../lib/guest-activity.js';
 interface CommentAuthor {
   id: number;
   displayName: string;
-  role: 'admin' | 'business' | 'user' | 'guest';
+  role: 'admin' | 'business' | 'user' | 'guest' | 'curator';
 }
 
 interface CommentNode {
