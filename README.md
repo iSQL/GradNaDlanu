@@ -45,7 +45,7 @@ Visitors register at `/registracija`. Business owners are visitors who've been g
 | --- | --- | --- |
 | Visitor (`/nalog`) | landing, map, module pages, `/desavanja`, `/objekti`, `/naselja` | favorite objects, comment + rate, check in, request reservations, cancel own reservations |
 | Business owner (`/poslovni`) | dashboard | edit owned objects (name/subtitle/address/village/content), approve/decline reservations, draw floor plans, publish events and news ("obaveštenja") per object, reply to comments on own objects |
-| Village curator (`/kustos`) | per-village dashboard | add new objects in their village(s) as draft, edit general fields (name/subtitle/address) and a whitelisted slice of `content` per category (no `menu`/`services`/`rooms`/`programs`), full edit of landmark content, hide/restore comments on objects in their villages — **cannot** publish events/news, view reservations, edit `village` itself |
+| Village curator (`/kustos`) | per-village dashboard | add new objects in their village(s) as draft (via dashboard form OR long-press on `/mapa`), edit general fields (name/subtitle/address) and a whitelisted slice of `content` per category (no `menu`/`services`/`rooms`/`programs`), full edit of landmark content, hide/restore comments on objects in their villages — **cannot** publish events/news, view reservations, edit `village` itself |
 | Admin (`/admin`) | full panel | everything; tabs: **Objekti** (CRUD all locations including `village`), **Rezervacije** (cross-location inbox), **Korisnici** (search, change role, grant/revoke object ownership *and* village curatorship) |
 
 Reservations enforce real availability — café tables use a half-open `tstzrange` overlap check per `(location_id, tableId)`; hotels use a `daterange '[)'` per `(location_id, roomKey)`. Pending reservations block new ones until declined or cancelled.
@@ -119,6 +119,8 @@ Visit http://localhost:3001 — the SPA is served by Fastify on the same origin 
 6. **After the first successful deploy**, flip `RUN_SEED_ON_BOOT=false` so subsequent restarts don't re-run the (idempotent) seed.
 
 Boot-time migrations are always on in production — schema changes ship with the next image.
+
+> **Adding a new seed dataset later** (e.g., extending the `VILLAGES` array in `seed-data.ts` with new entries, or seeding a brand-new lookup table): do NOT flip `RUN_SEED_ON_BOOT=true` for one boot — that path also tries to insert the demo visitor accounts (`marko@example.com` etc.) and demo comments which you don't want polluting prod. Instead run a targeted `INSERT ... ON CONFLICT (...) DO NOTHING` SQL against just the affected table, or a small one-off Node script that imports only the desired const from `seed-data.ts`. Boot-time migrations create the table; the data backfill is a separate, deliberate step.
 
 ### Without Coolify
 
