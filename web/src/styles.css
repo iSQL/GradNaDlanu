@@ -2486,15 +2486,18 @@ button { font-family: inherit; }
   z-index: 1101;
   display: flex;
   flex-direction: column;
-  padding: 76px 20px 24px;
+  padding: 24px 20px 24px;
   animation: slide-in 0.22s ease-out;
   overflow-y: auto;
 }
 
 .nav-search-drawer {
+  flex: 0 0 auto;
   max-width: none;
   width: 100%;
   margin-bottom: 18px;
+  padding: 8px 12px;
+  font-size: 14px;
 }
 
 .nav-drawer-links {
@@ -2545,7 +2548,7 @@ button { font-family: inherit; }
 /* Mobile breakpoint: kompaktnija navigacija, hamburger umesto linkova/searcha. */
 @media (max-width: 720px) {
   .nav-links,
-  .nav-search { display: none; }
+  .nav-right .nav-search { display: none; }
   .nav-hamburger { display: inline-flex; }
   .nav-btn:not(.nav-btn-block) {
     /* na mobilnom skratimo auth pill da brand i hamburger imaju mesta */
