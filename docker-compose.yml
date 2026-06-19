@@ -67,6 +67,15 @@ services:
     # pool that round-robins traffic across all containers.
     labels:
       - "traefik.enable=true"
+      # Pin the network Traefik routes over. The container is attached to THREE
+      # docker networks (Coolify's per-resource ingress net, the compose
+      # `_default` net, and the shared `coolify` net). Traefik only sits on
+      # `coolify` (10.0.1.x); without this label it picks one of the three
+      # arbitrarily and, when it lands on the unreachable `_default` net, every
+      # request times out → intermittent 504 while the container stays healthy.
+      # Pinning to `coolify` makes routing deterministic over the one network
+      # the proxy can always reach.
+      - "traefik.docker.network=coolify"
     # Host port binding — bound to 127.0.0.1 ONLY so the backend isn't reachable
     # from the public internet (Traefik handles real traffic via the docker
     # network). Useful for SSH-tunnel debugging from the Coolify host. If you
