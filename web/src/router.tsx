@@ -15,6 +15,7 @@ import { LegalNotice } from './pages/LegalNotice';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { MapPage } from './pages/MapPage';
 import { ObjektiPage } from './pages/ObjektiPage';
+import { OglasiPage } from './pages/OglasiPage';
 import { DesavanjaPage } from './pages/DesavanjaPage';
 import { NewsDetailPage } from './pages/NewsDetailPage';
 import { EventDetailPage } from './pages/EventDetailPage';
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
       { path: 'mapa', element: <MapPage /> },
       { path: 'naselja', element: <NaseljaPage /> },
       { path: 'objekti', element: <ObjektiPage /> },
+      { path: 'oglasi', element: <OglasiPage /> },
       { path: 'desavanja', element: <DesavanjaPage /> },
       { path: 'obavestenje/:slug', element: <NewsDetailPage /> },
       { path: 'dogadjaj/:id', element: <EventDetailPage /> },

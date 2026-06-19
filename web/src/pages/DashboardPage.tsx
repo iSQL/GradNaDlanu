@@ -1,30 +1,22 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import type { AppContext } from '../App';
-import { api, mediaUrl } from '../lib/api';
+import { api } from '../lib/api';
 import { clearToken } from '../lib/auth';
 import { formatDate, formatDateTime, formatDateTimeRange, formatTime } from '../lib/format';
 import { PinGlyph } from '../components/PinGlyph';
 import { IconStar } from '../components/Icons';
 import { RoleBadge } from '../components/RoleBadge';
+import { PorukeInbox } from '../components/PorukeInbox';
 import type {
   CityEvent,
+  ConversationSummary,
   FavoriteRow,
   MyComment,
   MyReservation,
   MyServiceRequest,
   NewsItem,
-  ServiceRequestStatus,
 } from '../types';
-
-const SR_STATUS_LABELS: Record<ServiceRequestStatus, string> = {
-  pending: 'na čekanju',
-  quoted: 'stigla ponuda',
-  accepted: 'prihvaćeno',
-  declined: 'odbijeno',
-  cancelled: 'otkazano',
-  completed: 'završeno',
-};
 
 const RES_STATUS_LABELS: Record<MyReservation['status'], string> = {
   pending: 'na čekanju',
@@ -48,13 +40,13 @@ type FollowedCard =
   | { kind: 'news'; id: number; date: string; data: NewsItem }
   | { kind: 'event'; id: number; date: string; data: CityEvent };
 
-type Tab = 'pratim' | 'komentari' | 'rezervacije' | 'zahtevi';
+type Tab = 'pratim' | 'komentari' | 'rezervacije' | 'poruke';
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'pratim', label: 'Pratim' },
   { key: 'komentari', label: 'Komentari' },
   { key: 'rezervacije', label: 'Rezervacije' },
-  { key: 'zahtevi', label: 'Zahtevi majstoru' },
+  { key: 'poruke', label: 'Poruke' },
 ];
 
 export function DashboardPage() {
@@ -68,6 +60,7 @@ export function DashboardPage() {
   const [comments, setComments] = useState<MyComment[] | null>(null);
   const [reservations, setReservations] = useState<MyReservation[] | null>(null);
   const [serviceRequests, setServiceRequests] = useState<MyServiceRequest[] | null>(null);
+  const [conversations, setConversations] = useState<ConversationSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [upgradeEmail, setUpgradeEmail] = useState('');
@@ -82,6 +75,7 @@ export function DashboardPage() {
     api.myComments().then(setComments).catch((e: Error) => setError(e.message));
     api.myReservations().then(setReservations).catch((e: Error) => setError(e.message));
     api.myServiceRequests().then(setServiceRequests).catch((e: Error) => setError(e.message));
+    api.myConversations().then(setConversations).catch((e: Error) => setError(e.message));
     api.listNews({ limit: 100 }).then(setNews).catch((e: Error) => setError(e.message));
     api
       .listEvents({ limit: 100, includePast: true })
@@ -105,6 +99,23 @@ export function DashboardPage() {
     list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     return list;
   }, [favorites, news, events]);
+
+  // Clear the matching notification anchor when the user opens a section, then
+  // refresh the nav badge. (Default tab is 'pratim', so the feed clears on open.)
+  const reloadNotifications = ctx.reloadNotifications;
+  useEffect(() => {
+    if (!ctx.currentUser) return;
+    if (tab === 'rezervacije') {
+      api.markSeen('reservations').then(() => reloadNotifications()).catch(() => {});
+    } else if (tab === 'pratim') {
+      api.markSeen('feed').then(() => reloadNotifications()).catch(() => {});
+    }
+  }, [tab, ctx.currentUser, reloadNotifications]);
+
+  // Reading/sending messages mutates `conversations`; recompute the unread badge.
+  useEffect(() => {
+    if (conversations !== null) void reloadNotifications();
+  }, [conversations, reloadNotifications]);
 
   const submitUpgrade = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,25 +152,16 @@ export function DashboardPage() {
     setReservations(await api.myReservations());
   };
 
-  const acceptServiceRequest = async (id: number) => {
-    if (!window.confirm('Prihvatiti ovu ponudu?')) return;
-    try {
-      await api.acceptServiceRequest(id);
-      setServiceRequests(await api.myServiceRequests());
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
-  };
+  // Stable refs: PorukeInbox passes these into a useEffect dependency array, so a
+  // fresh reference each render would re-fire the effect (markRead → reload →
+  // re-render → loop) and flood the server with read requests.
+  const reloadServiceRequests = useCallback(async () => {
+    setServiceRequests(await api.myServiceRequests());
+  }, []);
 
-  const cancelServiceRequest = async (id: number) => {
-    if (!window.confirm('Otkazati ovaj zahtev?')) return;
-    try {
-      await api.cancelServiceRequest(id);
-      setServiceRequests(await api.myServiceRequests());
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
-  };
+  const reloadConversations = useCallback(async () => {
+    setConversations(await api.myConversations());
+  }, []);
 
   // ── Logged-out splash ──────────────────────────────────────────────────────
   if (!ctx.currentUser) {
@@ -270,7 +272,9 @@ export function DashboardPage() {
               t.key === 'pratim' ? favorites?.length
               : t.key === 'komentari' ? comments?.length
               : t.key === 'rezervacije' ? reservations?.length
-              : serviceRequests?.length;
+              : conversations === null && serviceRequests === null
+                ? undefined
+                : (conversations?.length ?? 0) + (serviceRequests?.length ?? 0);
             return (
               <button
                 key={t.key}
@@ -500,97 +504,29 @@ export function DashboardPage() {
         </section>
         )}
 
-        {/* ── IV. ZAHTEVI ──────────────────────────────────────────────── */}
-        {tab === 'zahtevi' && (
+        {/* ── IV. PORUKE (objedinjen inbox: razgovori o oglasima + zahtevi majstoru) ── */}
+        {tab === 'poruke' && (
         <section className="ms-section">
           <div className="ms-section-body">
             <div className="ms-section-head">
               <span className="ms-eyebrow">— odeljak —</span>
-              <h2 className="ms-section-title">Zahtevi majstoru</h2>
+              <h2 className="ms-section-title">Poruke</h2>
               <span className="ms-section-meta">
-                {serviceRequests ? `${serviceRequests.length} ukupno` : '—'}
+                {conversations && serviceRequests
+                  ? `${conversations.length + serviceRequests.length} ukupno`
+                  : '—'}
               </span>
             </div>
 
-            {serviceRequests === null ? (
-              <div className="ms-empty">Učitavanje…</div>
-            ) : serviceRequests.length === 0 ? (
-              <div className="ms-empty">Niste još poslali nijedan zahtev majstoru.</div>
-            ) : (
-              <div className="ms-orders">
-                {serviceRequests.map((r) => (
-                  <article className="ms-order" key={r.id}>
-                    <div className="ms-order-head">
-                      <div className="ms-order-id">
-                        <Link to={`/objekat/${r.locationSlug}`} className="ms-ticket-loc">
-                          {r.locationName}
-                        </Link>
-                        <div className="ms-order-meta">
-                          zahtev <span className="ms-order-num">№ {r.id}</span> · poslato{' '}
-                          {formatDate(r.createdAt)}
-                        </div>
-                      </div>
-                      <div className={`ms-stamp s-${r.status}`}>
-                        {SR_STATUS_LABELS[r.status]}
-                      </div>
-                    </div>
-
-                    <p className="ms-order-body">{r.payload.description}</p>
-
-                    {r.payload.photoIds.length > 0 && (
-                      <div className="ms-order-thumbs">
-                        {r.payload.photoIds.map((id) => (
-                          <a key={id} href={mediaUrl(id)} target="_blank" rel="noreferrer">
-                            <img src={mediaUrl(id)} alt={`photo-${id}`} />
-                          </a>
-                        ))}
-                      </div>
-                    )}
-
-                    {r.quote && (
-                      <div className="ms-quote">
-                        <div className="ms-quote-label">— Ponuda majstora —</div>
-                        <div className="ms-quote-main">
-                          <strong>{r.quote.priceRsd.toLocaleString('sr-RS')} RSD</strong> · termin{' '}
-                          {r.quote.availableDate}
-                        </div>
-                        {r.quote.note && <div className="ms-quote-note">{r.quote.note}</div>}
-                      </div>
-                    )}
-
-                    {r.status === 'pending' && (
-                      <div className="ms-order-actions">
-                        <button
-                          className="ms-btn ms-btn-danger ms-btn-sm"
-                          onClick={() => cancelServiceRequest(r.id)}
-                        >
-                          Otkaži zahtev
-                        </button>
-                      </div>
-                    )}
-                    {r.status === 'quoted' && (
-                      <div className="ms-order-actions">
-                        <button
-                          className="ms-btn ms-btn-primary ms-btn-sm"
-                          onClick={() => acceptServiceRequest(r.id)}
-                        >
-                          Prihvati ponudu
-                        </button>
-                        <button
-                          className="ms-btn ms-btn-danger ms-btn-sm"
-                          onClick={() => cancelServiceRequest(r.id)}
-                        >
-                          Otkaži zahtev
-                        </button>
-                      </div>
-                    )}
-                  </article>
-                ))}
-              </div>
-            )}
+            <PorukeInbox
+              currentUserId={user.id}
+              conversations={conversations}
+              serviceRequests={serviceRequests}
+              reloadConversations={reloadConversations}
+              reloadServiceRequests={reloadServiceRequests}
+            />
           </div>
         </section>
-
         )}
       </div>
     </div>

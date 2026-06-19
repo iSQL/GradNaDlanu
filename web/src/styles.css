@@ -4951,3 +4951,315 @@ button { font-family: inherit; }
   color: var(--gold-2);
 }
 
+/* ============================================
+   OGLASNA TABLA (bulletin board)
+   ============================================ */
+
+.oglasi-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+.oglasi-cats { display: flex; flex-wrap: wrap; gap: 8px; }
+.oglasi-cat-chip {
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink-2);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.oglasi-cat-chip:hover { border-color: var(--line-2); }
+.oglasi-cat-chip.is-active {
+  background: var(--navy);
+  color: var(--paper);
+  border-color: var(--navy);
+}
+.oglasi-toolbar-right { display: flex; gap: 10px; align-items: center; }
+.oglasi-toolbar-right .ms-field-input { min-width: 150px; }
+
+.oglasi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 18px;
+}
+.oglas-card {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  padding: 0;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.oglas-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.oglas-card-thumb {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: var(--paper-2);
+}
+.oglas-card-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.oglas-card-noimg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--line-2);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.oglas-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: var(--navy);
+}
+.oglas-badge.cat-prodajem { background: var(--moss); }
+.oglas-badge.cat-kupujem { background: var(--slate); }
+.oglas-badge.cat-usluge { background: var(--navy-2); }
+.oglas-badge.cat-poslovi { background: var(--gold-2); }
+.oglas-badge.cat-ostalo { background: var(--ink-2); }
+.oglas-badge.cat-arhiva { background: var(--rust); }
+.oglas-card-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.oglas-card-title { font-weight: 600; font-size: 15px; line-height: 1.3; color: var(--ink); }
+.oglas-card-price { font-weight: 700; color: var(--navy); font-size: 14px; }
+.oglas-card-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-2);
+  opacity: 0.8;
+}
+.oglas-card-author { font-style: italic; }
+
+/* Moji oglasi */
+.oglasi-mine { margin-bottom: 20px; }
+.oglasi-mine-toggle {
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+  cursor: pointer;
+  padding: 4px 0;
+}
+.oglasi-mine-list { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.oglasi-mine-item {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+}
+.oglasi-mine-item:hover { background: var(--paper-3); }
+.oglasi-mine-title { font-weight: 600; font-size: 14px; }
+.oglasi-mine-item .oglas-badge { position: static; }
+
+/* Modal (detail + form) */
+.oglas-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 27, 43, 0.55);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+.oglas-modal {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+.oglas-modal-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(11, 27, 43, 0.4);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  border-radius: 999px;
+  cursor: pointer;
+  z-index: 2;
+}
+.oglas-modal-photo { max-height: 320px; overflow: hidden; background: var(--paper-2); }
+.oglas-modal-photo img { width: 100%; max-height: 320px; object-fit: cover; display: block; }
+.oglas-modal-body { padding: 20px 24px 24px; }
+.oglas-modal-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.oglas-modal-head .oglas-badge { position: static; }
+.oglas-modal-date { font-size: 12px; color: var(--ink-2); opacity: 0.7; margin-left: auto; }
+.oglas-modal-title { font-family: 'Fraunces', serif; font-weight: 500; font-size: 26px; margin: 0 0 6px; }
+.oglas-modal-price { font-weight: 700; color: var(--navy); font-size: 18px; margin-bottom: 6px; }
+.oglas-modal-meta { font-size: 13px; color: var(--ink-2); margin-bottom: 14px; }
+.oglas-modal-desc { font-size: 14.5px; line-height: 1.6; white-space: pre-wrap; margin: 0 0 18px; }
+.oglas-modal-contact { border-top: 1px solid var(--line); padding-top: 14px; }
+.oglas-modal-owner-actions { display: flex; gap: 8px; margin-top: 16px; }
+.oglas-contact-note { font-size: 13px; color: var(--ink-2); margin: 6px 0 0; }
+.oglas-msg-form { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+
+/* Form */
+.oglas-form { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+.oglas-form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.oglas-form-photo { display: flex; align-items: center; gap: 12px; }
+.oglas-form-photo img { width: 96px; height: 72px; object-fit: cover; border-radius: 4px; border: 1px solid var(--line); }
+.oglas-contact-radios { display: flex; flex-direction: column; gap: 6px; }
+.oglas-radio { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.oglas-form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+
+@media (max-width: 560px) {
+  .oglas-form-row { grid-template-columns: 1fr; }
+}
+
+/* ============================================
+   PORUKE (unified inbox + message thread)
+   ============================================ */
+
+.poruke-grid { display: grid; grid-template-columns: 300px 1fr; gap: 18px; align-items: start; }
+.poruke-list { display: flex; flex-direction: column; gap: 8px; max-height: 560px; overflow-y: auto; }
+.poruke-item {
+  text-align: left;
+  padding: 11px 13px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.poruke-item:hover { background: var(--paper-3); }
+.poruke-item.is-active { border-color: var(--navy); background: var(--paper); }
+.poruke-item-top { display: flex; align-items: center; gap: 8px; }
+.poruke-item-cp { font-weight: 700; font-size: 13.5px; flex: 1; }
+.poruke-unread {
+  background: var(--rust);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+}
+.poruke-status {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--navy);
+  opacity: 0.8;
+}
+.poruke-item-title { font-size: 13px; color: var(--ink); font-weight: 600; }
+.poruke-item-snippet {
+  font-size: 12.5px;
+  color: var(--ink-2);
+  opacity: 0.85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.poruke-item-date { font-size: 11px; color: var(--ink-2); opacity: 0.6; }
+.poruke-detail {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  padding: 16px 18px;
+  min-height: 320px;
+}
+.poruke-conv-head { border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 12px; }
+.poruke-conv-headline { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.poruke-conv-title { font-family: 'Fraunces', serif; font-weight: 500; font-size: 20px; margin: 0; }
+.poruke-conv-sub { font-size: 13px; color: var(--ink-2); margin-top: 3px; }
+.poruke-archived-flag { color: var(--rust); font-style: italic; font-weight: 600; }
+
+/* "Moj prostor" notification badge (nav + drawer) */
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  margin-left: 6px;
+  border-radius: 999px;
+  background: var(--rust);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: middle;
+}
+.poruke-conv-delete {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--rust);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.poruke-conv-delete:hover { background: var(--rust); color: #fff; border-color: var(--rust); }
+
+.msg-thread { display: flex; flex-direction: column; gap: 12px; }
+.msg-list { display: flex; flex-direction: column; gap: 8px; max-height: 380px; overflow-y: auto; padding-right: 4px; }
+.msg-bubble { max-width: 78%; padding: 9px 13px; border-radius: 12px; font-size: 14px; line-height: 1.45; }
+.msg-bubble-body { white-space: pre-wrap; }
+.msg-bubble-time { font-size: 10.5px; opacity: 0.6; margin-top: 4px; }
+.msg-bubble.is-mine { align-self: flex-end; background: var(--navy); color: var(--paper); border-bottom-right-radius: 3px; }
+.msg-bubble.is-theirs { align-self: flex-start; background: var(--paper-2); color: var(--ink); border-bottom-left-radius: 3px; }
+.msg-composer { display: flex; gap: 8px; align-items: flex-end; border-top: 1px solid var(--line); padding-top: 12px; }
+.msg-composer textarea {
+  flex: 1;
+  resize: vertical;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 14px;
+}
+.msg-disabled { margin: 0; }
+
+@media (max-width: 720px) {
+  .poruke-grid { grid-template-columns: 1fr; }
+  .poruke-list { max-height: none; }
+}
+

@@ -4,11 +4,13 @@ import type { CurrentUser } from '../lib/api';
 import { getToken } from '../lib/auth';
 import { IconAdmin, IconSearch } from './Icons';
 import { RoleBadge } from './RoleBadge';
+import type { Notifications } from '../types';
 
 interface Props {
   search: string;
   onSearchChange: (next: string) => void;
   currentUser: CurrentUser | null;
+  notifications?: Notifications;
 }
 
 function homeRouteFor(user: CurrentUser): string {
@@ -35,6 +37,7 @@ const MENU: MenuItem[] = [
     submenu: [
       { to: '/objekti', label: 'Lista objekata', end: true },
       { to: '/mapa', label: 'Mapa' },
+      { to: '/oglasi', label: 'Oglasna tabla' },
     ],
   },
   { to: '/dashboard', label: 'Moj prostor' },
@@ -64,10 +67,17 @@ function IconClose() {
   );
 }
 
-export function Nav({ search, onSearchChange, currentUser }: Props) {
+export function Nav({ search, onSearchChange, currentUser, notifications }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Aggregate badge for "Moj prostor": unread messages + reservation updates +
+  // followed-object updates. Only shown to logged-in users.
+  const notifyCount = currentUser && notifications
+    ? notifications.unreadMessages + notifications.reservationUpdates + notifications.followedUpdates
+    : 0;
+  const badgeText = notifyCount > 9 ? '9+' : String(notifyCount);
 
   // Zatvori drawer na svaku promenu rute.
   useEffect(() => {
@@ -118,6 +128,11 @@ export function Nav({ search, onSearchChange, currentUser }: Props) {
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               >
                 {item.label}
+                {item.to === '/dashboard' && notifyCount > 0 && (
+                  <span className="nav-badge" aria-label={`${notifyCount} novih obaveštenja`}>
+                    {badgeText}
+                  </span>
+                )}
                 {item.submenu && <IconCaret />}
               </NavLink>
               {item.submenu && (
@@ -203,6 +218,9 @@ export function Nav({ search, onSearchChange, currentUser }: Props) {
                     }
                   >
                     {item.label}
+                    {item.to === '/dashboard' && notifyCount > 0 && (
+                      <span className="nav-badge">{badgeText}</span>
+                    )}
                   </NavLink>
                   {item.submenu && (
                     <ul className="nav-drawer-sublist">

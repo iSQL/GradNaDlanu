@@ -62,6 +62,11 @@ export const users = pgTable('users', {
   // Updated on guest-allowed mutating actions (favorite/comment/checkin). Used
   // by the 7-day inactivity sweep that deletes role='guest' rows.
   lastActiveAt: timestamp('last_active_at').defaultNow().notNull(),
+  // "Last seen" anchors for the "Moj prostor" notification badge. Bumped when the
+  // user opens the matching dashboard tab; the notifications query counts items
+  // newer than these. (Unread messages use the per-conversation read marks.)
+  reservationsSeenAt: timestamp('reservations_seen_at').defaultNow().notNull(),
+  feedSeenAt: timestamp('feed_seen_at').defaultNow().notNull(),
 });
 
 export const objectOwners = pgTable(
@@ -283,6 +288,77 @@ export const serviceRequests = pgTable('service_requests', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Oglasna tabla — korisnik-postavljeni oglasi. Efemerni: traju 7 dana od
+// poslednjeg `last_refreshed_at`, koji se osvežava kad vlasnik poseti sajt
+// (vidi lib/oglasi-activity.ts). Posle 7 dana neaktivnosti sweep (lib/oglasi-
+// cleanup.ts) ih prebacuje u status='archived' (soft-delete); samo admin vraća.
+export const ads = pgTable('ads', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  category: text('category', {
+    enum: ['prodajem', 'kupujem', 'usluge', 'poslovi', 'ostalo'],
+  }).notNull(),
+  priceRsd: integer('price_rsd'),
+  village: text('village').notNull(),
+  photoMediaId: integer('photo_media_id').references(() => media.id, { onDelete: 'set null' }),
+  contactMethod: text('contact_method', {
+    enum: ['link', 'phone', 'email', 'message'],
+  }).notNull(),
+  // null when contactMethod='message' (in-site conversations instead).
+  contactValue: text('contact_value'),
+  status: text('status', { enum: ['active', 'archived'] })
+    .default('active')
+    .notNull(),
+  permanent: boolean('permanent').default(false).notNull(),
+  lastRefreshedAt: timestamp('last_refreshed_at').defaultNow().notNull(),
+  // Set when the ad enters 'archived' (soft-delete); cleared on restore. Drives
+  // the retention purge in lib/oglasi-cleanup.ts that hard-deletes long-archived
+  // ads (which CASCADE-deletes their conversations + messages).
+  archivedAt: timestamp('archived_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// 1-to-1 razgovor, opciono vezan za oglas. Par učesnika čuvamo uređeno
+// (low < high) tako da partial-unique indeks spreči duple niti za isti par+oglas.
+// `adTitleSnapshot` preživi brisanje oglasa (ad_id -> NULL) da zaglavlje ostane.
+export const conversations = pgTable('conversations', {
+  id: serial('id').primaryKey(),
+  // CASCADE: hard-deleting an ad row (retention purge) removes its conversations
+  // and (via messages FK) their messages. A *soft-deleted* (archived) ad keeps
+  // its row, so conversations stay visible while the ad sits in the archive.
+  adId: integer('ad_id').references(() => ads.id, { onDelete: 'cascade' }),
+  adTitleSnapshot: text('ad_title_snapshot'),
+  userLowId: integer('user_low_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  userHighId: integer('user_high_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  lastMessageAt: timestamp('last_message_at').defaultNow().notNull(),
+  // Po-učesnik oznaka pročitanog: nepročitano = poruke novije od moje oznake
+  // koje nije poslao ja. Nema per-poruka flag-ova.
+  lastReadLowAt: timestamp('last_read_low_at'),
+  lastReadHighAt: timestamp('last_read_high_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const messages = pgTable('messages', {
+  id: serial('id').primaryKey(),
+  conversationId: integer('conversation_id')
+    .references(() => conversations.id, { onDelete: 'cascade' })
+    .notNull(),
+  senderId: integer('sender_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  body: text('body').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export type Category = typeof categories.$inferSelect;
 export type Location = typeof locations.$inferSelect;
 export type ModuleContentRow = typeof moduleContent.$inferSelect;
@@ -307,4 +383,10 @@ export type News = typeof news.$inferSelect;
 export type NewsStatus = News['status'];
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 export type Alumnus = typeof alumni.$inferSelect;
+export type Ad = typeof ads.$inferSelect;
+export type AdStatus = Ad['status'];
+export type AdCategory = Ad['category'];
+export type AdContactMethod = Ad['contactMethod'];
+export type Conversation = typeof conversations.$inferSelect;
+export type Message = typeof messages.$inferSelect;
 export type Role = User['role'];

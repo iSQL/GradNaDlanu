@@ -314,6 +314,87 @@ export interface OwnerAlumnus extends Alumnus {
   locationCatId?: CategoryId;
 }
 
+// --- Oglasna tabla ---
+
+export type AdCategory = 'prodajem' | 'kupujem' | 'usluge' | 'poslovi' | 'ostalo';
+export type AdContactMethod = 'link' | 'phone' | 'email' | 'message';
+export type AdStatus = 'active' | 'archived';
+
+export interface Ad {
+  id: number;
+  userId: number;
+  title: string;
+  description: string;
+  category: AdCategory;
+  priceRsd: number | null;
+  village: string;
+  photoMediaId: number | null;
+  contactMethod: AdContactMethod;
+  contactValue: string | null;
+  status: AdStatus;
+  permanent: boolean;
+  createdAt: string;
+  updatedAt: string;
+  authorDisplayName: string;
+}
+
+export interface AdInput {
+  title: string;
+  description: string;
+  category: AdCategory;
+  priceRsd: number | null;
+  village: string;
+  photoMediaId: number | null;
+  contactMethod: AdContactMethod;
+  contactValue: string | null;
+}
+
+export const AD_CATEGORY_LABELS: Record<AdCategory, string> = {
+  prodajem: 'Prodajem',
+  kupujem: 'Kupujem',
+  usluge: 'Usluge',
+  poslovi: 'Poslovi',
+  ostalo: 'Ostalo',
+};
+
+// --- In-site messaging (poruke) ---
+
+export interface ConversationSummary {
+  id: number;
+  adId: number | null;
+  adTitleSnapshot: string | null;
+  lastMessageAt: string;
+  counterpartyId: number;
+  counterpartyName: string;
+  lastSnippet: string | null;
+  lastSnippetAt: string | null;
+  unreadCount: number;
+  adActive: boolean;
+}
+
+export interface Message {
+  id: number;
+  senderId: number;
+  body: string;
+  createdAt: string;
+}
+
+export interface Notifications {
+  unreadMessages: number;
+  reservationUpdates: number;
+  followedUpdates: number;
+}
+
+export interface ConversationDetail {
+  id: number;
+  adId: number | null;
+  adTitleSnapshot: string | null;
+  adActive: boolean;
+  counterpartyId: number;
+  counterpartyName: string;
+  messages: Message[];
+}
+
 export const CATEGORY_LABELS: Record<CategoryId, string> = {
   cafe: 'Kafić · restoran',
   public: 'Javna služba',

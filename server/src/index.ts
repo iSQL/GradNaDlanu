@@ -28,8 +28,12 @@ import { newsletterRoutes } from './routes/newsletter.js';
 import { alumniRoutes } from './routes/alumni.js';
 import { villagesRoutes } from './routes/villages.js';
 import { curatorRoutes } from './routes/curator.js';
+import { oglasiRoutes } from './routes/oglasi.js';
+import { conversationsRoutes } from './routes/conversations.js';
+import { notificationsRoutes } from './routes/notifications.js';
 import { startGuestCleanup } from './lib/guest-cleanup.js';
 import { startDesavanjaCleanup } from './lib/desavanja-cleanup.js';
+import { startOglasiCleanup } from './lib/oglasi-cleanup.js';
 import { runMigrations } from './db/migrate.js';
 import { runSeed } from './db/seed.js';
 
@@ -247,6 +251,9 @@ async function main() {
   await app.register(alumniRoutes);
   await app.register(villagesRoutes);
   await app.register(curatorRoutes);
+  await app.register(oglasiRoutes);
+  await app.register(conversationsRoutes);
+  await app.register(notificationsRoutes);
 
   // Daily sweep: deletes guest accounts inactive for >7 days, CASCADE clears
   // their favorites/comments/checkins along with the row.
@@ -254,6 +261,9 @@ async function main() {
 
   // Daily sweep: deletes news/events older than 30 days.
   startDesavanjaCleanup(app);
+
+  // Daily sweep: soft-deletes (archives) ads not refreshed in >7 days.
+  startOglasiCleanup(app);
 
   // Static asset serving — production. In dev, the Vite dev server handles this on :5173
   // and proxies /api/* to us, so the directory simply won't exist and we skip registration.

@@ -1,8 +1,14 @@
 import type {
+  Ad,
+  AdInput,
   AdminUserRow,
   Alumnus,
   AvailabilityRow,
   Category,
+  ConversationDetail,
+  ConversationSummary,
+  Message,
+  Notifications,
   CityEvent,
   CommentAuthor,
   CommentNode,
@@ -294,7 +300,7 @@ export const api = {
     request<{ ok: true }>(`/api/owner/locations/${locationId}/map`, { method: 'DELETE' }),
 
   // Media
-  uploadMedia: (file: File, kind?: 'service_photo' | 'alumni_photo') => {
+  uploadMedia: (file: File, kind?: 'service_photo' | 'alumni_photo' | 'ad_photo') => {
     const fd = new FormData();
     fd.append('file', file, file.name);
     if (kind) fd.append('kind', kind);
@@ -501,4 +507,51 @@ export const api = {
       `/api/curator/comments/${id}`,
       { method: 'PATCH', body: JSON.stringify({ status }) },
     ),
+
+  // Oglasna tabla (ads)
+  listOglasi: (params: { category?: string; village?: string; limit?: number; offset?: number } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.category) qs.set('category', params.category);
+    if (params.village) qs.set('village', params.village);
+    if (params.limit !== undefined) qs.set('limit', String(params.limit));
+    if (params.offset !== undefined) qs.set('offset', String(params.offset));
+    const s = qs.toString();
+    return request<Ad[]>(`/api/oglasi${s ? `?${s}` : ''}`);
+  },
+  getOglas: (id: number) => request<Ad>(`/api/oglasi/${id}`),
+  myOglasi: () => request<Ad[]>('/api/me/oglasi'),
+  createOglas: (body: AdInput) =>
+    request<Ad>('/api/oglasi', { method: 'POST', body: JSON.stringify(body) }),
+  updateOglas: (id: number, body: AdInput) =>
+    request<Ad>(`/api/oglasi/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteOglas: (id: number) =>
+    request<{ ok: true }>(`/api/oglasi/${id}`, { method: 'DELETE' }),
+  adminListArchivedOglasi: () => request<Ad[]>('/api/admin/oglasi/archived'),
+  adminRestoreOglas: (id: number) =>
+    request<Ad>(`/api/admin/oglasi/${id}/restore`, { method: 'POST' }),
+  adminSetOglasPermanent: (id: number, permanent: boolean) =>
+    request<Ad>(`/api/admin/oglasi/${id}/permanent`, {
+      method: 'PATCH',
+      body: JSON.stringify({ permanent }),
+    }),
+
+  // Poruke (conversations / messages)
+  myConversations: () => request<ConversationSummary[]>('/api/me/conversations'),
+  getConversation: (id: number) => request<ConversationDetail>(`/api/conversations/${id}`),
+  startConversation: (body: { adId?: number; recipientId?: number; body: string }) =>
+    request<{ id: number }>('/api/conversations', { method: 'POST', body: JSON.stringify(body) }),
+  postMessage: (conversationId: number, body: string) =>
+    request<Message>(`/api/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
+    }),
+  markConversationRead: (conversationId: number) =>
+    request<{ ok: true }>(`/api/conversations/${conversationId}/read`, { method: 'POST' }),
+  deleteConversation: (conversationId: number) =>
+    request<{ ok: true }>(`/api/conversations/${conversationId}`, { method: 'DELETE' }),
+
+  // Notifications (Moj prostor badge)
+  getNotifications: () => request<Notifications>('/api/me/notifications'),
+  markSeen: (section: 'reservations' | 'feed') =>
+    request<{ ok: true }>('/api/me/seen', { method: 'POST', body: JSON.stringify({ section }) }),
 };
