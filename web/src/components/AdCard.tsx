@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { mediaUrl } from '../lib/api';
 import { AD_CATEGORY_LABELS, type Ad } from '../types';
 
@@ -6,14 +7,9 @@ function formatPrice(priceRsd: number | null): string {
   return `${priceRsd.toLocaleString('sr-RS')} RSD`;
 }
 
-interface Props {
-  ad: Ad;
-  onOpen: (ad: Ad) => void;
-}
-
-export function AdCard({ ad, onOpen }: Props) {
+export function AdCard({ ad }: { ad: Ad }) {
   return (
-    <button type="button" className="oglas-card" onClick={() => onOpen(ad)}>
+    <Link to={`/oglasi/${ad.id}`} className="oglas-card">
       <div className="oglas-card-thumb">
         {ad.photoMediaId ? (
           <img src={mediaUrl(ad.photoMediaId)} alt={ad.title} loading="lazy" />
@@ -32,6 +28,18 @@ export function AdCard({ ad, onOpen }: Props) {
           <span className="oglas-card-author">{ad.authorDisplayName}</span>
         </div>
       </div>
-    </button>
+    </Link>
+  );
+}
+
+// Compact one-line row variant for the list view.
+export function AdRow({ ad }: { ad: Ad }) {
+  return (
+    <Link to={`/oglasi/${ad.id}`} className="oglas-row">
+      <span className={`oglas-badge static cat-${ad.category}`}>{AD_CATEGORY_LABELS[ad.category]}</span>
+      <span className="oglas-row-title">{ad.title}</span>
+      <span className="oglas-row-village">{ad.village}</span>
+      <span className="oglas-row-price">{formatPrice(ad.priceRsd)}</span>
+    </Link>
   );
 }

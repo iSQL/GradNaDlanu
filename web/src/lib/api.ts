@@ -74,6 +74,7 @@ export interface RegisterResponse {
 export interface AppSettings {
   registrationEnabled: boolean;
   guestsCanBook: boolean;
+  guestsCanPostAds: boolean;
 }
 
 async function request<T>(url: string, init: RequestInit = {}): Promise<T> {

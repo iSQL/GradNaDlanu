@@ -224,7 +224,7 @@ export function PorukeInbox({
                       <div className="poruke-conv-sub">
                         povodom oglasa{' '}
                         {detail.adActive && detail.adId ? (
-                          <Link to={`/oglasi?id=${detail.adId}`}>{detail.adTitleSnapshot}</Link>
+                          <Link to={`/oglasi/${detail.adId}`}>{detail.adTitleSnapshot}</Link>
                         ) : (
                           <em>{detail.adTitleSnapshot}</em>
                         )}

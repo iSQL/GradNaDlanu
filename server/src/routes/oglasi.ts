@@ -5,6 +5,7 @@ import { ads, media, users } from '../db/schema.js';
 import { getOptionalUser, requireAuth, requireRole } from '../lib/auth.js';
 import { isVillage } from '../lib/villages.js';
 import { AD_CATEGORIES, MAX_ACTIVE_ADS_PER_USER, validateAdInput } from '../lib/oglasi.js';
+import { guestsCanPostAds } from '../lib/settings.js';
 import type { AdCategory } from '../db/schema.js';
 
 const DEFAULT_LIMIT = 24;
@@ -116,7 +117,7 @@ export async function oglasiRoutes(app: FastifyInstance) {
 
   // Create an ad. Registered users only — guests can't (they're ephemeral).
   app.post<{ Body: unknown }>('/api/oglasi', { preHandler: requireAuth }, async (req, reply) => {
-    if (req.user.role === 'guest') {
+    if (req.user.role === 'guest' && !(await guestsCanPostAds())) {
       return reply.code(403).send({
         error: 'Za postavljanje oglasa je potreban trajan nalog.',
         code: 'guest_not_allowed',

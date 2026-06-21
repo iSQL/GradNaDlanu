@@ -5147,6 +5147,62 @@ button { font-family: inherit; }
   .oglas-form-row { grid-template-columns: 1fr; }
 }
 
+/* Inline (non-absolute) badge variant for rows / detail head / "moji oglasi". */
+.oglas-badge.static { position: static; }
+
+/* View switch (grid / compact) */
+.oglasi-view-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.oglasi-view-btn {
+  background: var(--paper);
+  border: none;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.oglasi-view-btn + .oglasi-view-btn { border-left: 1px solid var(--line); }
+.oglasi-view-btn.is-active { background: var(--navy); color: var(--paper); }
+
+/* Compact list view */
+.oglasi-compact { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.oglas-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.oglas-row:last-child { border-bottom: none; }
+.oglas-row:hover { background: var(--paper-2); }
+.oglas-row .oglas-badge { flex: 0 0 auto; }
+.oglas-row-title { flex: 1 1 auto; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oglas-row-village { flex: 0 0 auto; color: var(--ink-2); font-size: 12.5px; }
+.oglas-row-price { flex: 0 0 auto; font-weight: 700; color: var(--navy); min-width: 92px; text-align: right; }
+
+@media (max-width: 560px) {
+  .oglas-row-village { display: none; }
+}
+
+/* Shareable detail page (/oglasi/:id) */
+.oglas-detail-shell { max-width: 760px; }
+.oglas-detail-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.oglas-detail-back { font-size: 14px; font-weight: 600; color: var(--navy); }
+.oglas-detail-back:hover { color: var(--gold-2); }
+.oglas-detail-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.oglas-detail-photo { max-height: 420px; overflow: hidden; background: var(--paper-2); }
+.oglas-detail-photo img { width: 100%; max-height: 420px; object-fit: cover; display: block; }
+.oglas-detail-info { padding: 22px 26px 26px; }
+.oglas-detail-title { font-family: 'Fraunces', serif; font-weight: 500; font-size: 30px; margin: 8px 0 6px; }
+
 /* ============================================
    PORUKE (unified inbox + message thread)
    ============================================ */

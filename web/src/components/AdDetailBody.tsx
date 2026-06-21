@@ -12,12 +12,12 @@ function formatPrice(priceRsd: number | null): string {
 interface Props {
   ad: Ad;
   currentUser: CurrentUser | null;
-  onClose: () => void;
-  onEdit: (ad: Ad) => void;
+  onEdit: () => void;
   onArchived: () => void;
 }
 
-export function AdDetail({ ad, currentUser, onClose, onEdit, onArchived }: Props) {
+// Full ad detail content, used on the shareable /oglasi/:id page.
+export function AdDetailBody({ ad, currentUser, onEdit, onArchived }: Props) {
   const navigate = useNavigate();
   const isOwner = !!currentUser && currentUser.id === ad.userId;
   const isAdmin = currentUser?.role === 'admin';
@@ -119,51 +119,47 @@ export function AdDetail({ ad, currentUser, onClose, onEdit, onArchived }: Props
   };
 
   return (
-    <div className="oglas-modal-overlay" onClick={onClose}>
-      <div className="oglas-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={ad.title}>
-        <button className="oglas-modal-close" onClick={onClose} aria-label="Zatvori">×</button>
+    <article className="oglas-detail-card">
+      {ad.photoMediaId && (
+        <div className="oglas-detail-photo">
+          <img src={mediaUrl(ad.photoMediaId)} alt={ad.title} />
+        </div>
+      )}
 
-        {ad.photoMediaId && (
-          <div className="oglas-modal-photo">
-            <img src={mediaUrl(ad.photoMediaId)} alt={ad.title} />
+      <div className="oglas-detail-info">
+        <div className="oglas-modal-head">
+          <span className={`oglas-badge static cat-${ad.category}`}>{AD_CATEGORY_LABELS[ad.category]}</span>
+          {ad.status === 'archived' && <span className="oglas-badge static cat-arhiva">arhiviran</span>}
+          <span className="oglas-modal-date">{formatDate(ad.createdAt)}</span>
+        </div>
+        <h1 className="oglas-detail-title">{ad.title}</h1>
+        <div className="oglas-modal-price">{formatPrice(ad.priceRsd)}</div>
+        <div className="oglas-modal-meta">
+          <strong>{ad.village}</strong> · {ad.authorDisplayName}
+        </div>
+
+        <p className="oglas-modal-desc">{ad.description}</p>
+
+        <div className="oglas-modal-contact">
+          <div className="ms-quote-label">— Kontakt —</div>
+          {renderContact()}
+        </div>
+
+        {(isOwner || isAdmin) && (
+          <div className="oglas-modal-owner-actions">
+            <button className="ms-btn ms-btn-sm" onClick={onEdit} disabled={busy}>
+              Izmeni
+            </button>
+            {ad.status === 'active' && (
+              <button className="ms-btn ms-btn-danger ms-btn-sm" onClick={archive} disabled={busy}>
+                Arhiviraj
+              </button>
+            )}
           </div>
         )}
 
-        <div className="oglas-modal-body">
-          <div className="oglas-modal-head">
-            <span className={`oglas-badge cat-${ad.category}`}>{AD_CATEGORY_LABELS[ad.category]}</span>
-            {ad.status === 'archived' && <span className="oglas-badge cat-arhiva">arhiviran</span>}
-            <span className="oglas-modal-date">{formatDate(ad.createdAt)}</span>
-          </div>
-          <h2 className="oglas-modal-title">{ad.title}</h2>
-          <div className="oglas-modal-price">{formatPrice(ad.priceRsd)}</div>
-          <div className="oglas-modal-meta">
-            <strong>{ad.village}</strong> · {ad.authorDisplayName}
-          </div>
-
-          <p className="oglas-modal-desc">{ad.description}</p>
-
-          <div className="oglas-modal-contact">
-            <div className="ms-quote-label">— Kontakt —</div>
-            {renderContact()}
-          </div>
-
-          {(isOwner || isAdmin) && (
-            <div className="oglas-modal-owner-actions">
-              <button className="ms-btn ms-btn-sm" onClick={() => onEdit(ad)} disabled={busy}>
-                Izmeni
-              </button>
-              {ad.status === 'active' && (
-                <button className="ms-btn ms-btn-danger ms-btn-sm" onClick={archive} disabled={busy}>
-                  Arhiviraj
-                </button>
-              )}
-            </div>
-          )}
-
-          {error && <div className="ms-error">{error}</div>}
-        </div>
+        {error && <div className="ms-error">{error}</div>}
       </div>
-    </div>
+    </article>
   );
 }

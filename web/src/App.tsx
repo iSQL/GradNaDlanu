@@ -24,6 +24,7 @@ export interface AppContext {
   reloadCurrentUser: () => Promise<void>;
   registrationEnabled: boolean;
   guestsCanBook: boolean;
+  guestsCanPostAds: boolean;
   reloadSettings: () => Promise<void>;
   notifications: Notifications;
   reloadNotifications: () => Promise<void>;
@@ -39,6 +40,7 @@ export function App() {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [registrationEnabled, setRegistrationEnabled] = useState<boolean>(false);
   const [guestsCanBook, setGuestsCanBook] = useState<boolean>(true);
+  const [guestsCanPostAds, setGuestsCanPostAds] = useState<boolean>(false);
   const [notifications, setNotifications] = useState<Notifications>(NO_NOTIFICATIONS);
 
   useEffect(() => {
@@ -78,12 +80,14 @@ export function App() {
       const s = await api.getSettings();
       setRegistrationEnabled(s.registrationEnabled);
       setGuestsCanBook(s.guestsCanBook);
+      setGuestsCanPostAds(s.guestsCanPostAds);
     } catch {
       // Fail closed on registration; fail open on guestsCanBook to match the
       // server default (true) — booking UI stays available if the settings
-      // endpoint blips.
+      // endpoint blips. Guest ads default closed (matches server default).
       setRegistrationEnabled(false);
       setGuestsCanBook(true);
+      setGuestsCanPostAds(false);
     }
   }, []);
 
@@ -141,6 +145,7 @@ export function App() {
           reloadCurrentUser,
           registrationEnabled,
           guestsCanBook,
+          guestsCanPostAds,
           reloadSettings,
           notifications,
           reloadNotifications,
