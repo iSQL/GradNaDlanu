@@ -150,6 +150,10 @@ const statements = [
   // Activity tracking column + partial index for the cleanup query.
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMP NOT NULL DEFAULT NOW()`,
   `CREATE INDEX IF NOT EXISTS users_guest_last_active_idx ON users(last_active_at) WHERE role = 'guest'`,
+  // "Moj prostor" notification badge anchors. DEFAULT NOW() means existing users
+  // start "caught up" (no flood of historical items), only new activity counts.
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS reservations_seen_at TIMESTAMP NOT NULL DEFAULT NOW()`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS feed_seen_at TIMESTAMP NOT NULL DEFAULT NOW()`,
   `CREATE INDEX IF NOT EXISTS object_owners_location_idx ON object_owners(location_id)`,
   `CREATE INDEX IF NOT EXISTS favorites_location_idx ON favorites(location_id)`,
   `CREATE INDEX IF NOT EXISTS comments_loc_status_created_idx ON comments(location_id, status, created_at DESC)`,
@@ -227,6 +231,64 @@ const statements = [
     PRIMARY KEY (user_id, village_name)
   )`,
   `CREATE INDEX IF NOT EXISTS village_curators_village_idx ON village_curators(village_name)`,
+  // --- Oglasna tabla (ads) + in-site messaging (conversations + messages) ---
+  `CREATE TABLE IF NOT EXISTS ads (
+    id                SERIAL PRIMARY KEY,
+    user_id           INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title             TEXT NOT NULL,
+    description       TEXT NOT NULL,
+    category          TEXT NOT NULL
+      CHECK (category IN ('prodajem','kupujem','usluge','poslovi','ostalo')),
+    price_rsd         INTEGER CHECK (price_rsd IS NULL OR price_rsd >= 0),
+    village           TEXT NOT NULL,
+    photo_media_id    INTEGER REFERENCES media(id) ON DELETE SET NULL,
+    contact_method    TEXT NOT NULL
+      CHECK (contact_method IN ('link','phone','email','message')),
+    contact_value     TEXT,
+    status            TEXT NOT NULL DEFAULT 'active'
+      CHECK (status IN ('active','archived')),
+    permanent         BOOLEAN NOT NULL DEFAULT FALSE,
+    last_refreshed_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    archived_at       TIMESTAMP,
+    created_at        TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at        TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
+  `ALTER TABLE ads ADD COLUMN IF NOT EXISTS archived_at TIMESTAMP`,
+  // Backfill archived_at for any rows archived before this column existed so the
+  // retention purge has a reference date (otherwise they'd never be purged).
+  `UPDATE ads SET archived_at = COALESCE(updated_at, created_at) WHERE status = 'archived' AND archived_at IS NULL`,
+  `CREATE INDEX IF NOT EXISTS ads_status_created_idx ON ads(status, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS ads_status_cat_village_idx ON ads(status, category, village)`,
+  `CREATE INDEX IF NOT EXISTS ads_user_idx ON ads(user_id, status)`,
+  `CREATE INDEX IF NOT EXISTS ads_sweep_idx ON ads(last_refreshed_at) WHERE status = 'active' AND NOT permanent`,
+  `CREATE TABLE IF NOT EXISTS conversations (
+    id                 SERIAL PRIMARY KEY,
+    ad_id              INTEGER REFERENCES ads(id) ON DELETE CASCADE,
+    ad_title_snapshot  TEXT,
+    user_low_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_high_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    last_message_at    TIMESTAMP NOT NULL DEFAULT NOW(),
+    last_read_low_at   TIMESTAMP,
+    last_read_high_at  TIMESTAMP,
+    created_at         TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
+  // Upgrade ad_id FK from the original SET NULL to CASCADE on existing DBs so a
+  // purged ad takes its conversations + messages with it. Idempotent: drop both
+  // possible auto-generated names, then re-add the CASCADE constraint.
+  `ALTER TABLE conversations DROP CONSTRAINT IF EXISTS conversations_ad_id_fkey`,
+  `ALTER TABLE conversations DROP CONSTRAINT IF EXISTS conversations_ad_id_ads_id_fk`,
+  `ALTER TABLE conversations ADD CONSTRAINT conversations_ad_id_fkey FOREIGN KEY (ad_id) REFERENCES ads(id) ON DELETE CASCADE`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS conversations_pair_ad_uniq ON conversations(user_low_id, user_high_id, COALESCE(ad_id, 0))`,
+  `CREATE INDEX IF NOT EXISTS conversations_low_idx ON conversations(user_low_id, last_message_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS conversations_high_idx ON conversations(user_high_id, last_message_at DESC)`,
+  `CREATE TABLE IF NOT EXISTS messages (
+    id               SERIAL PRIMARY KEY,
+    conversation_id  INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    sender_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    body             TEXT NOT NULL,
+    created_at       TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS messages_conv_created_idx ON messages(conversation_id, created_at)`,
   // One-shot backfill: grandfather every user that existed before email
   // verification shipped. Gated on an app_settings sentinel so subsequent boots
   // don't re-verify users who refused to confirm their email.

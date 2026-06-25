@@ -5,7 +5,13 @@ import { GuestBanner } from './components/GuestBanner';
 import { NewsletterForm } from './components/NewsletterForm';
 import { api, type CurrentUser } from './lib/api';
 import { clearToken, getToken } from './lib/auth';
-import type { Category, CategoryId, Location } from './types';
+import type { Category, CategoryId, Location, Notifications } from './types';
+
+const NO_NOTIFICATIONS: Notifications = {
+  unreadMessages: 0,
+  reservationUpdates: 0,
+  followedUpdates: 0,
+};
 
 export interface AppContext {
   categories: Category[];
@@ -18,7 +24,10 @@ export interface AppContext {
   reloadCurrentUser: () => Promise<void>;
   registrationEnabled: boolean;
   guestsCanBook: boolean;
+  guestsCanPostAds: boolean;
   reloadSettings: () => Promise<void>;
+  notifications: Notifications;
+  reloadNotifications: () => Promise<void>;
 }
 
 export function App() {
@@ -31,6 +40,8 @@ export function App() {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [registrationEnabled, setRegistrationEnabled] = useState<boolean>(false);
   const [guestsCanBook, setGuestsCanBook] = useState<boolean>(true);
+  const [guestsCanPostAds, setGuestsCanPostAds] = useState<boolean>(false);
+  const [notifications, setNotifications] = useState<Notifications>(NO_NOTIFICATIONS);
 
   useEffect(() => {
     api.listCategories().then(setCategories).catch(console.error);
@@ -69,12 +80,14 @@ export function App() {
       const s = await api.getSettings();
       setRegistrationEnabled(s.registrationEnabled);
       setGuestsCanBook(s.guestsCanBook);
+      setGuestsCanPostAds(s.guestsCanPostAds);
     } catch {
       // Fail closed on registration; fail open on guestsCanBook to match the
       // server default (true) — booking UI stays available if the settings
-      // endpoint blips.
+      // endpoint blips. Guest ads default closed (matches server default).
       setRegistrationEnabled(false);
       setGuestsCanBook(true);
+      setGuestsCanPostAds(false);
     }
   }, []);
 
@@ -82,11 +95,42 @@ export function App() {
     reloadSettings().catch(console.error);
   }, [reloadSettings]);
 
+  const reloadNotifications = useCallback(async () => {
+    if (!getToken()) {
+      setNotifications(NO_NOTIFICATIONS);
+      return;
+    }
+    try {
+      setNotifications(await api.getNotifications());
+    } catch {
+      setNotifications(NO_NOTIFICATIONS);
+    }
+  }, []);
+
+  // Fetch on login + poll while logged in so a new message/reservation/feed item
+  // surfaces on the badge without a manual refresh. Keyed on user id so it resets
+  // cleanly across login/logout.
+  const userId = currentUser?.id;
+  useEffect(() => {
+    if (!userId) {
+      setNotifications(NO_NOTIFICATIONS);
+      return;
+    }
+    void reloadNotifications();
+    const timer = setInterval(() => { void reloadNotifications(); }, 60_000);
+    return () => clearInterval(timer);
+  }, [userId, reloadNotifications]);
+
   const isAdmin = location.pathname.startsWith('/admin');
 
   return (
     <>
-      <Nav search={search} onSearchChange={setSearch} currentUser={currentUser} />
+      <Nav
+        search={search}
+        onSearchChange={setSearch}
+        currentUser={currentUser}
+        notifications={notifications}
+      />
       <GuestBanner role={currentUser?.role} />
 
       <Outlet
@@ -101,7 +145,10 @@ export function App() {
           reloadCurrentUser,
           registrationEnabled,
           guestsCanBook,
+          guestsCanPostAds,
           reloadSettings,
+          notifications,
+          reloadNotifications,
         } satisfies AppContext}
       />
 

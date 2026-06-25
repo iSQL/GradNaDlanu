@@ -7,13 +7,13 @@ import { pipeline } from 'node:stream/promises';
 import { tmpdir } from 'node:os';
 import { and, eq, inArray, lt, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { alumni, media, objectOwners, serviceRequests } from '../db/schema.js';
+import { ads, alumni, media, objectOwners, serviceRequests } from '../db/schema.js';
 import { getOptionalUser, requireAuth } from '../lib/auth.js';
 import { env } from '../env.js';
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
-const ALLOWED_KINDS = new Set(['service_photo', 'alumni_photo']);
+const ALLOWED_KINDS = new Set(['service_photo', 'alumni_photo', 'ad_photo']);
 const SNIFF_BYTES = 12;
 
 // Read just the first SNIFF_BYTES of a file and infer its image type.
@@ -47,7 +47,8 @@ function extFor(mime: string): string {
 }
 
 // Periodic GC: deletes media rows (and their files) older than ORPHAN_AGE_HOURS
-// that aren't referenced by any service_request.payload.photoIds array.
+// that aren't referenced by any service_request.payload.photoIds array, an
+// alumni row, or an ad's photo_media_id.
 const ORPHAN_AGE_HOURS = 24;
 const GC_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
@@ -75,9 +76,15 @@ async function gcOrphanMedia(uploadRoot: string, log: { info: (o: object, msg: s
       .from(media)
       .innerJoin(alumni, eq(alumni.photoMediaId, media.id))
       .where(inArray(media.id, ids));
+    const referencedFromAds = await db
+      .select({ id: media.id })
+      .from(media)
+      .innerJoin(ads, eq(ads.photoMediaId, media.id))
+      .where(inArray(media.id, ids));
     const refSet = new Set<number>();
     for (const r of referencedFromServiceRequests) refSet.add(r.id);
     for (const r of referencedFromAlumni) refSet.add(r.id);
+    for (const r of referencedFromAds) refSet.add(r.id);
     const orphans = candidates.filter((c) => !refSet.has(c.id));
     if (orphans.length === 0) return;
 
@@ -212,6 +219,17 @@ export async function mediaRoutes(app: FastifyInstance) {
         if (hit) allowed = true;
       }
 
+      // Ad photos are public iff referenced by an *active* (non-archived) ad.
+      // Archived ads' photos fall through to owner/admin-only access below.
+      if (!allowed && m.kind === 'ad_photo') {
+        const [hit] = await db
+          .select({ id: ads.id })
+          .from(ads)
+          .where(and(eq(ads.photoMediaId, id), eq(ads.status, 'active')))
+          .limit(1);
+        if (hit) allowed = true;
+      }
+
       if (!allowed) {
         const user = await getOptionalUser(req);
         if (!user) return reply.code(401).send({ error: 'Unauthorized' });
@@ -251,7 +269,9 @@ export async function mediaRoutes(app: FastifyInstance) {
       reply.header('Content-Type', m.mimeType);
       reply.header(
         'Cache-Control',
-        m.kind === 'alumni_photo' ? 'public, max-age=3600' : 'private, max-age=300',
+        m.kind === 'alumni_photo' || m.kind === 'ad_photo'
+          ? 'public, max-age=3600'
+          : 'private, max-age=300',
       );
       return reply.send(createReadStream(absPath));
     },

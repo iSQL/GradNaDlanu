@@ -1,5 +1,4 @@
 import { existsSync } from 'node:fs';
-import { networkInterfaces } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Fastify, { type FastifyBaseLogger } from 'fastify';
@@ -29,28 +28,14 @@ import { newsletterRoutes } from './routes/newsletter.js';
 import { alumniRoutes } from './routes/alumni.js';
 import { villagesRoutes } from './routes/villages.js';
 import { curatorRoutes } from './routes/curator.js';
+import { oglasiRoutes } from './routes/oglasi.js';
+import { conversationsRoutes } from './routes/conversations.js';
+import { notificationsRoutes } from './routes/notifications.js';
 import { startGuestCleanup } from './lib/guest-cleanup.js';
 import { startDesavanjaCleanup } from './lib/desavanja-cleanup.js';
+import { startOglasiCleanup } from './lib/oglasi-cleanup.js';
 import { runMigrations } from './db/migrate.js';
 import { runSeed } from './db/seed.js';
-
-// Snapshot of the container's non-internal IPv4 addresses, one entry per
-// interface. Coolify's Caddy proxy reaches this app over a per-resource docker
-// network (see the `caddy_ingress_network` label) — in prod that's three 10.x
-// overlays at once (the per-resource net, its `_default`, and `coolify`). A
-// "healthy but 504" outage is almost always proxy-side (Caddy holding a stale
-// upstream): the request never reaches Node, so the app can't log the failure
-// directly. What it CAN do is record its own network footprint each poll, so a
-// genuine islanding (the container dropping off every external network) is
-// visible. Embedded in /api/health too, which means `docker inspect`'s
-// Health.Log keeps a timestamped rolling history of this for free.
-function nonInternalIPv4s(): Array<{ iface: string; address: string }> {
-  return Object.entries(networkInterfaces()).flatMap(([name, addrs]) =>
-    (addrs ?? [])
-      .filter((a) => a.family === 'IPv4' && !a.internal)
-      .map((a) => ({ iface: name, address: a.address })),
-  );
-}
 
 // Resolve web/dist relative to this file at runtime.
 // Layout in the docker image: /app/web/dist + /app/server/dist/index.js
@@ -246,25 +231,8 @@ async function main() {
   await app.register(jwt, { secret: env.jwtSecret });
   await app.register(multipart, { limits: { fileSize: 5 * 1024 * 1024, files: 1 } });
 
-  // Health check, polled by Coolify's Docker healthcheck. Beyond liveness it
-  // re-snapshots the network interfaces each poll and returns them in the body,
-  // so `docker inspect`'s Health.Log keeps a timestamped rolling history of the
-  // container's network footprint. The onRequest/onResponse hooks skip
-  // /api/health, so the only line this path emits is the warning below — and
-  // only on genuine islanding (the container has lost every external network,
-  // the one network failure the app can actually observe from inside). A
-  // "healthy but 504" with interfaces still present points at the proxy (Caddy
-  // holding a stale upstream), not the app — check the proxy logs, not these.
-  app.get('/api/health', async () => {
-    const interfaces = nonInternalIPv4s();
-    if (interfaces.length === 0) {
-      app.log.warn(
-        { interfaces },
-        'Health OK but no external network interfaces — container is islanded; the proxy cannot route here',
-      );
-    }
-    return { ok: true, interfaces };
-  });
+  // Health check, polled by Coolify's Docker healthcheck.
+  app.get('/api/health', async () => ({ ok: true }));
 
   await app.register(categoriesRoutes);
   await app.register(locationsRoutes);
@@ -283,6 +251,9 @@ async function main() {
   await app.register(alumniRoutes);
   await app.register(villagesRoutes);
   await app.register(curatorRoutes);
+  await app.register(oglasiRoutes);
+  await app.register(conversationsRoutes);
+  await app.register(notificationsRoutes);
 
   // Daily sweep: deletes guest accounts inactive for >7 days, CASCADE clears
   // their favorites/comments/checkins along with the row.
@@ -290,6 +261,9 @@ async function main() {
 
   // Daily sweep: deletes news/events older than 30 days.
   startDesavanjaCleanup(app);
+
+  // Daily sweep: soft-deletes (archives) ads not refreshed in >7 days.
+  startOglasiCleanup(app);
 
   // Static asset serving — production. In dev, the Vite dev server handles this on :5173
   // and proxies /api/* to us, so the directory simply won't exist and we skip registration.
@@ -309,16 +283,6 @@ async function main() {
   }
 
   await app.listen({ port: env.port, host: '0.0.0.0' });
-
-  // Reachability snapshot at boot — records which overlays the container came up
-  // on (expected in prod: the per-resource net, its `_default`, and `coolify`).
-  // See nonInternalIPv4s() for why this is a record, not a 504 detector: the
-  // common outage is proxy-side and invisible from inside the app.
-  const ifaceAddrs = nonInternalIPv4s();
-  app.log.info(
-    { port: env.port, host: '0.0.0.0', interfaces: ifaceAddrs },
-    'Listening — network interfaces',
-  );
 }
 
 main().catch((err) => {

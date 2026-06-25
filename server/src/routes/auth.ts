@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { users, objectOwners, villageCurators } from '../db/schema.js';
 import { bumpTokenVersion, requireAuth } from '../lib/auth.js';
+import { touchAdsRefresh } from '../lib/oglasi-activity.js';
 import { isRegistrationEnabled } from '../lib/settings.js';
 import { sendVerificationEmail } from '../lib/email.js';
 import { consumeVerificationToken, createVerificationToken } from '../lib/verification.js';
@@ -273,6 +274,9 @@ export async function authRoutes(app: FastifyInstance) {
   );
 
   app.get('/api/me', { preHandler: requireAuth }, async (req, reply) => {
+    // Refresh-on-visit: a logged-in user loading the app keeps their active ads
+    // alive for another 7 days. Throttled + fire-and-forget (lib/oglasi-activity).
+    touchAdsRefresh(req.user.sub, req.user.role);
     const [user] = await db.select().from(users).where(eq(users.id, req.user.sub)).limit(1);
     if (!user) return reply.code(404).send({ error: 'Not found' });
     const owned = await db

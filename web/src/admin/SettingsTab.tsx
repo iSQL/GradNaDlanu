@@ -101,6 +101,36 @@ export function SettingsTab() {
         </div>
       </div>
 
+      <div className="admin-card" style={{ maxWidth: 640 }}>
+        <div className="section-label" style={{ margin: 0, marginBottom: 16 }}>
+          Postavljanje oglasa za goste
+        </div>
+        <div style={{ fontSize: 14, color: 'var(--ink-2)', marginBottom: 18 }}>
+          Kada je isključeno, gost nalozi ne mogu da postave oglas na oglasnoj tabli (oglas bi
+          nadživeo privremeni nalog, koji se briše posle 7 dana neaktivnosti). Trajni nalozi nisu
+          pogođeni.
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <button
+            className="btn-primary"
+            onClick={() => toggle('guestsCanPostAds')}
+            disabled={busyKey !== null}
+          >
+            {busyKey === 'guestsCanPostAds'
+              ? 'Čuvanje…'
+              : settings.guestsCanPostAds
+              ? 'Onemogući za goste'
+              : 'Omogući za goste'}
+          </button>
+          <div style={{ fontSize: 13, fontWeight: 600 }}>
+            Trenutno:{' '}
+            <span style={{ color: settings.guestsCanPostAds ? 'var(--gold)' : 'var(--ink-2)' }}>
+              {settings.guestsCanPostAds ? 'dozvoljeno' : 'zabranjeno'}
+            </span>
+          </div>
+        </div>
+      </div>
+
       {error && <div className="login-error">{error}</div>}
     </div>
   );
