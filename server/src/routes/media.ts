@@ -4,7 +4,6 @@ import { mkdir, open, rename, unlink } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { pipeline } from 'node:stream/promises';
-import { tmpdir } from 'node:os';
 import { and, eq, inArray, lt, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { ads, alumni, media, objectOwners, serviceRequests } from '../db/schema.js';
@@ -105,6 +104,11 @@ export async function mediaRoutes(app: FastifyInstance) {
   const uploadRoot = resolve(env.uploadDir);
   await mkdir(uploadRoot, { recursive: true });
   const uploadRootWithSep = uploadRoot.endsWith(sep) ? uploadRoot : uploadRoot + sep;
+  // Stage uploads INSIDE the upload root (not os.tmpdir) so the final rename stays
+  // on the same filesystem. When UPLOAD_DIR is a bind mount to a separate device
+  // (e.g. a Hetzner Volume), a cross-device rename from /tmp fails with EXDEV.
+  const tmpRoot = join(uploadRoot, '.tmp');
+  await mkdir(tmpRoot, { recursive: true });
 
   const gcTimer = setInterval(() => { void gcOrphanMedia(uploadRoot, app.log); }, GC_INTERVAL_MS);
   gcTimer.unref();
@@ -147,7 +151,7 @@ export async function mediaRoutes(app: FastifyInstance) {
 
     // Stream to a temp file rather than buffering in RAM. We sniff the magic
     // bytes from disk, then rename into the final location on success.
-    const tmpPath = join(tmpdir(), `gnd-upload-${randomUUID()}`);
+    const tmpPath = join(tmpRoot, `gnd-upload-${randomUUID()}`);
     let cleanupTmp = true;
     let totalBytes = 0;
     try {
