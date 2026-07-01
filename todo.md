@@ -6,8 +6,8 @@ Roadmap of things worth building once v2 is settled. Ranked by user-perceived va
 
 The tradesperson directory + repair-request feature uses local-disk photo uploads via `@fastify/multipart`. **Before deploying to Coolify**:
 
-1. In Coolify's app config, add a **Persistent Storage** mount pointing the container path `/data/uploads` to a persistent volume. Without this, every container rebuild wipes uploaded photos.
-2. The default `UPLOAD_DIR` env in [docker-compose.yml](docker-compose.yml) is `/data/uploads` — only change it if your persistent mount lives elsewhere.
+1. Uploads are stored on a **Hetzner Volume** (block storage). Attach + mount the Volume on the server, pre-create the target dir and `chown 1000:1000` it (the container's `node` user), then set `UPLOAD_MOUNT=/mnt/HC_Volume_<ID>/zabari-uploads` in Coolify's env panel — this bind-mounts the Volume into the container at `/data/uploads` so images live on separate, expandable storage and survive image rebuilds. If `UPLOAD_MOUNT` is left unset, `docker-compose` falls back to the named `uploads` volume (fine for dev, but on prod that lives on the root disk).
+2. The container path (`UPLOAD_DIR`) stays `/data/uploads` — only change it if your mount lives elsewhere inside the container.
 3. `RUN_MIGRATIONS_ON_BOOT=true` (already the prod default) will add the new `media` and `service_requests` tables automatically.
 4. For a fresh deploy you can flip `RUN_SEED_ON_BOOT=true` once to seed the three starter majstori (vodoinstalater Marko, elektro Stojan, auto-servis Žika), then turn it off.
 

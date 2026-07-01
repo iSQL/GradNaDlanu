@@ -112,11 +112,18 @@ Visit http://localhost:3001 — the SPA is served by Fastify on the same origin 
    ADMIN_USERNAME=admin
    ADMIN_PASSWORD=<your choice — bakes into the first seed>
    APP_DOMAIN=gradnadlanu.example.com
+   UPLOAD_MOUNT=/mnt/HC_Volume_<ID>/zabari-uploads
    RUN_SEED_ON_BOOT=true
    ```
    Leave `COMPOSE_PROFILES` unset so the bundled `db` service stays inert.
-5. Deploy. Traefik labels in `docker-compose.yml` expose the `app` service on `${APP_DOMAIN}` with a Let's Encrypt cert.
-6. **After the first successful deploy**, flip `RUN_SEED_ON_BOOT=false` so subsequent restarts don't re-run the (idempotent) seed.
+5. **Uploaded photos** are bind-mounted onto a **Hetzner Volume** (block storage, separate from the root disk) via `UPLOAD_MOUNT`. Attach + mount the Volume on the host (Hetzner's "Automatic" mount lands it at `/mnt/HC_Volume_<ID>` and adds an `fstab` entry so it survives reboots), then pre-create the target dir and `chown` it to the container's `node` user (uid 1000) before the first deploy:
+   ```bash
+   sudo mkdir -p /mnt/HC_Volume_<ID>/zabari-uploads
+   sudo chown 1000:1000 /mnt/HC_Volume_<ID>/zabari-uploads
+   ```
+   If `UPLOAD_MOUNT` is left unset, `docker-compose` falls back to the named `uploads` volume — fine for dev, but on prod that lives on the root disk and won't be separately expandable. The container path (`UPLOAD_DIR`) stays `/data/uploads` regardless.
+6. Deploy. Traefik labels in `docker-compose.yml` expose the `app` service on `${APP_DOMAIN}` with a Let's Encrypt cert.
+7. **After the first successful deploy**, flip `RUN_SEED_ON_BOOT=false` so subsequent restarts don't re-run the (idempotent) seed.
 
 Boot-time migrations are always on in production — schema changes ship with the next image.
 

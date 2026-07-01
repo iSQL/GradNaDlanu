@@ -154,6 +154,8 @@ Fastify auto-logs every HTTP request. Explicit `req.log.info` lines exist for us
 
 Migrations always run at boot in prod, so schema changes ship with the next image — no separate migrate step.
 
+**Uploads storage.** The upload mount source is env-configurable: `- ${UPLOAD_MOUNT:-uploads}:/data/uploads` in [docker-compose.yml](docker-compose.yml). Default `uploads` is a named docker volume (dev / unset-prod fallback). In prod set `UPLOAD_MOUNT` to an **absolute host path on a Hetzner Volume** (e.g. `/mnt/HC_Volume_<ID>/zabari-uploads`) — Compose reads a leading-`/` source as a bind mount and a bare name as a named volume, so the one line covers both. The container path (`UPLOAD_DIR`, default `/data/uploads`) and all of [media.ts](server/src/routes/media.ts) are unchanged — the server only ever sees `/data/uploads` and stores relative paths in `media.storage_path`, so swapping the backing store is purely an ops concern. The host dir must be `chown 1000:1000` (the container's `node` user) or uploads fail with `EACCES`. Because storage access is centralized in [media.ts](server/src/routes/media.ts) (relative `storagePath` + `createWriteStream`/`rename`/`createReadStream`), a future move to S3-style object storage would be localized to that one file.
+
 ## Conventions worth respecting
 
 - **Slugs are server-side.** [server/src/lib/locations.ts](server/src/lib/locations.ts) / [routes/locations.ts](server/src/routes/locations.ts) slugify Serbian diacritics to ASCII (`č→c`, `š→s`, `ž→z`, `đ→dj`). Don't generate slugs on the client.

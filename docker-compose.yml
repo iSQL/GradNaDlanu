@@ -92,7 +92,12 @@ services:
     #   in dev the default `./storage/logs` is a repo-local dir (gitignored) so
     #   `docker compose up` works on Windows/macOS without root-owned mounts.
     volumes:
-      - uploads:/data/uploads
+      # `UPLOAD_MOUNT` defaults to the named docker volume `uploads` (dev / first-run).
+      # In production set it to an absolute host path on a Hetzner Volume, e.g.
+      # /mnt/HC_Volume_<ID>/zabari-uploads — Compose treats a leading-`/` source as a
+      # bind mount and a bare name as a named volume, so one line covers both cases.
+      # Pre-create + `chown 1000:1000` the host dir (the container's `node` user).
+      - ${UPLOAD_MOUNT:-uploads}:/data/uploads
       - /var/lib/coolify/storage/logs/zabari:/storage/logs
     # Attach to Coolify's shared overlay network so the app can resolve the managed
     # Postgres hostname. `default` is the implicit per-stack network; `coolify` is the
