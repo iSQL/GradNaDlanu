@@ -321,8 +321,12 @@ export const api = {
   // Media
   uploadMedia: (file: File, kind?: 'service_photo' | 'alumni_photo' | 'ad_photo') => {
     const fd = new FormData();
-    fd.append('file', file, file.name);
+    // `kind` MUST be appended before the file: the server reads `file.fields.kind`
+    // via @fastify/multipart's streaming API, which only exposes fields that arrive
+    // *before* the file part. Appended after, `kind` is undefined server-side and the
+    // upload silently defaults to 'service_photo'.
     if (kind) fd.append('kind', kind);
+    fd.append('file', file, file.name);
     return uploadRequest<{ id: number }>(`/api/uploads`, fd);
   },
 
