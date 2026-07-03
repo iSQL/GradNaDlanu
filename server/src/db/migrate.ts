@@ -192,6 +192,18 @@ const statements = [
     email      TEXT NOT NULL UNIQUE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
   )`,
+  // Newsletter v2: double opt-in status, per-category consent, capability token,
+  // optional account link. ADD COLUMN IF NOT EXISTS so existing pre-consent rows
+  // gain the columns (defaulting to status='pending', token NULL) without a rewrite.
+  `ALTER TABLE newsletter_subscribers ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending'`,
+  `ALTER TABLE newsletter_subscribers ADD COLUMN IF NOT EXISTS pref_desavanja BOOLEAN NOT NULL DEFAULT TRUE`,
+  `ALTER TABLE newsletter_subscribers ADD COLUMN IF NOT EXISTS pref_poruke BOOLEAN NOT NULL DEFAULT FALSE`,
+  `ALTER TABLE newsletter_subscribers ADD COLUMN IF NOT EXISTS pref_marketing BOOLEAN NOT NULL DEFAULT FALSE`,
+  `ALTER TABLE newsletter_subscribers ADD COLUMN IF NOT EXISTS token TEXT`,
+  `ALTER TABLE newsletter_subscribers ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMP`,
+  `ALTER TABLE newsletter_subscribers ADD COLUMN IF NOT EXISTS unsubscribed_at TIMESTAMP`,
+  `ALTER TABLE newsletter_subscribers ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE SET NULL`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS newsletter_subscribers_token_idx ON newsletter_subscribers(token)`,
   `CREATE TABLE IF NOT EXISTS alumni (
     id                SERIAL PRIMARY KEY,
     location_id       INTEGER NOT NULL REFERENCES locations(id) ON DELETE CASCADE,

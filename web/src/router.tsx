@@ -21,6 +21,7 @@ import { DesavanjaPage } from './pages/DesavanjaPage';
 import { NewsDetailPage } from './pages/NewsDetailPage';
 import { EventDetailPage } from './pages/EventDetailPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { NewsletterPage } from './pages/NewsletterPage';
 import { NaseljaPage } from './pages/NaseljaPage';
 import { CuratorDashboard } from './pages/CuratorDashboard';
 import { CuratorLocationEdit } from './pages/CuratorLocationEdit';
@@ -46,6 +47,8 @@ export const router = createBrowserRouter([
       { path: 'verify-email', element: <VerifyEmail /> },
       { path: 'pravna-napomena', element: <LegalNotice /> },
       { path: 'politika-privatnosti', element: <PrivacyPolicy /> },
+      { path: 'newsletter/potvrda', element: <NewsletterPage /> },
+      { path: 'newsletter/podesavanja', element: <NewsletterPage /> },
       // Legacy alias — sav sadržaj nekadašnjeg /nalog je sad u /dashboard ("Moj prostor").
       { path: 'nalog', element: <Navigate to="/dashboard" replace /> },
       {

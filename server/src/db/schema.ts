@@ -217,6 +217,28 @@ export const news = pgTable('news', {
 export const newsletterSubscribers = pgTable('newsletter_subscribers', {
   id: serial('id').primaryKey(),
   email: text('email').notNull().unique(),
+  // Double opt-in lifecycle: 'pending' until the confirm link is clicked,
+  // 'confirmed' once opted in, 'unsubscribed' after opt-out. Existing pre-consent
+  // rows land in 'pending' (see migrate.ts) and receive nothing until they re-opt.
+  status: text('status', { enum: ['pending', 'confirmed', 'unsubscribed'] })
+    .default('pending')
+    .notNull(),
+  // Per-category consent. `desavanja` defaults on (the primary reason to subscribe);
+  // marketing + poruke are opt-in.
+  prefDesavanja: boolean('pref_desavanja').default(true).notNull(),
+  prefPoruke: boolean('pref_poruke').default(false).notNull(),
+  prefMarketing: boolean('pref_marketing').default(false).notNull(),
+  // Opaque capability token embedded in confirm / unsubscribe / manage links.
+  // Stored RAW (unlike the hashed login-grade tokens in verification.ts) because
+  // it only authorizes subscribing/unsubscribing an already-known address, and
+  // must stay stable so every future email can carry the same unsubscribe link.
+  token: text('token').unique(),
+  confirmedAt: timestamp('confirmed_at'),
+  unsubscribedAt: timestamp('unsubscribed_at'),
+  // Optional link to a logged-in account that manages this subscription via
+  // "Moj prostor". Matched by verified email; SET NULL so deleting the account
+  // leaves the email-only subscription intact.
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

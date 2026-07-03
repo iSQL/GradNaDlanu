@@ -3763,6 +3763,23 @@ button { font-family: inherit; }
 .newsletter-msg { font-size: 12px; }
 .newsletter-msg.ok  { color: #2f7a3c; }
 .newsletter-msg.err { color: #b03030; }
+.newsletter-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.newsletter-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.4;
+  cursor: pointer;
+}
+.newsletter-check input { margin-top: 2px; flex: 0 0 auto; }
+.newsletter-consent { margin-top: 2px; }
+.newsletter-consent a { color: inherit; text-decoration: underline; }
 
 @media (max-width: 720px) {
   .foot { padding: 32px 20px 20px; }

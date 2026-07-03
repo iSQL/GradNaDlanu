@@ -45,6 +45,24 @@ export interface CurrentUser {
   curatedVillages: string[];
 }
 
+export type NewsletterCategory = 'desavanja' | 'poruke' | 'marketing';
+export type NewsletterStatus = 'pending' | 'confirmed' | 'unsubscribed';
+
+export interface NewsletterPrefs {
+  desavanja: boolean;
+  poruke: boolean;
+  marketing: boolean;
+}
+
+export interface NewsletterCounts {
+  pending: number;
+  confirmed: number;
+  unsubscribed: number;
+  desavanja: number;
+  poruke: number;
+  marketing: number;
+}
+
 export interface CuratorCommentRow {
   id: number;
   body: string;
@@ -432,11 +450,44 @@ export const api = {
     request<{ ok: true }>(`/api/owner/news/${id}`, { method: 'DELETE' }),
 
   // Newsletter
-  subscribeNewsletter: (email: string) =>
+  subscribeNewsletter: (email: string, prefs: NewsletterPrefs, consent: boolean) =>
     request<{ ok: true }>(`/api/newsletter/subscribe`, {
       method: 'POST',
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, prefs, consent }),
     }),
+  confirmNewsletter: (token: string) =>
+    request<{ ok: true; email: string; prefs: NewsletterPrefs }>(`/api/newsletter/confirm`, {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }),
+  getNewsletterPrefs: (token: string) =>
+    request<{ email: string; status: NewsletterStatus; prefs: NewsletterPrefs }>(
+      `/api/newsletter/prefs?token=${encodeURIComponent(token)}`,
+    ),
+  updateNewsletterPrefs: (token: string, prefs: NewsletterPrefs) =>
+    request<{ ok: true; prefs: NewsletterPrefs }>(`/api/newsletter/prefs`, {
+      method: 'POST',
+      body: JSON.stringify({ token, prefs }),
+    }),
+  unsubscribeNewsletter: (token: string) =>
+    request<{ ok: true }>(`/api/newsletter/unsubscribe`, {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }),
+  getMyNewsletter: () =>
+    request<{ subscribed: boolean; prefs: NewsletterPrefs }>(`/api/me/newsletter`),
+  updateMyNewsletter: (payload: { subscribed: boolean; prefs: NewsletterPrefs }) =>
+    request<{ subscribed: boolean; prefs: NewsletterPrefs }>(`/api/me/newsletter`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  adminNewsletterCounts: () =>
+    request<{ counts: NewsletterCounts }>(`/api/admin/newsletter/subscribers`),
+  adminSendNewsletter: (payload: { category: NewsletterCategory; subject: string; bodyText: string }) =>
+    request<{ ok: true; sent: number; failed: number; total: number }>(
+      `/api/admin/newsletter/send`,
+      { method: 'POST', body: JSON.stringify(payload) },
+    ),
 
   // Alumni
   listAlumni: (slug: string, params: { year?: number; q?: string; limit?: number } = {}) => {
