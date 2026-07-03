@@ -17,7 +17,9 @@ export function ObjektiPage() {
     return raw && isVillage(raw) ? raw : '';
   })();
   const [village, setVillageState] = useState<string>(initialVillage);
-  const [localSearch, setLocalSearch] = useState(search);
+  // ?q= dolazi iz hero pretrage na početnoj — ima prednost nad deljenim
+  // search state-om iz top-nav-a jer je eksplicitna korisnikova akcija.
+  const [localSearch, setLocalSearch] = useState(searchParams.get('q') ?? search);
 
   // URL ↔ state sync: kad korisnik promeni dropdown, ažuriramo query param tako
   // da je trenutno stanje share-abilno (i back-dugme se ponaša razumno).

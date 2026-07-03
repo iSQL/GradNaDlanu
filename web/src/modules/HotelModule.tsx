@@ -270,7 +270,7 @@ export function HotelModule({ loc, content }: Props) {
                       }}
                     >
                       <span>Ukupno</span>
-                      <strong style={{ color: 'var(--gold-2)', fontFamily: 'Fraunces, serif' }}>
+                      <strong style={{ color: 'var(--gold-2)', fontFamily: 'Marcellus, serif' }}>
                         {(priceToNumber(rooms[roomIdx].price) * nights).toLocaleString('sr-RS')} din
                       </strong>
                     </div>

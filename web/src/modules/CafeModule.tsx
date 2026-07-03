@@ -257,10 +257,10 @@ export function CafeModule({ loc, content }: Props) {
                   <svg className="cafe-floorplan-svg" viewBox="0 0 280 280">
                     <rect x="2" y="2" width="276" height="276" fill="none" stroke="#5B6878" strokeWidth="2" rx="4" />
                     <line x1="2" y1="190" x2="180" y2="190" stroke="#5B6878" strokeWidth="1.5" strokeDasharray="4 3" />
-                    <text x="90" y="210" fontSize="9" textAnchor="middle" fill="#5B6878" fontFamily="Inter" letterSpacing="1">UNUTRA</text>
-                    <text x="220" y="270" fontSize="9" textAnchor="middle" fill="#5B6878" fontFamily="Inter" letterSpacing="1">BAŠTA</text>
+                    <text x="90" y="210" fontSize="9" textAnchor="middle" fill="#5B6878" fontFamily="Work Sans" letterSpacing="1">UNUTRA</text>
+                    <text x="220" y="270" fontSize="9" textAnchor="middle" fill="#5B6878" fontFamily="Work Sans" letterSpacing="1">BAŠTA</text>
                     <rect x="20" y="10" width="240" height="18" fill="#E5D4B5" stroke="#5B6878" strokeWidth="1" />
-                    <text x="140" y="22" fontSize="9" textAnchor="middle" fill="#5B6878" fontFamily="Inter" letterSpacing="2">B A R</text>
+                    <text x="140" y="22" fontSize="9" textAnchor="middle" fill="#5B6878" fontFamily="Work Sans" letterSpacing="2">B A R</text>
                     {TABLES.map((t) => {
                       const taken = takenTableIds.has(t.id);
                       return (
@@ -274,7 +274,7 @@ export function CafeModule({ loc, content }: Props) {
                         </g>
                       );
                     })}
-                    <g transform="translate(8, 258)" fontSize="8" fontFamily="Inter" fill="#5B6878">
+                    <g transform="translate(8, 258)" fontSize="8" fontFamily="Work Sans" fill="#5B6878">
                       <circle cx="6" cy="0" r="5" fill="#E0D6C0" stroke="#5B6878" strokeWidth="1" />
                       <text x="16" y="2.5">slobodan</text>
                       <circle cx="78" cy="0" r="5" fill="#C8B8B0" stroke="#5B6878" strokeWidth="1" opacity="0.6" />

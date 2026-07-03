@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import type { CurrentUser } from '../lib/api';
 import { getToken } from '../lib/auth';
-import { IconAdmin, IconSearch } from './Icons';
+import { IconSearch } from './Icons';
 import { RoleBadge } from './RoleBadge';
 import type { Notifications } from '../types';
 
@@ -29,8 +29,6 @@ interface MenuItem {
 
 const MENU: MenuItem[] = [
   { to: '/', label: 'Početna', end: true },
-  { to: '/desavanja', label: 'Dešavanja' },
-  { to: '/naselja', label: 'Naselja' },
   {
     to: '/objekti',
     label: 'Objekti',
@@ -40,6 +38,8 @@ const MENU: MenuItem[] = [
       { to: '/oglasi', label: 'Oglasna tabla' },
     ],
   },
+  { to: '/desavanja', label: 'Dešavanja' },
+  { to: '/naselja', label: 'Naselja' },
   { to: '/dashboard', label: 'Moj prostor' },
 ];
 
@@ -70,6 +70,7 @@ function IconClose() {
 export function Nav({ search, onSearchChange, currentUser, notifications }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
+  const onHome = location.pathname === '/';
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Aggregate badge for "Moj prostor": unread messages + reservation updates +
@@ -107,10 +108,12 @@ export function Nav({ search, onSearchChange, currentUser, notifications }: Prop
     <>
       <nav className="topnav">
         <NavLink to="/" className="brand">
-          <div className="brand-mark">Ž</div>
+          <img src="/zabari-mark-color.svg" alt="" className="brand-logo" />
           <div className="brand-stack">
-            <div>Grad na dlanu</div>
-            <div className="brand-sub">Žabari · 12374</div>
+            <div>
+              zabari<span className="brand-net">.net</span>
+            </div>
+            <div className="brand-sub">Opština Žabari</div>
           </div>
         </NavLink>
 
@@ -156,18 +159,24 @@ export function Nav({ search, onSearchChange, currentUser, notifications }: Prop
         </ul>
 
         <div className="nav-right">
-          <label className="nav-search">
-            <IconSearch />
-            <input
-              placeholder="Pretraga objekata…"
-              value={search}
-              onChange={(e) => onSearchChange(e.target.value)}
-              onKeyDown={onSearchKey}
-            />
-          </label>
+          {/* Na početnoj je pretraga već u hero-u, pa je ovde ne dupliramo. */}
+          {!onHome && (
+            <label className="nav-search">
+              <IconSearch />
+              <input
+                placeholder="Pretraga objekata…"
+                value={search}
+                onChange={(e) => onSearchChange(e.target.value)}
+                onKeyDown={onSearchKey}
+              />
+            </label>
+          )}
           {currentUser ? (
-            <button className="nav-btn" onClick={() => navigate(homeRouteFor(currentUser))}>
-              <IconAdmin /> {currentUser.displayName}
+            <button className="nav-user" onClick={() => navigate(homeRouteFor(currentUser))}>
+              <span className="nav-user-avatar" aria-hidden="true">
+                {currentUser.displayName.charAt(0).toUpperCase()}
+              </span>
+              {currentUser.displayName}
               <RoleBadge role={currentUser.role} />
             </button>
           ) : getToken() ? (
@@ -198,15 +207,17 @@ export function Nav({ search, onSearchChange, currentUser, notifications }: Prop
             aria-hidden="true"
           />
           <aside className="nav-drawer" role="dialog" aria-label="Glavni meni">
-            <label className="nav-search nav-search-drawer">
-              <IconSearch />
-              <input
-                placeholder="Pretraga objekata…"
-                value={search}
-                onChange={(e) => onSearchChange(e.target.value)}
-                onKeyDown={onSearchKey}
-              />
-            </label>
+            {!onHome && (
+              <label className="nav-search nav-search-drawer">
+                <IconSearch />
+                <input
+                  placeholder="Pretraga objekata…"
+                  value={search}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  onKeyDown={onSearchKey}
+                />
+              </label>
+            )}
             <ul className="nav-drawer-links">
               {MENU.map((item) => (
                 <li key={item.to}>
@@ -245,10 +256,13 @@ export function Nav({ search, onSearchChange, currentUser, notifications }: Prop
             <div className="nav-drawer-foot">
               {currentUser ? (
                 <button
-                  className="nav-btn nav-btn-block"
+                  className="nav-user nav-btn-block"
                   onClick={() => navigate(homeRouteFor(currentUser))}
                 >
-                  <IconAdmin /> {currentUser.displayName}
+                  <span className="nav-user-avatar" aria-hidden="true">
+                    {currentUser.displayName.charAt(0).toUpperCase()}
+                  </span>
+                  {currentUser.displayName}
                   <RoleBadge role={currentUser.role} />
                 </button>
               ) : (

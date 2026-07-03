@@ -248,7 +248,7 @@ export function EditLocation() {
             <div>
               <div className="module-cat">{catLabel}</div>
               <h1 style={{
-                fontFamily: 'Fraunces, serif', fontWeight: 500,
+                fontFamily: 'Marcellus, serif', fontWeight: 500,
                 fontSize: 32, letterSpacing: '-0.02em', margin: '4px 0 0',
                 color: 'var(--paper)',
               }}>

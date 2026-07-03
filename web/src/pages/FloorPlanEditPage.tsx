@@ -136,7 +136,7 @@ export function FloorPlanEditPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, justifyContent: 'space-between' }}>
             <div>
               <div className="module-cat">Plan prostora</div>
-              <h1 style={{ fontFamily: 'Fraunces, serif', fontWeight: 500, fontSize: 26, letterSpacing: '-0.02em', margin: '2px 0 0', color: 'var(--paper)' }}>
+              <h1 style={{ fontFamily: 'Marcellus, serif', fontWeight: 500, fontSize: 26, letterSpacing: '-0.02em', margin: '2px 0 0', color: 'var(--paper)' }}>
                 {loc.name}
               </h1>
             </div>

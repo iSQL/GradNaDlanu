@@ -2,7 +2,7 @@ export function LegalNotice() {
   return (
     <div className="account-page">
       <div className="account-shell">
-        <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 32, fontWeight: 500, marginTop: 0 }}>
+        <h1 style={{ fontFamily: "'Marcellus', serif", fontSize: 32, fontWeight: 500, marginTop: 0 }}>
           Pravna napomena
         </h1>
         <div className="prose">
