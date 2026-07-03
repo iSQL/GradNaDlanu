@@ -99,7 +99,7 @@ export function AdminPanel() {
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
               <h1
                 style={{
-                  fontFamily: 'Fraunces, serif',
+                  fontFamily: 'Marcellus, serif',
                   fontWeight: 500,
                   fontSize: 36,
                   letterSpacing: '-0.02em',

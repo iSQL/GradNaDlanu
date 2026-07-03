@@ -156,13 +156,27 @@ export function App() {
         <footer className="foot">
           <div className="foot-grid">
             <div className="foot-col">
-              <h4>Grad na dlanu</h4>
-              <p>Opština Žabari, Braničevski okrug, 12374.</p>
-              <p>
-                <Link to="/pravna-napomena">Pravna napomena</Link>
-                {' · '}
-                <Link to="/politika-privatnosti">Politika privatnosti</Link>
+              <div className="foot-brand-row">
+                <img src="/zabari-mark-reverse.svg" alt="" className="foot-logo" />
+                <span className="foot-wordmark">
+                  zabari<span className="brand-net">.net</span>
+                </span>
+              </div>
+              <p className="foot-desc">
+                Digitalni vodič kroz opštinu Žabari — objekti, događaji, oglasi i usluge na
+                jednom mestu.
               </p>
+              <p className="foot-motto">Mreža naše varoši</p>
+            </div>
+            <div className="foot-col">
+              <h4>Istraži</h4>
+              <div className="foot-links">
+                <Link to="/objekti">Objekti</Link>
+                <Link to="/mapa">Mapa</Link>
+                <Link to="/desavanja">Dešavanja</Link>
+                <Link to="/naselja">Naselja</Link>
+                <Link to="/oglasi">Oglasna tabla</Link>
+              </div>
             </div>
             <div className="foot-col">
               <h4>Kontakt</h4>
@@ -176,12 +190,18 @@ export function App() {
               </p>
             </div>
             <div className="foot-col">
-              <h4>Budi u toku</h4>
-              <p>Prijavi se da dobijaš najnovija dešavanja iz okoline.</p>
+              <h4>Bilten</h4>
+              <p>Novosti iz opštine i najavljeni događaji, pravo u tvoj inbox.</p>
               <NewsletterForm />
             </div>
           </div>
-          <div className="foot-copy">© {new Date().getFullYear()} Grad na dlanu · Žabari</div>
+          <div className="foot-bottom">
+            <span>© {new Date().getFullYear()} Opština Žabari · zabari.net</span>
+            <div className="foot-legal">
+              <Link to="/pravna-napomena">Pravna napomena</Link>
+              <Link to="/politika-privatnosti">Politika privatnosti</Link>
+            </div>
+          </div>
         </footer>
       )}
     </>
