@@ -8,6 +8,7 @@ import { PinGlyph } from '../components/PinGlyph';
 import { IconStar } from '../components/Icons';
 import { RoleBadge } from '../components/RoleBadge';
 import { PorukeInbox } from '../components/PorukeInbox';
+import { NewsletterSettings } from '../components/NewsletterSettings';
 import type {
   CityEvent,
   ConversationSummary,
@@ -40,9 +41,9 @@ type FollowedCard =
   | { kind: 'news'; id: number; date: string; data: NewsItem }
   | { kind: 'event'; id: number; date: string; data: CityEvent };
 
-type Tab = 'pratim' | 'komentari' | 'rezervacije' | 'poruke';
+type Tab = 'pratim' | 'komentari' | 'rezervacije' | 'poruke' | 'bilten';
 
-const TABS: { key: Tab; label: string }[] = [
+const BASE_TABS: { key: Tab; label: string }[] = [
   { key: 'pratim', label: 'Pratim' },
   { key: 'komentari', label: 'Komentari' },
   { key: 'rezervacije', label: 'Rezervacije' },
@@ -187,6 +188,9 @@ export function DashboardPage() {
 
   const user = ctx.currentUser;
   const today = formatDate(new Date().toISOString());
+  // Newsletter needs a verified email — guests have none, so hide the tab.
+  const tabs: { key: Tab; label: string }[] =
+    user.role === 'guest' ? BASE_TABS : [...BASE_TABS, { key: 'bilten', label: 'Bilten' }];
 
   return (
     <div className="ms-page">
@@ -267,11 +271,12 @@ export function DashboardPage() {
 
         {/* ── TABS (newspaper section index) ───────────────────────────── */}
         <nav className="ms-tabs" role="tablist" aria-label="Odeljci">
-          {TABS.map((t) => {
+          {tabs.map((t) => {
             const count =
               t.key === 'pratim' ? favorites?.length
               : t.key === 'komentari' ? comments?.length
               : t.key === 'rezervacije' ? reservations?.length
+              : t.key === 'bilten' ? undefined
               : conversations === null && serviceRequests === null
                 ? undefined
                 : (conversations?.length ?? 0) + (serviceRequests?.length ?? 0);
@@ -525,6 +530,20 @@ export function DashboardPage() {
               reloadConversations={reloadConversations}
               reloadServiceRequests={reloadServiceRequests}
             />
+          </div>
+        </section>
+        )}
+
+        {/* ── V. BILTEN (newsletter preferencije) ──────────────────────── */}
+        {tab === 'bilten' && (
+        <section className="ms-section">
+          <div className="ms-section-body">
+            <div className="ms-section-head">
+              <span className="ms-eyebrow">— odeljak —</span>
+              <h2 className="ms-section-title">Bilten</h2>
+              <span className="ms-section-meta">e-pošta</span>
+            </div>
+            <NewsletterSettings />
           </div>
         </section>
         )}

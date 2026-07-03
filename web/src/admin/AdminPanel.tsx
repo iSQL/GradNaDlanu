@@ -9,8 +9,9 @@ import { UsersTab } from './UsersTab';
 import { ReservationsInbox } from './ReservationsInbox';
 import { SettingsTab } from './SettingsTab';
 import { OglasiArchiveTab } from './OglasiArchiveTab';
+import { NewsletterTab } from './NewsletterTab';
 
-type Tab = 'objects' | 'reservations' | 'users' | 'settings' | 'oglasi';
+type Tab = 'objects' | 'reservations' | 'users' | 'settings' | 'oglasi' | 'newsletter';
 
 export function AdminPanel() {
   const ctx = useOutletContext<AppContext>();
@@ -130,6 +131,7 @@ export function AdminPanel() {
             <button className={`account-tab admin-tab ${tab === 'reservations' ? 'active' : ''}`} onClick={() => setTab('reservations')}>Rezervacije</button>
             <button className={`account-tab admin-tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>Korisnici</button>
             <button className={`account-tab admin-tab ${tab === 'oglasi' ? 'active' : ''}`} onClick={() => setTab('oglasi')}>Oglasi (arhiva)</button>
+            <button className={`account-tab admin-tab ${tab === 'newsletter' ? 'active' : ''}`} onClick={() => setTab('newsletter')}>Newsletter</button>
             <button className={`account-tab admin-tab ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>Podešavanja</button>
           </div>
         </div>
@@ -247,6 +249,7 @@ export function AdminPanel() {
         {tab === 'reservations' && <ReservationsInbox />}
         {tab === 'users' && <UsersTab />}
         {tab === 'oglasi' && <OglasiArchiveTab />}
+        {tab === 'newsletter' && <NewsletterTab />}
         {tab === 'settings' && <SettingsTab />}
       </div>
     </div>

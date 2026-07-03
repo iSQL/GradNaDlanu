@@ -2650,6 +2650,28 @@ button { font-family: inherit; }
 .home-card-grid-4 { grid-template-columns: repeat(4, 1fr); }
 .home-card-grid-3 { grid-template-columns: repeat(3, 1fr); }
 
+/* Početna: 2 kolone — leva (~70%) feature kartice, desna (~30%) feed rail */
+.home-split {
+  display: grid;
+  grid-template-columns: 7fr 3fr;
+  gap: 32px;
+  align-items: start;
+}
+.home-split-main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+.home-split-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  min-width: 0;
+}
+/* Uži naslovi u desnom rail-u da lepo stanu u ~30% kolonu */
+.home-split-rail .home-section-head h2 { font-size: 22px; }
+
 .home-skeleton-card {
   height: 180px;
   background: linear-gradient(90deg, var(--paper-2) 0%, rgba(0, 0, 0, 0.04) 50%, var(--paper-2) 100%);
@@ -2923,6 +2945,7 @@ button { font-family: inherit; }
 @media (max-width: 960px) {
   .home-card-grid-4 { grid-template-columns: repeat(2, 1fr); }
   .home-feature-row { grid-template-columns: 1fr; }
+  .home-split { grid-template-columns: 1fr; }
   .home-hero-title { font-size: 52px; }
 }
 @media (max-width: 720px) {
@@ -3740,6 +3763,23 @@ button { font-family: inherit; }
 .newsletter-msg { font-size: 12px; }
 .newsletter-msg.ok  { color: #2f7a3c; }
 .newsletter-msg.err { color: #b03030; }
+.newsletter-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.newsletter-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.4;
+  cursor: pointer;
+}
+.newsletter-check input { margin-top: 2px; flex: 0 0 auto; }
+.newsletter-consent { margin-top: 2px; }
+.newsletter-consent a { color: inherit; text-decoration: underline; }
 
 @media (max-width: 720px) {
   .foot { padding: 32px 20px 20px; }

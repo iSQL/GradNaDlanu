@@ -154,6 +154,8 @@ Fastify auto-logs every HTTP request. Explicit `req.log.info` lines exist for us
 
 Migrations always run at boot in prod, so schema changes ship with the next image — no separate migrate step.
 
+**Uploads storage.** Uploaded photos bind-mount onto a **Hetzner Volume** (block storage) via a **hardcoded** host path in [docker-compose.yml](docker-compose.yml): `- /mnt/HC_Volume_<ID>/zabari-uploads:/data/uploads`. It is deliberately not an env var — **Coolify does not interpolate `${VAR}` into compose volume sources** (it evaluates the `:-` default at parse time, so an env-driven source silently falls back to a named volume on the root disk; verified via `docker inspect` showing the project-prefixed `..._uploads` named volume even with the env set). Same hardcoded-bind pattern as the logs mount; Coolify surfaces both under Persistent Storage → Directories. The container path (`UPLOAD_DIR`, default `/data/uploads`) and all of [media.ts](server/src/routes/media.ts) are unchanged — the server only ever sees `/data/uploads` and stores relative paths in `media.storage_path`, so swapping the backing store is purely an ops concern. The host dir must be `chown 1000:1000` (the container's `node` user) or uploads fail with `EACCES`. Because storage access is centralized in [media.ts](server/src/routes/media.ts) (relative `storagePath` + `createWriteStream`/`rename`/`createReadStream`), a future move to S3-style object storage would be localized to that one file.
+
 ## Conventions worth respecting
 
 - **Slugs are server-side.** [server/src/lib/locations.ts](server/src/lib/locations.ts) / [routes/locations.ts](server/src/routes/locations.ts) slugify Serbian diacritics to ASCII (`č→c`, `š→s`, `ž→z`, `đ→dj`). Don't generate slugs on the client.

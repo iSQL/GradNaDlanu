@@ -66,6 +66,26 @@ export function PrivacyPolicy() {
             Ne koristimo marketinške ili analitičke kolačiće trećih strana.
           </p>
 
+          <h2>Bilten (newsletter)</h2>
+          <p>
+            Ako se prijavite na bilten, čuvamo vašu e-adresu i izbor kategorija koje želite da
+            primate (<strong>dešavanja u gradu</strong>, <strong>nove poruke</strong>,{' '}
+            <strong>marketing i ponude</strong>). Za prijave putem forme u podnožju sajta primenjujemo{' '}
+            <strong>dvostruku potvrdu (double opt-in)</strong>: šaljemo vam poruku sa linkom, a na
+            listu vas dodajemo tek kada potvrdite prijavu — čime sprečavamo upis tuđe adrese.
+            Prijavljeni korisnici sa već potvrđenom e-poštom biltenom upravljaju iz odeljka
+            „Moj prostor“ bez dodatne potvrde.
+          </p>
+          <p>
+            Pravni osnov je vaš <strong>pristanak</strong>, koji možete povući u svakom trenutku:
+            svaka poruka biltena sadrži link za odjavu (kao i zaglavlje <code>List-Unsubscribe</code>{' '}
+            za odjavu jednim klikom iz poštanskog programa), a kategorije i potpunu odjavu možete
+            podesiti i iz „Mog prostora“. Za slanje koristimo servis Resend; e-adrese ne prodajemo
+            niti ustupamo trećim licima u marketinške svrhe. Podatke o pretplati čuvamo dok ste
+            pretplaćeni; nakon odjave zadržavamo minimalnu evidenciju kako vas ne bismo ponovo
+            kontaktirali bez pristanka.
+          </p>
+
           <h2>Mape i satelitski snimci</h2>
           <p>
             Za prikaz mape koristi se servis Esri World Imagery. Vaš pregledač pri tome

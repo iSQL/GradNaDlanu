@@ -1,7 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "*",
       "Bash(npm install *)",
       "Bash(npm --workspace web run typecheck)",
       "Bash(npm --workspace server exec -- tsc --noEmit)",
@@ -31,7 +30,8 @@
       "Read(//c/tmp/**)",
       "Read(//c//**)",
       "Bash(*)",
-      "Bash(bash c:/Git/GradNaDlanu/.tmp/phase3-smoke.sh)"
+      "Bash(bash c:/Git/GradNaDlanu/.tmp/phase3-smoke.sh)",
+      "PowerShell(npm --workspace web run typecheck)"
     ]
   },
   "defaultMode": "bypassPermissions"
