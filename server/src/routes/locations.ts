@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { and, avg, count, desc, eq, gte, ilike, sql as dsql } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { checkins, comments, favorites, locations, moduleContent } from '../db/schema.js';
+import { checkins, comments, favorites, locations, moduleContent, objectOwners, villageCurators } from '../db/schema.js';
 import { requireAdmin, getOptionalUser } from '../lib/auth.js';
 import { escapeLikePattern, InvalidSlugError, slugify, validateContent } from '../lib/locations.js';
 import { isVillage } from '../lib/villages.js';
@@ -20,7 +20,14 @@ export async function locationsRoutes(app: FastifyInstance) {
     async (req) => {
       const { cat, q, includeDrafts, sort, limit } = req.query;
       const conds = [];
-      if (!includeDrafts) conds.push(eq(locations.status, 'published'));
+      // Drafts are admin-only on the public endpoint — anyone else gets the
+      // published set regardless of the flag.
+      let showDrafts = false;
+      if (includeDrafts) {
+        const user = await getOptionalUser(req);
+        showDrafts = user?.role === 'admin';
+      }
+      if (!showDrafts) conds.push(eq(locations.status, 'published'));
       if (cat) conds.push(eq(locations.catId, cat));
       if (q) {
         const safe = escapeLikePattern(q.slice(0, 80));
@@ -76,13 +83,43 @@ export async function locationsRoutes(app: FastifyInstance) {
   app.get<{ Params: { slug: string } }>('/api/locations/:slug', async (req, reply) => {
     const [loc] = await db.select().from(locations).where(eq(locations.slug, req.params.slug)).limit(1);
     if (!loc) return reply.code(404).send({ error: 'Not found' });
+
+    const user = await getOptionalUser(req);
+
+    // Drafts are only visible to admin, the object's owner, or a curator of
+    // its village (their editors load by slug). Everyone else gets 404 — same
+    // response as "doesn't exist" so slugs can't be probed.
+    if (loc.status !== 'published') {
+      let canViewDraft = false;
+      if (user) {
+        if (user.role === 'admin') {
+          canViewDraft = true;
+        } else {
+          const [own] = await db
+            .select({ userId: objectOwners.userId })
+            .from(objectOwners)
+            .where(and(eq(objectOwners.userId, user.sub), eq(objectOwners.locationId, loc.id)))
+            .limit(1);
+          if (own) {
+            canViewDraft = true;
+          } else if (loc.village) {
+            const [cur] = await db
+              .select({ userId: villageCurators.userId })
+              .from(villageCurators)
+              .where(and(eq(villageCurators.userId, user.sub), eq(villageCurators.villageName, loc.village)))
+              .limit(1);
+            if (cur) canViewDraft = true;
+          }
+        }
+      }
+      if (!canViewDraft) return reply.code(404).send({ error: 'Not found' });
+    }
+
     const [mc] = await db
       .select()
       .from(moduleContent)
       .where(eq(moduleContent.locationId, loc.id))
       .limit(1);
-
-    const user = await getOptionalUser(req);
 
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const [checkinAgg] = await db

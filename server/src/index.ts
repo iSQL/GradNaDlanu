@@ -137,7 +137,13 @@ async function main() {
   // Index.html and everything else: leave headers alone, CDN/browser defaults apply.
   app.addHook('onSend', async (req, reply) => {
     if (req.url.startsWith('/api/')) {
-      reply.header('Cache-Control', 'no-store');
+      // /api/media/* sets its own Cache-Control per kind (public for ad/alumni
+      // photos, private for the rest) — onSend runs after the handler, so a
+      // blanket no-store here would clobber it and force every image to be
+      // re-downloaded on each page view.
+      if (!req.url.startsWith('/api/media/')) {
+        reply.header('Cache-Control', 'no-store');
+      }
     } else if (req.url.startsWith('/assets/')) {
       reply.header('Cache-Control', 'public, max-age=31536000, immutable');
     }
