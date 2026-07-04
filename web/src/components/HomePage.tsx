@@ -85,14 +85,9 @@ const USLUGE = [
   { id: 'majstor', label: 'Majstor za sve', sub: 'Sitne popravke u domaćinstvu', icon: <IconToolbox /> },
 ];
 
-// Hero pozadinski slajder — placeholder gradijenti dok ne stignu prave fotografije.
-// Kada fotografije budu spremne, zameniti vrednosti sa `url(/uploads/...)`.
-const HERO_SLIDES: string[] = [
-  'url(https://picsum.photos/1600/600)',  
-  'url(https://picsum.photos/1600/600)',  
-  'url(https://picsum.photos/1600/600)'
-];
-const HERO_SLIDE_MS = 6000;
+// Statična hero pozadina — placeholder dok ne stigne prava fotografija.
+// Kada fotografija bude spremna, zameniti sa `url(/uploads/...)` ili fajlom iz web/public.
+const HERO_BG = 'url(https://picsum.photos/1600/600)';
 
 function truncate(s: string, max: number): string {
   if (s.length <= max) return s;
@@ -114,13 +109,6 @@ export function HomePage() {
   const [upcoming, setUpcoming] = useState<CityEvent[] | null>(null);
   const [ads, setAds] = useState<Ad[] | null>(null);
   const [heroQuery, setHeroQuery] = useState('');
-
-  // Pozadinski slajder u hero sekciji — auto-rotacija sa crossfade prelazom.
-  const [heroSlide, setHeroSlide] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setHeroSlide((i) => (i + 1) % HERO_SLIDES.length), HERO_SLIDE_MS);
-    return () => clearInterval(t);
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -213,7 +201,6 @@ export function HomePage() {
               <strong>Dobrodošli nazad, {currentUser.displayName}.</strong>
             </div>
             <div className="hp-welcome-links">
-              <Link to="/dashboard">Moj prostor</Link>
               <Link to="/oglasi">Oglasna tabla</Link>
               <Link to="/desavanja">Dešavanja</Link>
             </div>
@@ -223,14 +210,7 @@ export function HomePage() {
 
       {/* ===== Hero ===== */}
       <header className="hp-hero">
-        {HERO_SLIDES.map((bg, i) => (
-          <div
-            key={bg}
-            className={`hp-hero-bg ${i === heroSlide ? 'active' : ''}`}
-            style={{ backgroundImage: bg }}
-            aria-hidden="true"
-          />
-        ))}
+        <div className="hp-hero-bg" style={{ backgroundImage: HERO_BG }} aria-hidden="true" />
         <div className="hp-hero-scrim" aria-hidden="true" />
         <div className="hp-hero-inner">
           <div className="hp-eyebrow">Opština Žabari · 12374</div>
@@ -250,17 +230,6 @@ export function HomePage() {
             />
             <button type="submit">Pretraži</button>
           </form>
-          <div className="hp-hero-dots">
-            {HERO_SLIDES.map((bg, i) => (
-              <button
-                key={bg}
-                type="button"
-                className={`hp-hero-dot ${i === heroSlide ? 'active' : ''}`}
-                aria-label={`Pozadinska fotografija ${i + 1}`}
-                onClick={() => setHeroSlide(i)}
-              />
-            ))}
-          </div>
         </div>
       </header>
 

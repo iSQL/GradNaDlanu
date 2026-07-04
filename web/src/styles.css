@@ -5023,6 +5023,40 @@ button { font-family: inherit; }
 .nav-submenu li {
   list-style: none;
 }
+/* Korisnički chip ("Moj prostor") sa administrativnim padajućim menijem. */
+.nav-user-group { position: relative; }
+.nav-user-submenu {
+  left: auto;
+  right: 0;
+  top: calc(100% + 8px);
+}
+/* Nevidljivi most preko razmaka dugme↔meni da hover ne pukne pri prelasku. */
+.nav-user-submenu::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -10px;
+  height: 10px;
+}
+.nav-user-group:hover > .nav-submenu,
+.nav-user-group:focus-within > .nav-submenu {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.nav-user-submenu-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
 .nav-submenu-link {
   display: block;
   padding: 9px 12px;
@@ -5490,17 +5524,13 @@ button { font-family: inherit; }
   padding: 52px 48px;
   text-align: center;
 }
-/* Pozadinski slajdovi (placeholder gradijenti → kasnije prave fotografije).
-   Slojevi se preklapaju apsolutno i crossfade-uju kroz opacity. */
+/* Statična pozadinska fotografija (placeholder → kasnije prava fotografija). */
 .hp-hero-bg {
   position: absolute;
   inset: 0;
   background-size: cover;
   background-position: center;
-  opacity: 0;
-  transition: opacity 1.2s ease;
 }
-.hp-hero-bg.active { opacity: 1; }
 /* Zatamnjenje preko fotografije da tekst i pretraga ostanu čitljivi. */
 .hp-hero-scrim {
   position: absolute;
@@ -5531,24 +5561,6 @@ button { font-family: inherit; }
   line-height: 1.55;
   margin: 0 0 26px;
 }
-.hp-hero-dots {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 22px;
-}
-.hp-hero-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: none;
-  padding: 0;
-  background: rgba(255, 255, 255, 0.4);
-  cursor: pointer;
-  transition: background 0.15s, transform 0.15s;
-}
-.hp-hero-dot:hover { background: rgba(255, 255, 255, 0.7); }
-.hp-hero-dot.active { background: var(--gold); transform: scale(1.2); }
 .hp-hero-search {
   display: flex;
   align-items: center;

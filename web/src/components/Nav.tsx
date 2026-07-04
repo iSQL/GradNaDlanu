@@ -13,11 +13,13 @@ interface Props {
   notifications?: Notifications;
 }
 
-function homeRouteFor(user: CurrentUser): string {
-  if (user.role === 'admin') return '/admin';
-  if (user.role === 'business') return '/poslovni';
-  if (user.role === 'curator') return '/kustos';
-  return '/dashboard';
+// Administrativni meni u submeniju korisničkog dugmeta — stavke zavise od uloge.
+// Običan posetilac nema administrativnih stavki, pa ni submeni.
+function adminMenuFor(user: CurrentUser): { to: string; label: string }[] {
+  if (user.role === 'admin') return [{ to: '/admin', label: 'Admin panel' }];
+  if (user.role === 'business') return [{ to: '/poslovni', label: 'Poslovni panel' }];
+  if (user.role === 'curator') return [{ to: '/kustos', label: 'Kustoski panel' }];
+  return [];
 }
 
 interface MenuItem {
@@ -35,12 +37,11 @@ const MENU: MenuItem[] = [
     submenu: [
       { to: '/objekti', label: 'Lista objekata', end: true },
       { to: '/mapa', label: 'Mapa' },
-      { to: '/oglasi', label: 'Oglasna tabla' },
     ],
   },
+  { to: '/oglasi', label: 'Oglasi' },
   { to: '/desavanja', label: 'Dešavanja' },
   { to: '/naselja', label: 'Naselja' },
-  { to: '/dashboard', label: 'Moj prostor' },
 ];
 
 function IconCaret() {
@@ -131,11 +132,6 @@ export function Nav({ search, onSearchChange, currentUser, notifications }: Prop
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               >
                 {item.label}
-                {item.to === '/dashboard' && notifyCount > 0 && (
-                  <span className="nav-badge" aria-label={`${notifyCount} novih obaveštenja`}>
-                    {badgeText}
-                  </span>
-                )}
                 {item.submenu && <IconCaret />}
               </NavLink>
               {item.submenu && (
@@ -172,13 +168,39 @@ export function Nav({ search, onSearchChange, currentUser, notifications }: Prop
             </label>
           )}
           {currentUser ? (
-            <button className="nav-user" onClick={() => navigate(homeRouteFor(currentUser))}>
-              <span className="nav-user-avatar" aria-hidden="true">
-                {currentUser.displayName.charAt(0).toUpperCase()}
-              </span>
-              {currentUser.displayName}
-              <RoleBadge role={currentUser.role} />
-            </button>
+            <div className={adminMenuFor(currentUser).length > 0 ? 'nav-user-group' : undefined}>
+              <button className="nav-user" onClick={() => navigate('/dashboard')}>
+                <span className="nav-user-avatar" aria-hidden="true">
+                  {currentUser.displayName.charAt(0).toUpperCase()}
+                </span>
+                Moj prostor
+                {notifyCount > 0 && (
+                  <span className="nav-badge" aria-label={`${notifyCount} novih obaveštenja`}>
+                    {badgeText}
+                  </span>
+                )}
+                {adminMenuFor(currentUser).length > 0 && <IconCaret />}
+              </button>
+              {adminMenuFor(currentUser).length > 0 && (
+                <ul className="nav-submenu nav-user-submenu" role="menu">
+                  <li className="nav-user-submenu-head" role="none">
+                    {currentUser.displayName}
+                    <RoleBadge role={currentUser.role} />
+                  </li>
+                  {adminMenuFor(currentUser).map((m) => (
+                    <li key={m.to} role="none">
+                      <NavLink
+                        to={m.to}
+                        role="menuitem"
+                        className={({ isActive }) => `nav-submenu-link ${isActive ? 'active' : ''}`}
+                      >
+                        {m.label}
+                      </NavLink>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           ) : getToken() ? (
             <span className="nav-btn nav-btn-placeholder" aria-hidden="true" />
           ) : (
@@ -229,9 +251,6 @@ export function Nav({ search, onSearchChange, currentUser, notifications }: Prop
                     }
                   >
                     {item.label}
-                    {item.to === '/dashboard' && notifyCount > 0 && (
-                      <span className="nav-badge">{badgeText}</span>
-                    )}
                   </NavLink>
                   {item.submenu && (
                     <ul className="nav-drawer-sublist">
@@ -255,16 +274,30 @@ export function Nav({ search, onSearchChange, currentUser, notifications }: Prop
             </ul>
             <div className="nav-drawer-foot">
               {currentUser ? (
-                <button
-                  className="nav-user nav-btn-block"
-                  onClick={() => navigate(homeRouteFor(currentUser))}
-                >
-                  <span className="nav-user-avatar" aria-hidden="true">
-                    {currentUser.displayName.charAt(0).toUpperCase()}
-                  </span>
-                  {currentUser.displayName}
-                  <RoleBadge role={currentUser.role} />
-                </button>
+                <>
+                  <button
+                    className="nav-user nav-btn-block"
+                    onClick={() => navigate('/dashboard')}
+                  >
+                    <span className="nav-user-avatar" aria-hidden="true">
+                      {currentUser.displayName.charAt(0).toUpperCase()}
+                    </span>
+                    Moj prostor
+                    {notifyCount > 0 && <span className="nav-badge">{badgeText}</span>}
+                    <RoleBadge role={currentUser.role} />
+                  </button>
+                  {adminMenuFor(currentUser).map((m) => (
+                    <NavLink
+                      key={m.to}
+                      to={m.to}
+                      className={({ isActive }) =>
+                        `nav-drawer-sublink ${isActive ? 'active' : ''}`
+                      }
+                    >
+                      {m.label}
+                    </NavLink>
+                  ))}
+                </>
               ) : (
                 <button
                   className="nav-btn nav-btn-block"
