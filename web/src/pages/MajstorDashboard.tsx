@@ -7,6 +7,7 @@ import { formatDateTime as formatDate } from '../lib/format';
 import { SERVICE_CATEGORY_LABELS, isServiceCategory } from '../lib/usluge';
 import { AuthImage } from '../components/AuthImage';
 import { StartChat } from '../components/StartChat';
+import { Stars } from '../components/MajstorStats';
 import type { MajstorJob, ServiceRequestQuote } from '../types';
 
 type Tab = 'novi' | 'ponude' | 'arhiva';
@@ -89,11 +90,13 @@ function JobCard({
   job,
   busyId,
   onOffer,
+  onComplete,
   onChatSent,
 }: {
   job: MajstorJob;
   busyId: number | null;
   onOffer: (jobId: number, q: ServiceRequestQuote) => void;
+  onComplete: (jobId: number) => void;
   onChatSent: () => void;
 }) {
   // Forma za izmenu je sklopljena dok je ne otvorite — aktivna ponuda se
@@ -101,13 +104,17 @@ function JobCard({
   const [editing, setEditing] = useState(false);
   const archived = job.archivedReason !== null;
   const acceptedMine = job.myOffer?.status === 'accepted';
+  const completedMine = acceptedMine && job.status === 'completed';
 
   return (
     <div className={`usluge-job ${archived ? 'is-archived' : ''}`}>
       <div className="usluge-job-head">
         <span className="usluge-job-cat">{catLabel(job.categoryId)}</span>
         <span>· {job.requesterDisplayName}</span>
-        {acceptedMine && <span className="usluge-status is-accepted">vaša ponuda je prihvaćena</span>}
+        {acceptedMine && !completedMine && (
+          <span className="usluge-status is-accepted">vaša ponuda je prihvaćena</span>
+        )}
+        {completedMine && <span className="usluge-status is-completed">posao završen</span>}
         {archived && <span className="usluge-status is-archived">arhivirano</span>}
         <span className="usluge-job-date">{formatDate(job.createdAt)}</span>
       </div>
@@ -144,7 +151,7 @@ function JobCard({
         </div>
       )}
 
-      {acceptedMine && (
+      {acceptedMine && !completedMine && (
         <div className="usluge-contact" style={{ marginTop: 10 }}>
           <span className="usluge-offer-note" style={{ marginTop: 0 }}>
             Kontaktirajte naručioca: <strong>{job.requesterDisplayName}</strong>
@@ -160,6 +167,40 @@ function JobCard({
               recipientName={job.requesterDisplayName}
               onSent={onChatSent}
             />
+          )}
+        </div>
+      )}
+
+      {/* Posao u toku — majstor može da ga označi završenim (može i naručilac
+          sa svoje strane). Završetak otključava naručiocu ocenjivanje. */}
+      {acceptedMine && job.status === 'accepted' && (
+        <div className="reservation-actions" style={{ marginTop: 10 }}>
+          <button
+            className="row-action"
+            type="button"
+            disabled={busyId === job.id}
+            onClick={() => onComplete(job.id)}
+          >
+            Označi kao završeno
+          </button>
+        </div>
+      )}
+
+      {/* Dobijena ocena — vidljiva kada naručilac oceni završen posao. */}
+      {completedMine && (
+        <div className="usluge-rating" style={{ marginTop: 10 }}>
+          {job.myOffer?.ratingStars ? (
+            <>
+              <div className="usluge-rating-head">
+                <span className="usluge-offer-meta">Ocena naručioca:</span>
+                <Stars value={job.myOffer.ratingStars} />
+              </div>
+              {job.myOffer.ratingComment && (
+                <div className="usluge-offer-note">{job.myOffer.ratingComment}</div>
+              )}
+            </>
+          ) : (
+            <span className="usluge-offer-meta">Naručilac još nije ostavio ocenu.</span>
           )}
         </div>
       )}
@@ -230,6 +271,21 @@ export function MajstorDashboard() {
     }
   };
 
+  const completeJob = async (jobId: number) => {
+    if (!window.confirm('Označiti posao kao završen? Naručilac će moći da vas oceni.')) return;
+    setBusyId(jobId);
+    setError(null);
+    try {
+      await api.majstorCompleteJob(jobId);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      setError(message.includes('409') ? 'Posao je već završen ili otkazan.' : message);
+    } finally {
+      setBusyId(null);
+      await reload();
+    }
+  };
+
   const logout = async () => {
     clearToken();
     await ctx.reloadCurrentUser();
@@ -252,8 +308,13 @@ export function MajstorDashboard() {
   };
 
   const novi = jobs?.filter((j) => j.status === 'open' && !j.myOffer) ?? null;
-  const ponude = jobs?.filter((j) => j.myOffer && j.archivedReason === null) ?? null;
-  const arhiva = jobs?.filter((j) => j.archivedReason !== null) ?? null;
+  // Ponude = aktivne + prihvaćene u toku; završeni poslovi idu u arhivu
+  // (pozitivan ishod — kartica nosi "posao završen" i dobijenu ocenu).
+  const ponude =
+    jobs?.filter((j) => j.myOffer && j.archivedReason === null && j.status !== 'completed') ?? null;
+  const arhiva =
+    jobs?.filter((j) => j.archivedReason !== null || (j.myOffer && j.status === 'completed')) ??
+    null;
 
   const myCats = (ctx.currentUser?.majstorCategories ?? []).map(catLabel).join(', ');
 
@@ -269,6 +330,7 @@ export function MajstorDashboard() {
           job={j}
           busyId={busyId}
           onOffer={sendOffer}
+          onComplete={completeJob}
           onChatSent={() => navigate('/dashboard')}
         />
       ))

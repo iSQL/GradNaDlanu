@@ -3,8 +3,8 @@ import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { eq, and } from 'drizzle-orm';
 import * as schema from './schema.js';
-import { alumni, comments, events, locations, majstorCategories, moduleContent, news, users, villages } from './schema.js';
-import { ALUMNI, CATEGORIES, COMMENTS, EVENTS, LOCATIONS, MAJSTORI, NEWS, USERS, VILLAGES, buildModuleContent } from './seed-data.js';
+import { alumni, comments, events, locations, majstorCategories, moduleContent, news, serviceJobs, serviceOffers, users, villages } from './schema.js';
+import { ALUMNI, CATEGORIES, COMMENTS, EVENTS, LOCATIONS, MAJSTORI, MAJSTOR_REVIEWS, NEWS, USERS, VILLAGES, buildModuleContent } from './seed-data.js';
 import { env } from '../env.js';
 
 export interface SeedResult {
@@ -15,6 +15,7 @@ export interface SeedResult {
   newsCount: number;
   userCount: number;
   majstorCount: number;
+  majstorReviewCount: number;
   commentCount: number;
   alumniCount: number;
   villageCount: number;
@@ -216,6 +217,72 @@ export async function runSeed(): Promise<SeedResult> {
       }
     }
 
+    // Demo ocene majstora: završen service_job + prihvaćena ocenjena ponuda po
+    // stavci — hrani metrike (avgRating/completedJobs/avgResponseMinutes) i
+    // recenzije na /majstori. Idempotentno na (naručilac, kategorija, opis
+    // kvara) — nema unique constrainta, pa se postojanje proverava ručno.
+    let majstorReviewCount = 0;
+    for (const r of MAJSTOR_REVIEWS) {
+      const reviewerId = userIdByEmail.get(r.reviewerEmail);
+      if (!reviewerId) continue;
+      const [majstor] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, r.majstorEmail))
+        .limit(1);
+      if (!majstor) continue;
+
+      const existing = await db
+        .select({ payload: serviceJobs.payload })
+        .from(serviceJobs)
+        .where(and(eq(serviceJobs.userId, reviewerId), eq(serviceJobs.categoryId, r.categoryId)));
+      if (existing.some((j) => (j.payload as { description?: string }).description === r.description)) {
+        continue;
+      }
+
+      // Vremena raspršena unazad: zahtev → ponuda (responseMinutes) → završeno
+      // sutradan → ocena par sati kasnije. Sve u prošlosti, deluje prirodno.
+      const createdAt = new Date(Date.now() - r.daysAgo * 86_400_000);
+      const offerAt = new Date(createdAt.getTime() + r.responseMinutes * 60_000);
+      const completedAt = new Date(createdAt.getTime() + 86_400_000);
+      const ratedAt = new Date(completedAt.getTime() + 3 * 3_600_000);
+
+      const [job] = await db
+        .insert(serviceJobs)
+        .values({
+          userId: reviewerId,
+          categoryId: r.categoryId,
+          payload: { description: r.description, photoIds: [] },
+          targetUserIds: null,
+          status: 'completed',
+          createdAt,
+          completedAt,
+          completedBy: majstor.id,
+        })
+        .returning({ id: serviceJobs.id });
+      if (!job) continue;
+      const [offer] = await db
+        .insert(serviceOffers)
+        .values({
+          jobId: job.id,
+          majstorUserId: majstor.id,
+          quote: { priceRsd: r.priceRsd, note: '', availableDate: offerAt.toISOString().slice(0, 10) },
+          status: 'accepted',
+          createdAt: offerAt,
+          updatedAt: completedAt,
+          ratingStars: r.stars,
+          ratingComment: r.comment,
+          ratedAt,
+        })
+        .returning({ id: serviceOffers.id });
+      if (!offer) continue;
+      await db
+        .update(serviceJobs)
+        .set({ acceptedOfferId: offer.id })
+        .where(eq(serviceJobs.id, job.id));
+      majstorReviewCount++;
+    }
+
     let commentCount = 0;
     for (const c of COMMENTS) {
       const userId = userIdByEmail.get(c.authorEmail);
@@ -309,6 +376,7 @@ export async function runSeed(): Promise<SeedResult> {
       newsCount,
       userCount,
       majstorCount,
+      majstorReviewCount,
       commentCount,
       alumniCount,
       villageCount,
@@ -327,7 +395,7 @@ if (isCli) {
   runSeed()
     .then((r) => {
       console.log(
-        `Seeded ${r.categoryCount} categories, ${r.locationCount} locations, ${r.moduleContentCount} module_content rows, ${r.eventCount} events, ${r.newsCount} news, ${r.userCount} demo users, ${r.majstorCount} demo majstora, ${r.commentCount} comments, ${r.alumniCount} alumni, ${r.villageCount} villages, ${r.adminInserted ? 1 : 0} admin user (email: ${r.adminEmail}).`,
+        `Seeded ${r.categoryCount} categories, ${r.locationCount} locations, ${r.moduleContentCount} module_content rows, ${r.eventCount} events, ${r.newsCount} news, ${r.userCount} demo users, ${r.majstorCount} demo majstora, ${r.majstorReviewCount} majstor reviews, ${r.commentCount} comments, ${r.alumniCount} alumni, ${r.villageCount} villages, ${r.adminInserted ? 1 : 0} admin user (email: ${r.adminEmail}).`,
       );
       process.exit(0);
     })

@@ -13,7 +13,8 @@ import { requireAuth } from '../lib/auth.js';
 //    opened the Pratim tab (users.feed_seen_at).
 //  - uslugeUpdates: counter-offers on my open service jobs newer than I last
 //    opened the Usluge tab (users.usluge_seen_at). GREATEST(created, updated)
-//    so an updated (re-sent) offer re-notifies.
+//    so an updated (re-sent) offer re-notifies. Also counts jobs the majstor
+//    marked completed since then (the "Ocenite majstora" nudge).
 //  - majstorJobs: open service jobs visible to me as a majstor, created since I
 //    last opened /majstor (users.majstor_seen_at). Naturally 0 for non-majstori.
 export async function notificationsRoutes(app: FastifyInstance) {
@@ -52,12 +53,21 @@ export async function notificationsRoutes(app: FastifyInstance) {
              WHERE f.user_id = ${me}
                AND e.created_at > (SELECT feed_seen_at FROM users WHERE id = ${me}))
         )::int AS "followedUpdates",
-        (SELECT COUNT(*)::int FROM service_offers o
-           JOIN service_jobs j ON j.id = o.job_id
-           WHERE j.user_id = ${me}
-             AND GREATEST(o.created_at, o.updated_at)
-                 > (SELECT usluge_seen_at FROM users WHERE id = ${me})
-        ) AS "uslugeUpdates",
+        (
+          (SELECT COUNT(*) FROM service_offers o
+             JOIN service_jobs j ON j.id = o.job_id
+             WHERE j.user_id = ${me}
+               AND GREATEST(o.created_at, o.updated_at)
+                   > (SELECT usluge_seen_at FROM users WHERE id = ${me}))
+          +
+          -- poslovi koje je MAJSTOR označio završenim → poziv "Ocenite majstora";
+          -- completed_by <> ja da sopstveno označavanje ne diže badge samom sebi.
+          (SELECT COUNT(*) FROM service_jobs j
+             WHERE j.user_id = ${me}
+               AND j.status = 'completed'
+               AND j.completed_by IS DISTINCT FROM ${me}
+               AND j.completed_at > (SELECT usluge_seen_at FROM users WHERE id = ${me}))
+        )::int AS "uslugeUpdates",
         (SELECT COUNT(*)::int FROM service_jobs j
            WHERE j.status = 'open'
              AND j.user_id <> ${me}

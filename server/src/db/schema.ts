@@ -10,6 +10,7 @@ import {
   numeric,
   boolean,
   unique,
+  smallint,
 } from 'drizzle-orm/pg-core';
 
 export const categories = pgTable('categories', {
@@ -348,13 +349,17 @@ export const serviceJobs = pgTable('service_jobs', {
   payload: jsonb('payload').notNull(),
   // NULL = broadcast svim majstorima kategorije; inače niz user ID-eva.
   targetUserIds: jsonb('target_user_ids').$type<number[] | null>(),
-  status: text('status', { enum: ['open', 'accepted', 'cancelled'] })
+  status: text('status', { enum: ['open', 'accepted', 'completed', 'cancelled'] })
     .default('open')
     .notNull(),
   // Bez FK ka service_offers (cirkularna zavisnost) — postavlja se isključivo u
   // accept transakciji koja proverava da ponuda pripada ovom job-u.
   acceptedOfferId: integer('accepted_offer_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  // Završetak posla (accepted → completed) — sme da označi bilo koja strana,
+  // pa `completedBy` beleži ko je (naručilac ili majstor).
+  completedAt: timestamp('completed_at'),
+  completedBy: integer('completed_by').references(() => users.id),
 });
 
 // Kontraponuda majstora na service_job. Jedna ponuda po majstoru po job-u
@@ -376,6 +381,11 @@ export const serviceOffers = pgTable(
       .notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    // Ocena naručioca — samo na prihvaćenoj ponudi završenog posla (completed).
+    // Zvezdice 1–5 (DB CHECK) + kratak komentar ≤160 karaktera (app validacija).
+    ratingStars: smallint('rating_stars'),
+    ratingComment: text('rating_comment'),
+    ratedAt: timestamp('rated_at'),
   },
   (t) => ({ uq: unique('service_offers_job_majstor_uq').on(t.jobId, t.majstorUserId) }),
 );

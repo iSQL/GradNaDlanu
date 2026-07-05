@@ -18,6 +18,7 @@ import type {
   Location,
   LocationEvent,
   LocationWithContent,
+  MajstorDirectoryEntry,
   MajstorJob,
   MajstorPublic,
   MyComment,
@@ -377,7 +378,24 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ action: 'cancel' }),
     }),
+  // Završetak posla (accepted → completed) — naručilačka strana.
+  completeServiceJob: (jobId: number) =>
+    request<MyServiceJob>(`/api/me/usluge/${jobId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'complete' }),
+    }),
+  // Ocena majstora (zvezdice 1–5 + opcioni komentar ≤160) — posle završetka.
+  rateServiceJob: (jobId: number, stars: number, comment?: string) =>
+    request<MyServiceJob>(`/api/me/usluge/${jobId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'rate', stars, comment }),
+    }),
+  // Javni imenik majstora sa metrikama i zadnjim ocenama (/majstori).
+  listMajstori: () => request<MajstorDirectoryEntry[]>('/api/majstori'),
   majstorJobs: () => request<MajstorJob[]>('/api/majstor/jobs'),
+  // Završetak posla — majstorska strana (samo nosilac prihvaćene ponude).
+  majstorCompleteJob: (jobId: number) =>
+    request<MajstorJob>(`/api/majstor/jobs/${jobId}/complete`, { method: 'POST' }),
   submitJobOffer: (jobId: number, quote: ServiceRequestQuote) =>
     request<{ id: number }>(`/api/majstor/jobs/${jobId}/offer`, {
       method: 'POST',

@@ -409,6 +409,38 @@ export const MAJSTORI: SeedMajstor[] = [
   { email: 'nenad.majstor@example.com',  displayName: 'Nenad S.',  password: DEMO_USER_PASSWORD, categories: ['elektricar', 'bela-tehnika'] },
 ];
 
+// Demo ocene majstora: svaka stavka seed-uje ZAVRŠEN service_job (naručilac iz
+// USERS) sa prihvaćenom i ocenjenom ponudom — iz njih se izvode metrike na
+// /usluge pickeru i /majstori imeniku (avgRating, completedJobs, brzina
+// odgovora). Idempotentno na (naručilac, kategorija, opis). Komentar ≤160.
+export interface SeedMajstorReview {
+  majstorEmail: string;
+  reviewerEmail: string;
+  categoryId: string;   // mora biti u majstorovim categories
+  description: string;  // opis kvara (ključ idempotentnosti)
+  priceRsd: number;
+  stars: number;        // 1–5
+  comment: string | null;
+  daysAgo: number;      // starost zahteva — raspršeno da liste izgledaju živo
+  responseMinutes: number; // job → ponuda; hrani avgResponseMinutes
+}
+export const MAJSTOR_REVIEWS: SeedMajstorReview[] = [
+  // Zoran I. — vodoinstalater, iskusan i brz (prosek ~4.8)
+  { majstorEmail: 'zoran.majstor@example.com', reviewerEmail: 'marko@example.com',  categoryId: 'vodoinstalater', description: 'Pukla cev ispod sudopere, voda curi u ormarić.',              priceRsd: 4500, stars: 5, comment: 'Došao za sat vremena, sanirao curenje i počistio za sobom. Sve pohvale.', daysAgo: 45, responseMinutes: 35 },
+  { majstorEmail: 'zoran.majstor@example.com', reviewerEmail: 'jelena@example.com', categoryId: 'vodoinstalater', description: 'Zamena bojlera od 80l u kupatilu.',                           priceRsd: 9000, stars: 5, comment: 'Profesionalac. Stari bojler odneo, novi montirao bez prljanja.',          daysAgo: 30, responseMinutes: 50 },
+  { majstorEmail: 'zoran.majstor@example.com', reviewerEmail: 'ana@example.com',    categoryId: 'vodoinstalater', description: 'Slaba temperatura tople vode, verovatno kamenac u bojleru.',  priceRsd: 3000, stars: 4, comment: 'Korektno odrađeno, malo kasnio na dogovoreni termin.',                    daysAgo: 18, responseMinutes: 90 },
+  { majstorEmail: 'zoran.majstor@example.com', reviewerEmail: 'milos@example.com',  categoryId: 'vodoinstalater', description: 'Odčepljenje odvoda u kupatilu, voda se vraća u kadu.',        priceRsd: 2500, stars: 5, comment: null,                                                                      daysAgo: 7,  responseMinutes: 25 },
+  // Dragan P. — vodoinstalater + majstor za sve (prosek ~4.3)
+  { majstorEmail: 'dragan.majstor@example.com', reviewerEmail: 'milos@example.com',  categoryId: 'vodoinstalater', description: 'Kaplje česma u kuhinji, treba zameniti ventil.',             priceRsd: 1800, stars: 4, comment: 'Brzo i povoljno. Ventil radi, ostala sitna mrlja na plafonu ispod.',      daysAgo: 40, responseMinutes: 120 },
+  { majstorEmail: 'dragan.majstor@example.com', reviewerEmail: 'ana@example.com',    categoryId: 'majstor-za-sve', description: 'Montaža tri plakara i polica u dnevnoj sobi.',               priceRsd: 6000, stars: 5, comment: 'Sve namešteno u jedno popodne, doneo svoj alat i tiplove.',               daysAgo: 26, responseMinutes: 200 },
+  { majstorEmail: 'dragan.majstor@example.com', reviewerEmail: 'jelena@example.com', categoryId: 'majstor-za-sve', description: 'Zamena brave na ulaznim vratima posle gubitka ključa.',      priceRsd: 3500, stars: 4, comment: 'Ljubazan i uredan. Cena na kraju malo viša od prve procene.',             daysAgo: 12, responseMinutes: 60 },
+  // Nenad S. — električar + bela tehnika (prosek 5.0, manje poslova)
+  { majstorEmail: 'nenad.majstor@example.com', reviewerEmail: 'marko@example.com',  categoryId: 'elektricar',   description: 'Iskaču osigurači kad se uključe rerna i veš mašina zajedno.',   priceRsd: 4000, stars: 5, comment: 'Pronašao problem u razvodnoj tabli za pola sata. Vrhunski majstor.',      daysAgo: 35, responseMinutes: 45 },
+  { majstorEmail: 'nenad.majstor@example.com', reviewerEmail: 'jelena@example.com', categoryId: 'bela-tehnika', description: 'Veš mašina ne centrifugira i pravi jak zvuk.',                  priceRsd: 5500, stars: 5, comment: 'Zamenio ležajeve, mašina radi kao nova. Preporuka svima u selu.',         daysAgo: 20, responseMinutes: 150 },
+  { majstorEmail: 'nenad.majstor@example.com', reviewerEmail: 'ana@example.com',    categoryId: 'elektricar',   description: 'Ugradnja lustera i dve zidne lampe u hodniku.',                 priceRsd: 2000, stars: 5, comment: null,                                                                      daysAgo: 9,  responseMinutes: 30 },
+  { majstorEmail: 'nenad.majstor@example.com', reviewerEmail: 'milos@example.com',  categoryId: 'bela-tehnika', description: 'Frižider ne hladi donju komoru, gornja radi normalno.',         priceRsd: 4800, stars: 5, comment: 'Dijagnostika i popravka isti dan. Objasnio šta je menjao i zašto.',       daysAgo: 4,  responseMinutes: 75 },
+];
+
 // Sample comments authored by USERS above. Powers the homepage "Najnoviji utisci"
 // row and per-location comment list. Idempotent at insert time via
 // (userId, locationId, body) tuple — same body from same user on same location

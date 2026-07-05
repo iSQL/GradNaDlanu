@@ -41,7 +41,14 @@ const MENU: MenuItem[] = [
     ],
   },
   { to: '/oglasi', label: 'Oglasi' },
-  { to: '/usluge', label: 'Usluge' },
+  {
+    to: '/usluge',
+    label: 'Usluge',
+    submenu: [
+      { to: '/usluge', label: 'Zatraži uslugu', end: true },
+      { to: '/majstori', label: 'Majstori' },
+    ],
+  },
   { to: '/desavanja', label: 'Dešavanja' },
   { to: '/naselja', label: 'Naselja' },
 ];

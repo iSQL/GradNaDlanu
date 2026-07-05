@@ -10,6 +10,7 @@ import {
   isServiceCategory,
   type ServiceCategory,
 } from '../lib/usluge';
+import { MajstorStatLine } from '../components/MajstorStats';
 import type { MajstorPublic, UslugeStat } from '../types';
 
 const MAX_PHOTOS = 4;
@@ -35,10 +36,17 @@ export function UslugePage() {
     isServiceCategory(urlCat) ? urlCat : 'vodoinstalater',
   );
 
+  // Deep-link sa /majstori: ?majstor=<id> preselektuje režim "Izaberi majstore"
+  // sa tim majstorom štikliranim (validira se protiv liste kad stigne).
+  const urlMajstor = Number(searchParams.get('majstor'));
+  const preselected = Number.isInteger(urlMajstor) && urlMajstor > 0 ? urlMajstor : null;
+
   const [description, setDescription] = useState('');
   const [files, setFiles] = useState<PreviewFile[]>([]);
-  const [mode, setMode] = useState<'all' | 'selected'>('all');
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [mode, setMode] = useState<'all' | 'selected'>(preselected ? 'selected' : 'all');
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(
+    preselected ? new Set([preselected]) : new Set(),
+  );
   const [majstori, setMajstori] = useState<MajstorPublic[] | null>(null);
   const [stats, setStats] = useState<UslugeStat[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -64,7 +72,13 @@ export function UslugePage() {
     setMajstori(null);
     api
       .uslugeMajstori(cat)
-      .then((rows) => { if (!cancelled) setMajstori(rows); })
+      .then((rows) => {
+        if (cancelled) return;
+        setMajstori(rows);
+        // Očisti selekcije koje nisu u listi (npr. deep-link ka majstoru koji
+        // ne pokriva ovu kategoriju) — server bi ih ionako odbio sa 400.
+        setSelectedIds((prev) => new Set([...prev].filter((id) => rows.some((r) => r.id === id))));
+      })
       .catch(() => { if (!cancelled) setMajstori([]); });
     return () => { cancelled = true; };
   }, [cat, ctx.currentUser]);
@@ -359,7 +373,10 @@ export function UslugePage() {
                               <span className="usluge-majstor-avatar" aria-hidden="true">
                                 {m.displayName.charAt(0).toUpperCase()}
                               </span>
-                              <span className="usluge-majstor-name">{m.displayName}</span>
+                              <span className="usluge-majstor-id">
+                                <span className="usluge-majstor-name">{m.displayName}</span>
+                                <MajstorStatLine stats={m} />
+                              </span>
                               <span className={`usluge-check ${on ? 'is-on' : ''}`}>
                                 {on ? '✓' : ''}
                               </span>
@@ -405,6 +422,9 @@ export function UslugePage() {
                   Majstori vam šalju ponude sa cenom — prihvatite jednu u Moj prostor → Usluge.
                 </li>
               </ol>
+              <Link to="/majstori" className="usluge-side-link">
+                Pregledajte majstore i njihove ocene →
+              </Link>
             </div>
 
             <div className="usluge-stats-card">

@@ -6384,8 +6384,80 @@ button { font-family: inherit; }
 }
 .majstor-phone-form input:focus { outline: none; border-color: var(--navy); }
 
+/* ---- Ocenjivanje majstora (zvezdice + kratak komentar) ---- */
+.usluge-status.is-completed { background: rgba(46, 125, 50, 0.12); color: #2e7d32; }
+.stars-row { display: inline-flex; align-items: center; gap: 2px; color: var(--line-2); }
+.star-glyph.is-filled, .star-btn.is-filled { color: var(--gold); }
+.star-btn {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--line-2);
+  display: inline-flex;
+}
+.star-btn:focus-visible { outline: 2px solid var(--gold); border-radius: 4px; }
+.usluge-rating {
+  border-top: 1px dashed var(--line);
+  margin-top: 10px;
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.usluge-rating-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.usluge-rating input[type='text'] {
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: inherit;
+  background: var(--paper-hi);
+  color: var(--ink);
+  max-width: 420px;
+}
+.usluge-rating input[type='text']:focus { outline: none; border-color: var(--navy); }
+
+/* Kompaktna linija metrika majstora: ★ 4.8 · 12 poslova · ~1 h */
+.majstor-stat-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  flex-wrap: wrap;
+}
+.majstor-stat-line.is-new { color: var(--muted); font-style: italic; }
+.majstor-stat-part { display: inline-flex; align-items: center; gap: 6px; }
+.majstor-stat-dot { color: var(--muted); }
+.majstor-stat-rating { display: inline-flex; align-items: center; gap: 3px; font-weight: 700; color: var(--ink); }
+.majstor-stat-rating svg { color: var(--gold); }
+.usluge-majstor-id { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.usluge-majstor-id .usluge-majstor-name { flex: none; }
+.usluge-side-link { display: inline-block; margin-top: 14px; font-size: 13.5px; font-weight: 600; color: var(--navy); }
+
+/* ---- /majstori — javni imenik majstora ---- */
+.majstori-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.majstori-card { display: flex; flex-direction: column; gap: 14px; }
+.majstori-card-head { display: flex; align-items: center; gap: 12px; }
+.majstori-card-head .usluge-majstor-avatar { width: 44px; height: 44px; font-size: 18px; }
+.majstori-card-id { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.majstori-card-id .usluge-majstor-name { font-size: 16px; }
+.majstori-reviews { display: flex; flex-direction: column; gap: 10px; }
+.majstori-review {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.majstori-review-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.majstori-review-meta { font-size: 12.5px; color: var(--muted); }
+.majstori-review-text { font-size: 13.5px; color: var(--ink-2); margin-top: 6px; line-height: 1.5; }
+.majstori-card-actions { margin-top: auto; }
+
 @media (max-width: 900px) {
   .usluge-layout { grid-template-columns: 1fr; }
   .usluge-side { position: static; }
   .usluge-mode-grid { grid-template-columns: 1fr; }
+  .majstori-grid { grid-template-columns: 1fr; }
 }

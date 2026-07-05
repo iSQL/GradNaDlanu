@@ -341,7 +341,7 @@ const statements = [
     payload            JSONB NOT NULL,
     target_user_ids    JSONB,
     status             TEXT NOT NULL DEFAULT 'open'
-      CHECK (status IN ('open','accepted','cancelled')),
+      CHECK (status IN ('open','accepted','completed','cancelled')),
     accepted_offer_id  INTEGER,
     created_at         TIMESTAMP NOT NULL DEFAULT NOW()
   )`,
@@ -365,6 +365,22 @@ const statements = [
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS majstor_seen_at TIMESTAMP NOT NULL DEFAULT NOW()`,
   // Kontakt telefon (majstori) — otkriva se naručiocu tek posle prihvatanja ponude.
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT`,
+  // --- Usluge: završetak posla + ocenjivanje majstora ---
+  // Status 'completed' (accepted → completed, označava bilo koja strana). CHECK
+  // se menja drop+add obrascem (kao users_role_check) da uhvati postojeće baze.
+  `ALTER TABLE service_jobs DROP CONSTRAINT IF EXISTS service_jobs_status_check`,
+  `ALTER TABLE service_jobs ADD CONSTRAINT service_jobs_status_check
+     CHECK (status IN ('open','accepted','completed','cancelled'))`,
+  `ALTER TABLE service_jobs ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP`,
+  `ALTER TABLE service_jobs ADD COLUMN IF NOT EXISTS completed_by INTEGER REFERENCES users(id)`,
+  // Ocena visi o PRIHVAĆENOJ ponudi (1 prihvaćena ↔ 1 završen posao ↔ ≤1 ocena).
+  // Dužina komentara (≤160) se validira na app sloju, kao i kategorije.
+  `ALTER TABLE service_offers ADD COLUMN IF NOT EXISTS rating_stars SMALLINT`,
+  `ALTER TABLE service_offers ADD COLUMN IF NOT EXISTS rating_comment TEXT`,
+  `ALTER TABLE service_offers ADD COLUMN IF NOT EXISTS rated_at TIMESTAMP`,
+  `ALTER TABLE service_offers DROP CONSTRAINT IF EXISTS service_offers_rating_stars_check`,
+  `ALTER TABLE service_offers ADD CONSTRAINT service_offers_rating_stars_check
+     CHECK (rating_stars IS NULL OR rating_stars BETWEEN 1 AND 5)`,
 ];
 
 // Reusable migration function — opens its own short-lived connection so callers

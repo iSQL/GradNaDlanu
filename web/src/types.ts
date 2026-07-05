@@ -251,7 +251,7 @@ export interface OwnerServiceRequest extends MyServiceRequest {
 
 // --- Usluge (broadcast zahtevi za majstore po kategorijama) ---
 
-export type ServiceJobStatus = 'open' | 'accepted' | 'cancelled';
+export type ServiceJobStatus = 'open' | 'accepted' | 'completed' | 'cancelled';
 export type ServiceOfferStatus = 'active' | 'accepted' | 'archived';
 
 export interface ServiceJobPayload {
@@ -270,6 +270,9 @@ export interface JobOffer {
   status: ServiceOfferStatus;
   createdAt: string;
   updatedAt: string;
+  // Ocena naručioca — postoji samo na prihvaćenoj ponudi završenog posla.
+  ratingStars: number | null;
+  ratingComment: string | null;
 }
 
 export interface MyServiceJob {
@@ -280,6 +283,8 @@ export interface MyServiceJob {
   status: ServiceJobStatus;
   acceptedOfferId: number | null;
   createdAt: string;
+  completedAt: string | null;
+  completedBy: number | null;
   offers: JobOffer[];
 }
 
@@ -289,6 +294,7 @@ export interface MajstorJob {
   payload: ServiceJobPayload;
   status: ServiceJobStatus;
   createdAt: string;
+  completedAt: string | null;
   requesterDisplayName: string;
   // Otkrivaju se tek kada je MOJA ponuda prihvaćena.
   requesterEmail: string | null;
@@ -299,13 +305,39 @@ export interface MajstorJob {
     status: ServiceOfferStatus;
     createdAt: string;
     updatedAt: string;
+    ratingStars: number | null;
+    ratingComment: string | null;
   } | null;
   archivedReason: 'accepted_other' | 'cancelled' | null;
 }
 
-export interface MajstorPublic {
+// Metrike majstora — prikazuju se u pickeru na /usluge i na /majstori.
+export interface MajstorStats {
+  avgRating: number | null;
+  ratingCount: number;
+  completedJobs: number;
+  avgResponseMinutes: number | null;
+}
+
+export interface MajstorPublic extends MajstorStats {
   id: number;
   displayName: string;
+}
+
+export interface MajstorReview {
+  stars: number;
+  comment: string | null;
+  ratedAt: string;
+  categoryId: string;
+  reviewerName: string;
+}
+
+// Red javnog imenika majstora (GET /api/majstori) — kategorije + zadnje ocene.
+export interface MajstorDirectoryEntry extends MajstorStats {
+  id: number;
+  displayName: string;
+  categories: string[];
+  reviews: MajstorReview[];
 }
 
 export interface UslugeStat {
