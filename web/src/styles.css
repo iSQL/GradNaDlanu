@@ -222,6 +222,13 @@ button { font-family: inherit; }
 
 .nav-user:hover { border-color: var(--gold); }
 
+/* Dugme nosi ime korisnika — dugačka imena se seku elipsom da chip ne razvuče nav. */
+.nav-user-name {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .nav-user-avatar {
   width: 30px;
   height: 30px;

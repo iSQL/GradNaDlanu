@@ -17,6 +17,10 @@ import { requireAuth } from '../lib/auth.js';
 //    marked completed since then (the "Ocenite majstora" nudge).
 //  - majstorJobs: open service jobs visible to me as a majstor, created since I
 //    last opened /majstor (users.majstor_seen_at). Naturally 0 for non-majstori.
+//  - ownerComments: visible comments on locations I own (object_owners), not
+//    authored by me, newer than users.owner_comments_seen_at. Scoped strictly to
+//    explicit ownership grants — an admin without grants gets 0 (a site-wide
+//    count would make the badge permanently noisy for admins).
 export async function notificationsRoutes(app: FastifyInstance) {
   app.get('/api/me/notifications', { preHandler: requireAuth }, async (req) => {
     const me = req.user.sub;
@@ -26,6 +30,7 @@ export async function notificationsRoutes(app: FastifyInstance) {
       followedUpdates: number;
       uslugeUpdates: number;
       majstorJobs: number;
+      ownerComments: number;
     }>(sql`
       SELECT
         (SELECT COUNT(*)::int FROM messages m
@@ -74,7 +79,14 @@ export async function notificationsRoutes(app: FastifyInstance) {
              AND j.category_id IN (SELECT category_id FROM majstor_categories WHERE user_id = ${me})
              AND (j.target_user_ids IS NULL OR j.target_user_ids @> ${JSON.stringify([me])}::jsonb)
              AND j.created_at > (SELECT majstor_seen_at FROM users WHERE id = ${me})
-        ) AS "majstorJobs"
+        ) AS "majstorJobs",
+        (SELECT COUNT(*)::int FROM comments c
+           JOIN object_owners oo ON oo.location_id = c.location_id
+           WHERE oo.user_id = ${me}
+             AND c.user_id <> ${me}
+             AND c.status = 'visible'
+             AND c.created_at > (SELECT owner_comments_seen_at FROM users WHERE id = ${me})
+        ) AS "ownerComments"
     `);
     return (
       rows[0] ?? {
@@ -83,6 +95,7 @@ export async function notificationsRoutes(app: FastifyInstance) {
         followedUpdates: 0,
         uslugeUpdates: 0,
         majstorJobs: 0,
+        ownerComments: 0,
       }
     );
   });
@@ -101,11 +114,16 @@ export async function notificationsRoutes(app: FastifyInstance) {
               ? { uslugeSeenAt: new Date() }
               : section === 'majstor'
                 ? { majstorSeenAt: new Date() }
-                : null;
+                : section === 'owner-comments'
+                  ? { ownerCommentsSeenAt: new Date() }
+                  : null;
       if (!patch) {
         return reply
           .code(400)
-          .send({ error: "section mora biti 'reservations', 'feed', 'usluge' ili 'majstor'" });
+          .send({
+            error:
+              "section mora biti 'reservations', 'feed', 'usluge', 'majstor' ili 'owner-comments'",
+          });
       }
       await db.update(users).set(patch).where(eq(users.id, req.user.sub));
       return { ok: true };

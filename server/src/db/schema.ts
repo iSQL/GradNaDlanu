@@ -76,6 +76,8 @@ export const users = pgTable('users', {
   // kontraponude), majstorSeenAt za majstora (novi zahtevi u mojim kategorijama).
   uslugeSeenAt: timestamp('usluge_seen_at').defaultNow().notNull(),
   majstorSeenAt: timestamp('majstor_seen_at').defaultNow().notNull(),
+  // Vlasnici objekata: novi komentari na objektima u vlasništvu.
+  ownerCommentsSeenAt: timestamp('owner_comments_seen_at').defaultNow().notNull(),
 });
 
 export const objectOwners = pgTable(

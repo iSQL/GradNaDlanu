@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { api } from '../lib/api';
 import { clearToken } from '../lib/auth';
@@ -15,7 +15,12 @@ type Tab = 'objects' | 'reservations' | 'service-requests' | 'comments';
 export function OwnerDashboard() {
   const ctx = useOutletContext<AppContext>();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>('reservations');
+  // ?tab= deep-link (npr. "Novi komentari na vašim objektima" sa početne).
+  const [searchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab');
+  const isTab = (v: string | null): v is Tab =>
+    v !== null && ['objects', 'reservations', 'service-requests', 'comments'].includes(v);
+  const [tab, setTab] = useState<Tab>(isTab(requestedTab) ? requestedTab : 'reservations');
   const [objects, setObjects] = useState<Location[] | null>(null);
   const [comments, setComments] = useState<OwnerComment[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +29,14 @@ export function OwnerDashboard() {
     api.ownerLocations().then(setObjects).catch((e: Error) => setError(e.message));
     api.ownerComments().then(setComments).catch((e: Error) => setError(e.message));
   }, []);
+
+  // Otvaranje taba Komentari briše "novi komentari" brojač i osvežava badge.
+  const reloadNotifications = ctx.reloadNotifications;
+  useEffect(() => {
+    if (tab === 'comments') {
+      api.markSeen('owner-comments').then(() => reloadNotifications()).catch(() => {});
+    }
+  }, [tab, reloadNotifications]);
 
   const logout = async () => {
     clearToken();

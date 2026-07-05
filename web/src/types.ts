@@ -482,6 +482,7 @@ export interface Notifications {
   followedUpdates: number;
   uslugeUpdates: number;
   majstorJobs: number;
+  ownerComments: number;
 }
 
 export interface ConversationDetail {

@@ -13,6 +13,7 @@ const NO_NOTIFICATIONS: Notifications = {
   followedUpdates: 0,
   uslugeUpdates: 0,
   majstorJobs: 0,
+  ownerComments: 0,
 };
 
 export interface AppContext {
@@ -34,6 +35,14 @@ export interface AppContext {
 
 export function App() {
   const location = useLocation();
+
+  // Nova stranica počinje od vrha — bez ovoga se scroll pozicija prenosi sa
+  // prethodne rute (npr. link sa dna početne otvori /usluge na dnu). Namerno
+  // keyed na pathname, a ne na ceo location: promene query parametara
+  // (filteri na /objekti, ?cat= pilule na /usluge) ne smeju da skaču na vrh.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);

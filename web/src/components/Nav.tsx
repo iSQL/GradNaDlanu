@@ -13,14 +13,15 @@ interface Props {
   notifications?: Notifications;
 }
 
-// Administrativni meni u submeniju korisničkog dugmeta — stavke zavise od uloge.
-// Običan posetilac nema administrativnih stavki, pa ni submeni.
-function adminMenuFor(user: CurrentUser): { to: string; label: string }[] {
-  if (user.role === 'admin') return [{ to: '/admin', label: 'Admin panel' }];
-  if (user.role === 'business') return [{ to: '/poslovni', label: 'Poslovni panel' }];
-  if (user.role === 'curator') return [{ to: '/kustos', label: 'Kustoski panel' }];
-  if (user.role === 'majstor') return [{ to: '/majstor', label: 'Majstorski panel' }];
-  return [];
+// Submeni korisničkog dugmeta (dugme nosi ime korisnika): "Moj prostor" za sve
+// ulogovane, plus administrativni panel u zavisnosti od uloge.
+function userMenuFor(user: CurrentUser): { to: string; label: string }[] {
+  const items = [{ to: '/dashboard', label: 'Moj prostor' }];
+  if (user.role === 'admin') items.push({ to: '/admin', label: 'Admin panel' });
+  if (user.role === 'business') items.push({ to: '/poslovni', label: 'Poslovni panel' });
+  if (user.role === 'curator') items.push({ to: '/kustos', label: 'Kustoski panel' });
+  if (user.role === 'majstor') items.push({ to: '/majstor', label: 'Majstorski panel' });
+  return items;
 }
 
 interface MenuItem {
@@ -83,15 +84,16 @@ export function Nav({ search, onSearchChange, currentUser, notifications }: Prop
   const onHome = location.pathname === '/';
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Aggregate badge for "Moj prostor": unread messages + reservation updates +
-  // followed-object updates + usluge offers + (majstor) new jobs. Only shown to
-  // logged-in users.
+  // Aggregate badge for the user button: unread messages + reservation updates +
+  // followed-object updates + usluge offers + (majstor) new jobs + (owner) new
+  // comments. Only shown to logged-in users.
   const notifyCount = currentUser && notifications
     ? notifications.unreadMessages +
       notifications.reservationUpdates +
       notifications.followedUpdates +
       notifications.uslugeUpdates +
-      notifications.majstorJobs
+      notifications.majstorJobs +
+      notifications.ownerComments
     : 0;
   const badgeText = notifyCount > 9 ? '9+' : String(notifyCount);
 
@@ -182,38 +184,36 @@ export function Nav({ search, onSearchChange, currentUser, notifications }: Prop
             </label>
           )}
           {currentUser ? (
-            <div className={adminMenuFor(currentUser).length > 0 ? 'nav-user-group' : undefined}>
+            <div className="nav-user-group">
               <button className="nav-user" onClick={() => navigate('/dashboard')}>
                 <span className="nav-user-avatar" aria-hidden="true">
                   {currentUser.displayName.charAt(0).toUpperCase()}
                 </span>
-                Moj prostor
+                <span className="nav-user-name">{currentUser.displayName}</span>
                 {notifyCount > 0 && (
                   <span className="nav-badge" aria-label={`${notifyCount} novih obaveštenja`}>
                     {badgeText}
                   </span>
                 )}
-                {adminMenuFor(currentUser).length > 0 && <IconCaret />}
+                <IconCaret />
               </button>
-              {adminMenuFor(currentUser).length > 0 && (
-                <ul className="nav-submenu nav-user-submenu" role="menu">
-                  <li className="nav-user-submenu-head" role="none">
-                    {currentUser.displayName}
-                    <RoleBadge role={currentUser.role} />
+              <ul className="nav-submenu nav-user-submenu" role="menu">
+                <li className="nav-user-submenu-head" role="none">
+                  {currentUser.displayName}
+                  <RoleBadge role={currentUser.role} />
+                </li>
+                {userMenuFor(currentUser).map((m) => (
+                  <li key={m.to} role="none">
+                    <NavLink
+                      to={m.to}
+                      role="menuitem"
+                      className={({ isActive }) => `nav-submenu-link ${isActive ? 'active' : ''}`}
+                    >
+                      {m.label}
+                    </NavLink>
                   </li>
-                  {adminMenuFor(currentUser).map((m) => (
-                    <li key={m.to} role="none">
-                      <NavLink
-                        to={m.to}
-                        role="menuitem"
-                        className={({ isActive }) => `nav-submenu-link ${isActive ? 'active' : ''}`}
-                      >
-                        {m.label}
-                      </NavLink>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                ))}
+              </ul>
             </div>
           ) : getToken() ? (
             <span className="nav-btn nav-btn-placeholder" aria-hidden="true" />
@@ -296,11 +296,11 @@ export function Nav({ search, onSearchChange, currentUser, notifications }: Prop
                     <span className="nav-user-avatar" aria-hidden="true">
                       {currentUser.displayName.charAt(0).toUpperCase()}
                     </span>
-                    Moj prostor
+                    <span className="nav-user-name">{currentUser.displayName}</span>
                     {notifyCount > 0 && <span className="nav-badge">{badgeText}</span>}
                     <RoleBadge role={currentUser.role} />
                   </button>
-                  {adminMenuFor(currentUser).map((m) => (
+                  {userMenuFor(currentUser).map((m) => (
                     <NavLink
                       key={m.to}
                       to={m.to}

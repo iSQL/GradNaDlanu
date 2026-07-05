@@ -381,6 +381,8 @@ const statements = [
   `ALTER TABLE service_offers DROP CONSTRAINT IF EXISTS service_offers_rating_stars_check`,
   `ALTER TABLE service_offers ADD CONSTRAINT service_offers_rating_stars_check
      CHECK (rating_stars IS NULL OR rating_stars BETWEEN 1 AND 5)`,
+  // Badge sidro za vlasnike: novi komentari na objektima u vlasništvu.
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS owner_comments_seen_at TIMESTAMP NOT NULL DEFAULT NOW()`,
 ];
 
 // Reusable migration function — opens its own short-lived connection so callers

@@ -672,6 +672,6 @@ export const api = {
 
   // Notifications (Moj prostor badge)
   getNotifications: () => request<Notifications>('/api/me/notifications'),
-  markSeen: (section: 'reservations' | 'feed' | 'usluge' | 'majstor') =>
+  markSeen: (section: 'reservations' | 'feed' | 'usluge' | 'majstor' | 'owner-comments') =>
     request<{ ok: true }>('/api/me/seen', { method: 'POST', body: JSON.stringify({ section }) }),
 };

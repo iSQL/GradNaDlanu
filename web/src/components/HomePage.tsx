@@ -111,7 +111,35 @@ interface SpotlightSlide {
 
 export function HomePage() {
   const navigate = useNavigate();
-  const { categories, locations, setActiveFilter, currentUser } = useOutletContext<AppContext>();
+  const { categories, locations, setActiveFilter, currentUser, notifications } =
+    useOutletContext<AppContext>();
+
+  // Linkovi u traci dobrodošlice — svaki se pojavljuje SAMO ako postoji nešto
+  // novo za korisnika (brojači iz /api/me/notifications, isti kao nav badge).
+  const welcomeLinks = [
+    { count: notifications.unreadMessages, to: '/dashboard?tab=poruke', label: 'Nove poruke' },
+    {
+      count: notifications.reservationUpdates,
+      to: '/dashboard?tab=rezervacije',
+      label: 'Odgovori na rezervacije',
+    },
+    {
+      count: notifications.uslugeUpdates,
+      to: '/dashboard?tab=usluge',
+      label: 'Novi odgovori na usluge',
+    },
+    {
+      count: notifications.followedUpdates,
+      to: '/dashboard?tab=pratim',
+      label: 'Novosti na praćenim objektima',
+    },
+    {
+      count: notifications.ownerComments,
+      to: '/poslovni?tab=comments',
+      label: 'Novi komentari na vašim objektima',
+    },
+    { count: notifications.majstorJobs, to: '/majstor', label: 'Novi zahtevi za usluge' },
+  ].filter((l) => l.count > 0);
 
   const [news, setNews] = useState<NewsItem[] | null>(null);
   const [featuredCafe, setFeaturedCafe] = useState<Location | null>(null);
@@ -210,10 +238,15 @@ export function HomePage() {
             <div className="hp-welcome-text">
               <strong>Dobrodošli nazad, {currentUser.displayName}.</strong>
             </div>
-            <div className="hp-welcome-links">
-              <Link to="/oglasi">Oglasna tabla</Link>
-              <Link to="/desavanja">Dešavanja</Link>
-            </div>
+            {welcomeLinks.length > 0 && (
+              <div className="hp-welcome-links">
+                {welcomeLinks.map((l) => (
+                  <Link key={l.to} to={l.to}>
+                    {l.label} ({l.count})
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

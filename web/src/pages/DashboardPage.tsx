@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { api } from '../lib/api';
 import { clearToken } from '../lib/auth';
@@ -142,7 +142,12 @@ export function DashboardPage() {
   const ctx = useOutletContext<AppContext>();
   const navigate = useNavigate();
 
-  const [tab, setTab] = useState<Tab>('pratim');
+  // ?tab= deep-link (npr. iz trake dobrodošlice na početnoj) bira početni tab.
+  const [searchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab');
+  const isTab = (v: string | null): v is Tab =>
+    v !== null && ['pratim', 'komentari', 'rezervacije', 'usluge', 'poruke', 'bilten'].includes(v);
+  const [tab, setTab] = useState<Tab>(isTab(requestedTab) ? requestedTab : 'pratim');
   const [favorites, setFavorites] = useState<FavoriteRow[] | null>(null);
   const [news, setNews] = useState<NewsItem[] | null>(null);
   const [events, setEvents] = useState<CityEvent[] | null>(null);
