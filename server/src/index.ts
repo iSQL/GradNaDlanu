@@ -22,6 +22,7 @@ import { objectMapsRoutes } from './routes/object-maps.js';
 import { mediaRoutes } from './routes/media.js';
 import { eventsRoutes } from './routes/events.js';
 import { serviceRequestsRoutes } from './routes/service-requests.js';
+import { uslugeRoutes } from './routes/usluge.js';
 import { settingsRoutes } from './routes/settings.js';
 import { newsRoutes } from './routes/news.js';
 import { newsletterRoutes } from './routes/newsletter.js';
@@ -251,6 +252,7 @@ async function main() {
   await app.register(mediaRoutes);
   await app.register(eventsRoutes);
   await app.register(serviceRequestsRoutes);
+  await app.register(uslugeRoutes);
   await app.register(settingsRoutes);
   await app.register(newsRoutes);
   await app.register(newsletterRoutes);

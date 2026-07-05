@@ -1,6 +1,6 @@
 const KEY = 'gnd.token';
 
-export type Role = 'admin' | 'business' | 'user' | 'guest' | 'curator';
+export type Role = 'admin' | 'business' | 'user' | 'guest' | 'curator' | 'majstor';
 
 export interface TokenPayload {
   sub: number;

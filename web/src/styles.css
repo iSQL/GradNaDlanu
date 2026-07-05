@@ -6003,12 +6003,14 @@ button { font-family: inherit; }
 .hp-usluga-sub { font-size: 13px; color: var(--muted); line-height: 1.4; }
 .hp-usluga-btn {
   margin-top: auto;
+  display: block;
   font-size: 13.5px;
   font-weight: 700;
   color: var(--navy);
   background: transparent;
   border: 1.5px solid var(--navy);
   text-align: center;
+  text-decoration: none;
   padding: 9px;
   border-radius: 999px;
   cursor: pointer;
@@ -6104,4 +6106,286 @@ button { font-family: inherit; }
   /* Skloni strelice kategorija na dodir — swipe je prirodan. */
   .hp-carousel .hp-arrow { display: none; }
   .hp-cat-card { flex-basis: calc((100% - 16px) / 2.3); }
+}
+
+/* ============================== USLUGE ==============================
+   /usluge composer + /majstor panel + Usluge tab u Moj prostor.
+   Prati mock (kartice, radio/checkbox kartice, sidebar) u paleti sajta. */
+.usluge-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.usluge-card {
+  background: var(--paper-hi);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 28px;
+}
+.usluge-cat-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 20px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--line);
+}
+.usluge-cat-title {
+  font-family: 'Marcellus', serif;
+  font-size: 21px;
+  color: var(--navy);
+}
+.usluge-cat-sub { font-size: 13.5px; color: var(--muted); }
+.usluge-block { margin-bottom: 24px; }
+.usluge-block-title { font-size: 14.5px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+.usluge-block-sub { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+.usluge-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.usluge-chip {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 14px;
+}
+.usluge-mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.usluge-mode-card {
+  cursor: pointer;
+  border-radius: 14px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--line);
+  background: var(--paper-hi);
+}
+.usluge-mode-card.is-active { border-color: var(--navy); background: var(--paper); }
+.usluge-mode-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  color: var(--navy);
+  font-size: 14.5px;
+}
+.usluge-mode-sub { font-size: 12.5px; color: var(--muted); margin-left: 28px; }
+.usluge-radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--line-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.usluge-radio.is-on { border-color: var(--navy); }
+.usluge-radio.is-on::after {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--navy);
+}
+.usluge-majstori {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.usluge-majstor-card {
+  cursor: pointer;
+  border-radius: 14px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--line);
+  background: var(--paper-hi);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.usluge-majstor-card.is-selected { border-color: var(--gold); background: #fbf4e9; }
+.usluge-majstor-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: var(--paper);
+  font-family: 'Marcellus', serif;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.usluge-majstor-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; color: var(--ink); }
+.usluge-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1.5px solid var(--line);
+  color: #fff;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.usluge-check.is-on { border-color: var(--gold); background: var(--gold); }
+.usluge-success {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px 18px;
+  font-size: 14px;
+}
+.usluge-side { display: flex; flex-direction: column; gap: 20px; position: sticky; top: 96px; }
+.usluge-side-title {
+  font-family: 'Marcellus', serif;
+  font-size: 17px;
+  color: var(--navy);
+  margin-bottom: 14px;
+}
+.usluge-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.usluge-steps li { display: flex; gap: 12px; font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+.usluge-step-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.usluge-stats-card {
+  background: var(--navy);
+  border-radius: 16px;
+  padding: 24px 26px;
+  color: var(--paper);
+}
+.usluge-stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13.5px;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+.usluge-stat-row span { color: #9fb1c2; }
+
+/* Kartica job-a / ponude (Moj prostor → Usluge i /majstor panel). */
+.usluge-job {
+  background: var(--paper-hi);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
+.usluge-job.is-archived { opacity: 0.72; }
+.usluge-job-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.usluge-job-cat {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--gold-2);
+}
+.usluge-job-date { font-size: 12.5px; color: var(--muted); margin-left: auto; }
+.usluge-job-desc { font-size: 14px; color: var(--ink); line-height: 1.5; white-space: pre-wrap; }
+.usluge-job-note { font-size: 13px; color: var(--ink-2); margin-top: 6px; }
+.usluge-job-photos { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.usluge-job-photos img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+.usluge-status {
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: var(--paper-2);
+  color: var(--ink-2);
+}
+.usluge-status.is-open { background: rgba(29, 53, 87, 0.1); color: var(--navy); }
+.usluge-status.is-accepted { background: rgba(46, 125, 50, 0.12); color: #2e7d32; }
+.usluge-status.is-cancelled,
+.usluge-status.is-archived { background: var(--paper-2); color: var(--muted); }
+.usluge-offer {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-top: 10px;
+  background: var(--paper);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.usluge-offer.is-accepted { border-color: var(--gold); background: #fbf4e9; }
+.usluge-offer.is-archived { opacity: 0.65; }
+.usluge-offer-body { flex: 1; min-width: 220px; }
+.usluge-offer-price { font-size: 15px; font-weight: 700; color: var(--navy); }
+.usluge-offer-meta { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.usluge-offer-note { font-size: 13.5px; color: var(--ink-2); margin-top: 6px; }
+.usluge-archived-note {
+  font-size: 13px;
+  color: var(--muted);
+  font-style: italic;
+  margin-top: 8px;
+}
+/* Kontakt blok na prihvaćenoj ponudi: telefon + "Pošalji poruku". */
+.usluge-contact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.usluge-contact a.row-action { text-decoration: none; }
+.start-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 220px;
+}
+.start-chat textarea {
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: inherit;
+  resize: vertical;
+  background: var(--paper-hi);
+  color: var(--ink);
+}
+.start-chat textarea:focus { outline: none; border-color: var(--navy); }
+.majstor-phone-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.majstor-phone-form { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.majstor-phone-form input {
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 13.5px;
+  font-family: inherit;
+  background: var(--paper-hi);
+  color: var(--ink);
+}
+.majstor-phone-form input:focus { outline: none; border-color: var(--navy); }
+
+@media (max-width: 900px) {
+  .usluge-layout { grid-template-columns: 1fr; }
+  .usluge-side { position: static; }
+  .usluge-mode-grid { grid-template-columns: 1fr; }
 }

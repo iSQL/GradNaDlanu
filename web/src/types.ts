@@ -98,7 +98,7 @@ export interface LocationWithContent extends Location {
 export interface CommentAuthor {
   id: number;
   displayName: string;
-  role: 'admin' | 'business' | 'user' | 'guest' | 'curator';
+  role: 'admin' | 'business' | 'user' | 'guest' | 'curator' | 'majstor';
 }
 
 export interface CommentNode {
@@ -190,10 +190,11 @@ export interface AdminUserRow {
   id: number;
   email: string;
   displayName: string;
-  role: 'admin' | 'business' | 'user' | 'curator';
+  role: 'admin' | 'business' | 'user' | 'curator' | 'majstor';
   createdAt: string;
   ownedLocations: { id: number; slug: string; name: string }[];
   curatedVillages: string[];
+  majstorCategories: string[];
 }
 
 export interface VillageInfo {
@@ -246,6 +247,70 @@ export interface OwnerServiceRequest extends MyServiceRequest {
   userId: number;
   userDisplayName: string;
   userEmail: string;
+}
+
+// --- Usluge (broadcast zahtevi za majstore po kategorijama) ---
+
+export type ServiceJobStatus = 'open' | 'accepted' | 'cancelled';
+export type ServiceOfferStatus = 'active' | 'accepted' | 'archived';
+
+export interface ServiceJobPayload {
+  description: string;
+  note?: string;
+  photoIds: number[];
+}
+
+export interface JobOffer {
+  id: number;
+  majstorUserId: number;
+  majstorDisplayName: string;
+  // Telefon majstora — server ga vraća samo na prihvaćenoj ponudi.
+  majstorPhone: string | null;
+  quote: ServiceRequestQuote;
+  status: ServiceOfferStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MyServiceJob {
+  id: number;
+  categoryId: string;
+  payload: ServiceJobPayload;
+  targetUserIds: number[] | null;
+  status: ServiceJobStatus;
+  acceptedOfferId: number | null;
+  createdAt: string;
+  offers: JobOffer[];
+}
+
+export interface MajstorJob {
+  id: number;
+  categoryId: string;
+  payload: ServiceJobPayload;
+  status: ServiceJobStatus;
+  createdAt: string;
+  requesterDisplayName: string;
+  // Otkrivaju se tek kada je MOJA ponuda prihvaćena.
+  requesterEmail: string | null;
+  requesterId: number | null;
+  myOffer: {
+    id: number;
+    quote: ServiceRequestQuote;
+    status: ServiceOfferStatus;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+  archivedReason: 'accepted_other' | 'cancelled' | null;
+}
+
+export interface MajstorPublic {
+  id: number;
+  displayName: string;
+}
+
+export interface UslugeStat {
+  categoryId: string;
+  majstorCount: number;
 }
 
 export type EventStatus = 'published' | 'cancelled';
@@ -383,6 +448,8 @@ export interface Notifications {
   unreadMessages: number;
   reservationUpdates: number;
   followedUpdates: number;
+  uslugeUpdates: number;
+  majstorJobs: number;
 }
 
 export interface ConversationDetail {

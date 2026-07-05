@@ -18,8 +18,11 @@ import type {
   Location,
   LocationEvent,
   LocationWithContent,
+  MajstorJob,
+  MajstorPublic,
   MyComment,
   MyReservation,
+  MyServiceJob,
   MyServiceRequest,
   NewsItem,
   NewsStatus,
@@ -30,6 +33,7 @@ import type {
   RecentComment,
   ReservationPayload,
   ServiceRequestQuote,
+  UslugeStat,
   VillageInfo,
 } from '../types';
 import { getToken, type Role } from './auth';
@@ -41,8 +45,11 @@ export interface CurrentUser {
   displayName: string;
   role: Role;
   emailVerifiedAt: string | null;
+  // Kontakt telefon (unosi ga sam korisnik; koristi se za majstore).
+  phone: string | null;
   ownedLocationIds: number[];
   curatedVillages: string[];
+  majstorCategories: string[];
 }
 
 export type NewsletterCategory = 'desavanja' | 'poruke' | 'marketing';
@@ -194,8 +201,8 @@ export const api = {
       body: JSON.stringify({ email }),
     }),
   getMe: () => request<CurrentUser>('/api/me'),
-  updateMe: (patch: { displayName: string }) =>
-    request<{ id: number; email: string | null; displayName: string; role: Role }>('/api/me', {
+  updateMe: (patch: { displayName?: string; phone?: string | null }) =>
+    request<{ id: number; email: string | null; displayName: string; role: Role; phone: string | null }>('/api/me', {
       method: 'PATCH',
       body: JSON.stringify(patch),
     }),
@@ -347,6 +354,45 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ status: 'cancelled' }),
     }),
+
+  // Usluge — broadcast zahtevi za majstore po kategorijama
+  uslugeStats: () => request<UslugeStat[]>('/api/usluge/stats'),
+  uslugeMajstori: (cat: string) =>
+    request<MajstorPublic[]>(`/api/usluge/majstori?cat=${encodeURIComponent(cat)}`),
+  createServiceJob: (body: {
+    categoryId: string;
+    description: string;
+    note?: string;
+    photoIds: number[];
+    targetUserIds?: number[] | null;
+  }) => request<MyServiceJob>('/api/usluge/jobs', { method: 'POST', body: JSON.stringify(body) }),
+  myServiceJobs: () => request<MyServiceJob[]>('/api/me/usluge'),
+  acceptJobOffer: (jobId: number, offerId: number) =>
+    request<MyServiceJob>(`/api/me/usluge/${jobId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'accept', offerId }),
+    }),
+  cancelServiceJob: (jobId: number) =>
+    request<MyServiceJob>(`/api/me/usluge/${jobId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'cancel' }),
+    }),
+  majstorJobs: () => request<MajstorJob[]>('/api/majstor/jobs'),
+  submitJobOffer: (jobId: number, quote: ServiceRequestQuote) =>
+    request<{ id: number }>(`/api/majstor/jobs/${jobId}/offer`, {
+      method: 'POST',
+      body: JSON.stringify(quote),
+    }),
+  adminGrantMajstor: (userId: number, category: string) =>
+    request<{ ok: true; userId: number; category: string }>(
+      `/api/admin/users/${userId}/grant-majstor`,
+      { method: 'POST', body: JSON.stringify({ category }) },
+    ),
+  adminRevokeMajstor: (userId: number, category: string) =>
+    request<{ ok: true }>(
+      `/api/admin/users/${userId}/grant-majstor/${encodeURIComponent(category)}`,
+      { method: 'DELETE' },
+    ),
 
   // Service requests — owner side
   ownerServiceRequests: (params: { status?: string; locationId?: number } = {}) => {
@@ -608,6 +654,6 @@ export const api = {
 
   // Notifications (Moj prostor badge)
   getNotifications: () => request<Notifications>('/api/me/notifications'),
-  markSeen: (section: 'reservations' | 'feed') =>
+  markSeen: (section: 'reservations' | 'feed' | 'usluge' | 'majstor') =>
     request<{ ok: true }>('/api/me/seen', { method: 'POST', body: JSON.stringify({ section }) }),
 };

@@ -9,6 +9,7 @@ import {
   primaryKey,
   numeric,
   boolean,
+  unique,
 } from 'drizzle-orm/pg-core';
 
 export const categories = pgTable('categories', {
@@ -51,7 +52,10 @@ export const users = pgTable('users', {
   email: text('email'),
   passwordHash: text('password_hash'),
   displayName: text('display_name').notNull(),
-  role: text('role', { enum: ['admin', 'business', 'user', 'guest', 'curator'] })
+  // Kontakt telefon — unosi ga sam korisnik (praktično: majstor). Prikazuje se
+  // naručiocu usluge tek kada prihvati ponudu tog majstora.
+  phone: text('phone'),
+  role: text('role', { enum: ['admin', 'business', 'user', 'guest', 'curator', 'majstor'] })
     .default('user')
     .notNull(),
   // Bumped on role change / ownership revoke / forced logout so previously-issued
@@ -67,6 +71,10 @@ export const users = pgTable('users', {
   // newer than these. (Unread messages use the per-conversation read marks.)
   reservationsSeenAt: timestamp('reservations_seen_at').defaultNow().notNull(),
   feedSeenAt: timestamp('feed_seen_at').defaultNow().notNull(),
+  // "Usluge" broadcast zahtevi: uslugeSeenAt za korisnika-naručioca (nove
+  // kontraponude), majstorSeenAt za majstora (novi zahtevi u mojim kategorijama).
+  uslugeSeenAt: timestamp('usluge_seen_at').defaultNow().notNull(),
+  majstorSeenAt: timestamp('majstor_seen_at').defaultNow().notNull(),
 });
 
 export const objectOwners = pgTable(
@@ -310,6 +318,68 @@ export const serviceRequests = pgTable('service_requests', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Many-to-many: majstor (korisnik) dodeljen kategorijama usluga. Mirrors
+// `village_curators` obrazac (granted_by + granted_at audit). `categoryId` se
+// validira na app sloju protiv SERVICE_CATEGORIES (lib/usluge.ts) — nema FK ka
+// `categories` jer 'bela-tehnika' i 'majstor-za-sve' postoje samo kao usluge.
+export const majstorCategories = pgTable(
+  'majstor_categories',
+  {
+    userId: integer('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    categoryId: text('category_id').notNull(),
+    grantedByAdminId: integer('granted_by_admin_id').references(() => users.id),
+    grantedAt: timestamp('granted_at').defaultNow().notNull(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.userId, t.categoryId] }) }),
+);
+
+// Broadcast zahtev za uslugu ("Usluge"): jedan zahtev → svi majstori kategorije
+// (targetUserIds NULL) ili ručno izabrani podskup. Za razliku od 1-na-1
+// `service_requests` (vezan za objekat), cilja majstore-korisnike po kategoriji.
+export const serviceJobs = pgTable('service_jobs', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  categoryId: text('category_id').notNull(),
+  // { description, note?, photoIds } — vidi lib/usluge.ts ServiceJobPayload.
+  payload: jsonb('payload').notNull(),
+  // NULL = broadcast svim majstorima kategorije; inače niz user ID-eva.
+  targetUserIds: jsonb('target_user_ids').$type<number[] | null>(),
+  status: text('status', { enum: ['open', 'accepted', 'cancelled'] })
+    .default('open')
+    .notNull(),
+  // Bez FK ka service_offers (cirkularna zavisnost) — postavlja se isključivo u
+  // accept transakciji koja proverava da ponuda pripada ovom job-u.
+  acceptedOfferId: integer('accepted_offer_id'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Kontraponuda majstora na service_job. Jedna ponuda po majstoru po job-u
+// (UNIQUE) — ponovno slanje menja postojeću (upsert). `quote` je isti oblik kao
+// kod 1-na-1 zahteva: { priceRsd, note, availableDate }.
+export const serviceOffers = pgTable(
+  'service_offers',
+  {
+    id: serial('id').primaryKey(),
+    jobId: integer('job_id')
+      .references(() => serviceJobs.id, { onDelete: 'cascade' })
+      .notNull(),
+    majstorUserId: integer('majstor_user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    quote: jsonb('quote').notNull(),
+    status: text('status', { enum: ['active', 'accepted', 'archived'] })
+      .default('active')
+      .notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => ({ uq: unique('service_offers_job_majstor_uq').on(t.jobId, t.majstorUserId) }),
+);
+
 // Oglasna tabla — korisnik-postavljeni oglasi. Efemerni: traju 7 dana od
 // poslednjeg `last_refreshed_at`, koji se osvežava kad vlasnik poseti sajt
 // (vidi lib/oglasi-activity.ts). Posle 7 dana neaktivnosti sweep (lib/oglasi-
@@ -401,6 +471,11 @@ export type Village = typeof villages.$inferSelect;
 export type VillageCurator = typeof villageCurators.$inferSelect;
 export type ServiceRequest = typeof serviceRequests.$inferSelect;
 export type ServiceRequestStatus = ServiceRequest['status'];
+export type MajstorCategoryGrant = typeof majstorCategories.$inferSelect;
+export type ServiceJob = typeof serviceJobs.$inferSelect;
+export type ServiceJobStatus = ServiceJob['status'];
+export type ServiceOffer = typeof serviceOffers.$inferSelect;
+export type ServiceOfferStatus = ServiceOffer['status'];
 export type News = typeof news.$inferSelect;
 export type NewsStatus = News['status'];
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;

@@ -11,6 +11,8 @@ const NO_NOTIFICATIONS: Notifications = {
   unreadMessages: 0,
   reservationUpdates: 0,
   followedUpdates: 0,
+  uslugeUpdates: 0,
+  majstorJobs: 0,
 };
 
 export interface AppContext {

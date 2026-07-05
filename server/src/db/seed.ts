@@ -3,8 +3,8 @@ import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { eq, and } from 'drizzle-orm';
 import * as schema from './schema.js';
-import { alumni, comments, events, locations, moduleContent, news, users, villages } from './schema.js';
-import { ALUMNI, CATEGORIES, COMMENTS, EVENTS, LOCATIONS, NEWS, USERS, VILLAGES, buildModuleContent } from './seed-data.js';
+import { alumni, comments, events, locations, majstorCategories, moduleContent, news, users, villages } from './schema.js';
+import { ALUMNI, CATEGORIES, COMMENTS, EVENTS, LOCATIONS, MAJSTORI, NEWS, USERS, VILLAGES, buildModuleContent } from './seed-data.js';
 import { env } from '../env.js';
 
 export interface SeedResult {
@@ -14,6 +14,7 @@ export interface SeedResult {
   eventCount: number;
   newsCount: number;
   userCount: number;
+  majstorCount: number;
   commentCount: number;
   alumniCount: number;
   villageCount: number;
@@ -183,6 +184,38 @@ export async function runSeed(): Promise<SeedResult> {
       }
     }
 
+    // Demo majstori za "Usluge": nalog sa rolom 'majstor' + grantovi kategorija.
+    // Idempotentno na (users.email) i PK (user_id, category_id).
+    let majstorCount = 0;
+    for (const m of MAJSTORI) {
+      let [row] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, m.email))
+        .limit(1);
+      if (!row) {
+        const passwordHash = await bcrypt.hash(m.password, 12);
+        [row] = await db
+          .insert(users)
+          .values({
+            email: m.email,
+            passwordHash,
+            displayName: m.displayName,
+            role: 'majstor',
+            emailVerifiedAt: new Date(),
+          })
+          .returning({ id: users.id });
+        if (row) majstorCount++;
+      }
+      if (!row) continue;
+      for (const categoryId of m.categories) {
+        await db
+          .insert(majstorCategories)
+          .values({ userId: row.id, categoryId })
+          .onConflictDoNothing();
+      }
+    }
+
     let commentCount = 0;
     for (const c of COMMENTS) {
       const userId = userIdByEmail.get(c.authorEmail);
@@ -275,6 +308,7 @@ export async function runSeed(): Promise<SeedResult> {
       eventCount,
       newsCount,
       userCount,
+      majstorCount,
       commentCount,
       alumniCount,
       villageCount,
@@ -293,7 +327,7 @@ if (isCli) {
   runSeed()
     .then((r) => {
       console.log(
-        `Seeded ${r.categoryCount} categories, ${r.locationCount} locations, ${r.moduleContentCount} module_content rows, ${r.eventCount} events, ${r.newsCount} news, ${r.userCount} demo users, ${r.commentCount} comments, ${r.alumniCount} alumni, ${r.villageCount} villages, ${r.adminInserted ? 1 : 0} admin user (email: ${r.adminEmail}).`,
+        `Seeded ${r.categoryCount} categories, ${r.locationCount} locations, ${r.moduleContentCount} module_content rows, ${r.eventCount} events, ${r.newsCount} news, ${r.userCount} demo users, ${r.majstorCount} demo majstora, ${r.commentCount} comments, ${r.alumniCount} alumni, ${r.villageCount} villages, ${r.adminInserted ? 1 : 0} admin user (email: ${r.adminEmail}).`,
       );
       process.exit(0);
     })

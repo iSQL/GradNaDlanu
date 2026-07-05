@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { users, objectOwners, villageCurators } from '../db/schema.js';
+import { users, objectOwners, villageCurators, majstorCategories } from '../db/schema.js';
 import { bumpTokenVersion, requireAuth } from '../lib/auth.js';
 import { touchAdsRefresh } from '../lib/oglasi-activity.js';
 import { isRegistrationEnabled } from '../lib/settings.js';
@@ -30,6 +30,22 @@ function normalizeDisplayName(raw: unknown): { ok: true; value: string } | { ok:
   const trimmed = raw.trim();
   if (trimmed.length === 0) return { ok: false, error: 'displayName required' };
   if (trimmed.length > MAX_DISPLAY_NAME) return { ok: false, error: `displayName too long (max ${MAX_DISPLAY_NAME})` };
+  return { ok: true, value: trimmed };
+}
+
+// Kontakt telefon: null/prazan string briše broj; inače 5–30 znakova iz skupa
+// cifre/razmak/+-/(). Namerno labavo — samo da spreči očigledno đubre.
+function normalizePhone(raw: unknown): { ok: true; value: string | null } | { ok: false; error: string } {
+  if (raw === null || raw === undefined) return { ok: true, value: null };
+  if (typeof raw !== 'string') return { ok: false, error: 'phone: tekst ili null' };
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return { ok: true, value: null };
+  if (trimmed.length < 5 || trimmed.length > 30) {
+    return { ok: false, error: 'phone: 5–30 znakova' };
+  }
+  if (!/^[+0-9][0-9 ()/.-]*$/.test(trimmed)) {
+    return { ok: false, error: 'phone: dozvoljene su cifre, razmak i + - / ( ) .' };
+  }
   return { ok: true, value: trimmed };
 }
 
@@ -287,26 +303,44 @@ export async function authRoutes(app: FastifyInstance) {
       .select({ village: villageCurators.villageName })
       .from(villageCurators)
       .where(eq(villageCurators.userId, user.id));
+    const majstorske = await db
+      .select({ categoryId: majstorCategories.categoryId })
+      .from(majstorCategories)
+      .where(eq(majstorCategories.userId, user.id));
     return {
       id: user.id,
       email: user.email,
       displayName: user.displayName,
       role: user.role,
       emailVerifiedAt: user.emailVerifiedAt,
+      phone: user.phone,
       ownedLocationIds: owned.map((o) => o.locationId),
       curatedVillages: curated.map((c) => c.village),
+      majstorCategories: majstorske.map((m) => m.categoryId),
     };
   });
 
-  app.patch<{ Body: { displayName?: string } }>(
+  app.patch<{ Body: { displayName?: string; phone?: string | null } }>(
     '/api/me',
     { preHandler: requireAuth },
     async (req, reply) => {
-      const nameCheck = normalizeDisplayName(req.body?.displayName);
-      if (!nameCheck.ok) return reply.code(400).send({ error: nameCheck.error });
+      const patch: { displayName?: string; phone?: string | null } = {};
+      if (req.body?.displayName !== undefined) {
+        const nameCheck = normalizeDisplayName(req.body.displayName);
+        if (!nameCheck.ok) return reply.code(400).send({ error: nameCheck.error });
+        patch.displayName = nameCheck.value;
+      }
+      if (req.body !== null && typeof req.body === 'object' && 'phone' in req.body) {
+        const phoneCheck = normalizePhone(req.body.phone);
+        if (!phoneCheck.ok) return reply.code(400).send({ error: phoneCheck.error });
+        patch.phone = phoneCheck.value;
+      }
+      if (Object.keys(patch).length === 0) {
+        return reply.code(400).send({ error: 'Nema izmena' });
+      }
       const [user] = await db
         .update(users)
-        .set({ displayName: nameCheck.value })
+        .set(patch)
         .where(eq(users.id, req.user.sub))
         .returning();
       if (!user) return reply.code(404).send({ error: 'Not found' });
@@ -315,6 +349,7 @@ export async function authRoutes(app: FastifyInstance) {
         email: user.email,
         displayName: user.displayName,
         role: user.role,
+        phone: user.phone,
       };
     },
   );

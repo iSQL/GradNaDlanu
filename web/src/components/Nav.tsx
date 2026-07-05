@@ -19,6 +19,7 @@ function adminMenuFor(user: CurrentUser): { to: string; label: string }[] {
   if (user.role === 'admin') return [{ to: '/admin', label: 'Admin panel' }];
   if (user.role === 'business') return [{ to: '/poslovni', label: 'Poslovni panel' }];
   if (user.role === 'curator') return [{ to: '/kustos', label: 'Kustoski panel' }];
+  if (user.role === 'majstor') return [{ to: '/majstor', label: 'Majstorski panel' }];
   return [];
 }
 
@@ -40,6 +41,7 @@ const MENU: MenuItem[] = [
     ],
   },
   { to: '/oglasi', label: 'Oglasi' },
+  { to: '/usluge', label: 'Usluge' },
   { to: '/desavanja', label: 'Dešavanja' },
   { to: '/naselja', label: 'Naselja' },
 ];
@@ -75,9 +77,14 @@ export function Nav({ search, onSearchChange, currentUser, notifications }: Prop
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Aggregate badge for "Moj prostor": unread messages + reservation updates +
-  // followed-object updates. Only shown to logged-in users.
+  // followed-object updates + usluge offers + (majstor) new jobs. Only shown to
+  // logged-in users.
   const notifyCount = currentUser && notifications
-    ? notifications.unreadMessages + notifications.reservationUpdates + notifications.followedUpdates
+    ? notifications.unreadMessages +
+      notifications.reservationUpdates +
+      notifications.followedUpdates +
+      notifications.uslugeUpdates +
+      notifications.majstorJobs
     : 0;
   const badgeText = notifyCount > 9 ? '9+' : String(notifyCount);
 

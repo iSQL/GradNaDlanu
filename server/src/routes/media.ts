@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { pipeline } from 'node:stream/promises';
 import { and, eq, inArray, lt, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { ads, alumni, media, objectOwners, serviceRequests } from '../db/schema.js';
+import { ads, alumni, majstorCategories, media, objectOwners, serviceJobs, serviceRequests } from '../db/schema.js';
 import { getOptionalUser, requireAuth } from '../lib/auth.js';
 import { env } from '../env.js';
 
@@ -46,8 +46,8 @@ function extFor(mime: string): string {
 }
 
 // Periodic GC: deletes media rows (and their files) older than ORPHAN_AGE_HOURS
-// that aren't referenced by any service_request.payload.photoIds array, an
-// alumni row, or an ad's photo_media_id.
+// that aren't referenced by any service_request.payload.photoIds array, a
+// service_job.payload.photoIds array, an alumni row, or an ad's photo_media_id.
 const ORPHAN_AGE_HOURS = 24;
 const GC_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
@@ -70,6 +70,14 @@ async function gcOrphanMedia(uploadRoot: string, log: { info: (o: object, msg: s
         sql`(${serviceRequests.payload}->'photoIds') @> to_jsonb(${media.id})`,
       )
       .where(inArray(media.id, ids));
+    const referencedFromServiceJobs = await db
+      .select({ id: media.id })
+      .from(media)
+      .innerJoin(
+        serviceJobs,
+        sql`(${serviceJobs.payload}->'photoIds') @> to_jsonb(${media.id})`,
+      )
+      .where(inArray(media.id, ids));
     const referencedFromAlumni = await db
       .select({ id: media.id })
       .from(media)
@@ -82,6 +90,7 @@ async function gcOrphanMedia(uploadRoot: string, log: { info: (o: object, msg: s
       .where(inArray(media.id, ids));
     const refSet = new Set<number>();
     for (const r of referencedFromServiceRequests) refSet.add(r.id);
+    for (const r of referencedFromServiceJobs) refSet.add(r.id);
     for (const r of referencedFromAlumni) refSet.add(r.id);
     for (const r of referencedFromAds) refSet.add(r.id);
     const orphans = candidates.filter((c) => !refSet.has(c.id));
@@ -255,6 +264,29 @@ export async function mediaRoutes(app: FastifyInstance) {
                 and(
                   inArray(serviceRequests.locationId, ownedIds),
                   sql`(${serviceRequests.payload}->'photoIds') @> ${JSON.stringify([id])}::jsonb`,
+                ),
+              )
+              .limit(1);
+            if (hit) allowed = true;
+          }
+          // Majstor (usluge): sme da vidi sliku ako je referencira service_job
+          // koji mu je vidljiv — kategorija u njegovim grantovima + targetiranje
+          // (NULL = broadcast). Revoke granta automatski gasi i pristup slikama.
+          if (!allowed) {
+            const [hit] = await db
+              .select({ id: serviceJobs.id })
+              .from(serviceJobs)
+              .innerJoin(
+                majstorCategories,
+                and(
+                  eq(majstorCategories.categoryId, serviceJobs.categoryId),
+                  eq(majstorCategories.userId, user.sub),
+                ),
+              )
+              .where(
+                and(
+                  sql`(${serviceJobs.payload}->'photoIds') @> ${JSON.stringify([id])}::jsonb`,
+                  sql`(${serviceJobs.targetUserIds} IS NULL OR ${serviceJobs.targetUserIds} @> ${JSON.stringify([user.sub])}::jsonb)`,
                 ),
               )
               .limit(1);

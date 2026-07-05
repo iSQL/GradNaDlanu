@@ -136,7 +136,7 @@ const statements = [
   // version of Postgres / Drizzle initially created them, so we drop both.
   `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check`,
   `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_role_check`,
-  `ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin','business','user','guest','curator'))`,
+  `ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin','business','user','guest','curator','majstor'))`,
   // Allow null email / password_hash for guest rows. ALTER … DROP NOT NULL is
   // a no-op when the column is already nullable.
   `ALTER TABLE users ALTER COLUMN email DROP NOT NULL`,
@@ -323,6 +323,48 @@ const statements = [
      END IF;
    END $$`,
   `DROP TABLE IF EXISTS admin_users`,
+  // --- Usluge: majstori po kategorijama + broadcast zahtevi + kontraponude ---
+  // category_id nema FK ka categories: 'bela-tehnika' i 'majstor-za-sve' postoje
+  // samo kao kategorije usluga (SERVICE_CATEGORIES u lib/usluge.ts).
+  `CREATE TABLE IF NOT EXISTS majstor_categories (
+    user_id              INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    category_id          TEXT NOT NULL,
+    granted_by_admin_id  INTEGER REFERENCES users(id),
+    granted_at           TIMESTAMP NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, category_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS majstor_categories_category_idx ON majstor_categories(category_id)`,
+  `CREATE TABLE IF NOT EXISTS service_jobs (
+    id                 SERIAL PRIMARY KEY,
+    user_id            INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    category_id        TEXT NOT NULL,
+    payload            JSONB NOT NULL,
+    target_user_ids    JSONB,
+    status             TEXT NOT NULL DEFAULT 'open'
+      CHECK (status IN ('open','accepted','cancelled')),
+    accepted_offer_id  INTEGER,
+    created_at         TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS service_jobs_cat_status_idx ON service_jobs(category_id, status)`,
+  `CREATE INDEX IF NOT EXISTS service_jobs_user_created_idx ON service_jobs(user_id, created_at DESC)`,
+  `CREATE TABLE IF NOT EXISTS service_offers (
+    id               SERIAL PRIMARY KEY,
+    job_id           INTEGER NOT NULL REFERENCES service_jobs(id) ON DELETE CASCADE,
+    majstor_user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    quote            JSONB NOT NULL,
+    status           TEXT NOT NULL DEFAULT 'active'
+      CHECK (status IN ('active','accepted','archived')),
+    created_at       TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMP NOT NULL DEFAULT NOW(),
+    CONSTRAINT service_offers_job_majstor_uq UNIQUE (job_id, majstor_user_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS service_offers_job_idx ON service_offers(job_id)`,
+  `CREATE INDEX IF NOT EXISTS service_offers_majstor_idx ON service_offers(majstor_user_id)`,
+  // Badge sidra za usluge (naručilac) i majstorski panel (majstor).
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS usluge_seen_at TIMESTAMP NOT NULL DEFAULT NOW()`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS majstor_seen_at TIMESTAMP NOT NULL DEFAULT NOW()`,
+  // Kontakt telefon (majstori) — otkriva se naručiocu tek posle prihvatanja ponude.
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT`,
 ];
 
 // Reusable migration function — opens its own short-lived connection so callers

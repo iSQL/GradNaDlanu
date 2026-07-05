@@ -394,6 +394,21 @@ export const USERS: SeedUser[] = [
   { email: 'ana@example.com',    displayName: 'Ana R.',    password: DEMO_USER_PASSWORD },
 ];
 
+// Demo majstori za "Usluge" (broadcast zahtevi): korisnici sa rolom 'majstor'
+// i grantovima u majstor_categories. Kategorije su iz SERVICE_CATEGORIES
+// (lib/usluge.ts). Ista demo lozinka kao za USERS — samo za lokalni razvoj.
+export interface SeedMajstor {
+  email: string;
+  displayName: string;
+  password: string;
+  categories: string[];
+}
+export const MAJSTORI: SeedMajstor[] = [
+  { email: 'zoran.majstor@example.com',  displayName: 'Zoran I.',  password: DEMO_USER_PASSWORD, categories: ['vodoinstalater'] },
+  { email: 'dragan.majstor@example.com', displayName: 'Dragan P.', password: DEMO_USER_PASSWORD, categories: ['vodoinstalater', 'majstor-za-sve'] },
+  { email: 'nenad.majstor@example.com',  displayName: 'Nenad S.',  password: DEMO_USER_PASSWORD, categories: ['elektricar', 'bela-tehnika'] },
+];
+
 // Sample comments authored by USERS above. Powers the homepage "Najnoviji utisci"
 // row and per-location comment list. Idempotent at insert time via
 // (userId, locationId, body) tuple — same body from same user on same location

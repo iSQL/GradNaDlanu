@@ -75,14 +75,24 @@ function IconToolbox() {
     </svg>
   );
 }
+function IconAppliance() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="5" y="2" width="14" height="20" rx="2" />
+      <circle cx="12" cy="14" r="4" />
+      <line x1="9" y1="6" x2="11" y2="6" />
+    </svg>
+  );
+}
 
-// Sekcija "Zatražite uslugu" je za sada samo dizajn — dugmad ne vode nikuda,
-// logika slanja zahteva se implementira kasnije.
+// Kartice "Zatražite uslugu" — vode na /usluge sa preselektovanom kategorijom.
+// `id` mora biti jedan od SERVICE_CATEGORIES (web/src/lib/usluge.ts).
 const USLUGE = [
   { id: 'vodoinstalater', label: 'Vodoinstalater', sub: 'Popravka česmi, bojlera, curenja', icon: <IconWrench /> },
   { id: 'elektricar', label: 'Električar', sub: 'Instalacije i hitne popravke', icon: <IconBolt /> },
   { id: 'automehanicar', label: 'Automehaničar', sub: 'Servis i popravka vozila', icon: <IconCar /> },
-  { id: 'majstor', label: 'Majstor za sve', sub: 'Sitne popravke u domaćinstvu', icon: <IconToolbox /> },
+  { id: 'bela-tehnika', label: 'Servis bele tehnike', sub: 'Veš mašine, bojleri, šporeti', icon: <IconAppliance /> },
+  { id: 'majstor-za-sve', label: 'Majstor za sve', sub: 'Sitne popravke u domaćinstvu', icon: <IconToolbox /> },
 ];
 
 // Statična hero pozadina — placeholder dok ne stigne prava fotografija.
@@ -487,7 +497,7 @@ export function HomePage() {
         )}
       </section>
 
-      {/* ===== Zatražite uslugu (samo dizajn — logika kasnije) ===== */}
+      {/* ===== Zatražite uslugu ===== */}
       <section className="hp-usluge">
         <div className="hp-usluge-inner">
           <div className="hp-head">
@@ -497,6 +507,9 @@ export function HomePage() {
                 Treba vam majstor? Pošaljite zahtev i lokalni izvođači će vam se javiti.
               </div>
             </div>
+            <Link to="/usluge" className="hp-link">
+              Sve usluge →
+            </Link>
           </div>
           <div className="hp-usluge-track">
             {USLUGE.map((u) => (
@@ -506,9 +519,9 @@ export function HomePage() {
                   <div className="hp-usluga-label">{u.label}</div>
                   <div className="hp-usluga-sub">{u.sub}</div>
                 </div>
-                <button type="button" className="hp-usluga-btn">
+                <Link to={`/usluge?cat=${u.id}`} className="hp-usluga-btn">
                   Zatraži uslugu
-                </button>
+                </Link>
               </div>
             ))}
           </div>
