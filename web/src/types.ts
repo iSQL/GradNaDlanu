@@ -505,6 +505,55 @@ export interface ProblemInput {
   photoMediaId?: number | null;
 }
 
+// --- "Zaboravljeni biseri" ---
+
+export type BiserStatus = 'pending' | 'published' | 'rejected';
+
+export interface Biser {
+  id: number;
+  title: string;
+  year: number;
+  village: string;
+  // Priča/anegdota — pasusi razdvojeni praznim redom, UI deli na \n\n.
+  story: string;
+  lat: number;
+  lng: number;
+  // NULL → UI prikazuje sepija placeholder (seed primeri / obrisan media red).
+  photoMediaId: number | null;
+  nowPhotoMediaId: number | null;
+  status: BiserStatus;
+  createdAt: string;
+  // Display ime autora; null kad je nalog obrisan.
+  contributorName: string | null;
+  likes: number;
+  commentCount: number;
+  liked: boolean;
+}
+
+export interface BiserCommentItem {
+  id: number;
+  body: string;
+  createdAt: string;
+  author: { id: number; displayName: string };
+}
+
+export interface BiserDetail extends Biser {
+  // Sme li trenutni korisnik da odobri/odbije (admin / kustos sela).
+  canModerate: boolean;
+  comments: BiserCommentItem[];
+}
+
+export interface BiserInput {
+  title: string;
+  year: number;
+  village: string;
+  story: string;
+  lat: number;
+  lng: number;
+  photoMediaId: number;
+  nowPhotoMediaId?: number | null;
+}
+
 // --- In-site messaging (poruke) ---
 
 export interface ConversationSummary {

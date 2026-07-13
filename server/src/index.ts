@@ -31,6 +31,7 @@ import { villagesRoutes } from './routes/villages.js';
 import { curatorRoutes } from './routes/curator.js';
 import { oglasiRoutes } from './routes/oglasi.js';
 import { problemiRoutes } from './routes/problemi.js';
+import { biseriRoutes } from './routes/biseri.js';
 import { conversationsRoutes } from './routes/conversations.js';
 import { notificationsRoutes } from './routes/notifications.js';
 import { startGuestCleanup } from './lib/guest-cleanup.js';
@@ -262,6 +263,7 @@ async function main() {
   await app.register(curatorRoutes);
   await app.register(oglasiRoutes);
   await app.register(problemiRoutes);
+  await app.register(biseriRoutes);
   await app.register(conversationsRoutes);
   await app.register(notificationsRoutes);
 

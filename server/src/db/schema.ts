@@ -448,6 +448,63 @@ export const problemComments = pgTable('problem_comments', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// "Zaboravljeni biseri" — stare fotografije postavljene na tačno mesto snimka,
+// sa pričom/anegdotom. Doprinos traži nalog (autor je deo sadržaja); predlog ide
+// kustosu sela (ili adminu) na odobrenje: pending → published / rejected.
+// village se validira na app sloju protiv SELA_ZABARI, kao i drugde.
+export const biseri = pgTable('biseri', {
+  id: serial('id').primaryKey(),
+  // SET NULL kad se nalog obriše — biser (odobreni sadržaj) preživi autora.
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  title: text('title').notNull(),
+  year: integer('year').notNull(),
+  village: text('village').notNull(),
+  story: text('story').notNull(),
+  lat: doublePrecision('lat').notNull(),
+  lng: doublePrecision('lng').notNull(),
+  // Skenirana stara fotografija ("Nekad"). Obavezna pri POST-u, ali nullable u
+  // bazi (seed primeri bez fajlova; SET NULL ako se media red obriše) — UI tada
+  // prikazuje sepija placeholder.
+  photoMediaId: integer('photo_media_id').references(() => media.id, { onDelete: 'set null' }),
+  // Opcioni današnji snimak istog kadra ("Danas") — pokreće Nekad/Danas preklopnik.
+  nowPhotoMediaId: integer('now_photo_media_id').references(() => media.id, { onDelete: 'set null' }),
+  status: text('status', { enum: ['pending', 'published', 'rejected'] })
+    .default('pending')
+    .notNull(),
+  decidedAt: timestamp('decided_at'),
+  decidedBy: integer('decided_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Lajkovi ("srca") — samo ulogovani, jedan po biseru, ponovni klik povlači (toggle).
+export const biserLikes = pgTable(
+  'biser_likes',
+  {
+    biserId: integer('biser_id')
+      .references(() => biseri.id, { onDelete: 'cascade' })
+      .notNull(),
+    userId: integer('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.biserId, t.userId] }) }),
+);
+
+// Komentari na bisere — samo ulogovani, ravna lista (isti obrazac kao problem_comments).
+export const biserComments = pgTable('biser_comments', {
+  id: serial('id').primaryKey(),
+  biserId: integer('biser_id')
+    .references(() => biseri.id, { onDelete: 'cascade' })
+    .notNull(),
+  userId: integer('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  body: text('body').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Oglasna tabla — korisnik-postavljeni oglasi. Efemerni: traju 7 dana od
 // poslednjeg `last_refreshed_at`, koji se osvežava kad vlasnik poseti sajt
 // (vidi lib/oglasi-activity.ts). Posle 7 dana neaktivnosti sweep (lib/oglasi-
@@ -548,6 +605,10 @@ export type News = typeof news.$inferSelect;
 export type NewsStatus = News['status'];
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 export type Alumnus = typeof alumni.$inferSelect;
+export type Biser = typeof biseri.$inferSelect;
+export type BiserStatus = Biser['status'];
+export type BiserLike = typeof biserLikes.$inferSelect;
+export type BiserComment = typeof biserComments.$inferSelect;
 export type Problem = typeof problems.$inferSelect;
 export type ProblemStatus = Problem['status'];
 export type ProblemVote = typeof problemVotes.$inferSelect;

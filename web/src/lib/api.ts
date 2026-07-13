@@ -4,6 +4,10 @@ import type {
   AdminUserRow,
   Alumnus,
   AvailabilityRow,
+  Biser,
+  BiserCommentItem,
+  BiserDetail,
+  BiserInput,
   Category,
   ConversationDetail,
   ConversationSummary,
@@ -697,6 +701,42 @@ export const api = {
     ),
   adminDeleteProblem: (id: number) =>
     request<{ ok: true }>(`/api/problemi/${id}`, { method: 'DELETE' }),
+
+  // "Zaboravljeni biseri"
+  listBiseri: (params: { village?: string } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.village) qs.set('village', params.village);
+    const s = qs.toString();
+    return request<Biser[]>(`/api/biseri${s ? `?${s}` : ''}`);
+  },
+  getBiser: (id: number) => request<BiserDetail>(`/api/biseri/${id}`),
+  createBiser: (body: BiserInput) =>
+    request<{ id: number; status: string }>('/api/biseri', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  uploadBiserPhoto: (file: File) => {
+    const fd = new FormData();
+    // `kind` pre fajla — vidi komentar u uploadMedia.
+    fd.append('kind', 'biser_photo');
+    fd.append('file', file, file.name);
+    return uploadRequest<{ id: number }>('/api/uploads', fd);
+  },
+  likeBiser: (id: number) =>
+    request<{ liked: boolean; likes: number }>(`/api/biseri/${id}/like`, { method: 'POST' }),
+  commentBiser: (id: number, body: string) =>
+    request<BiserCommentItem>(`/api/biseri/${id}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
+    }),
+  pendingBiseri: () => request<Biser[]>('/api/biseri/pending'),
+  moderateBiser: (id: number, status: 'published' | 'rejected' | 'pending') =>
+    request<{ id: number; status: string }>(`/api/biseri/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+  adminDeleteBiser: (id: number) =>
+    request<{ ok: true }>(`/api/biseri/${id}`, { method: 'DELETE' }),
 
   // Poruke (conversations / messages)
   myConversations: () => request<ConversationSummary[]>('/api/me/conversations'),

@@ -5,18 +5,33 @@ import { problemCat, problemStatusLabel } from '../lib/problemi';
 import { ProblemBadge } from './ProblemGlyph';
 import type { Problem } from '../types';
 
-// Kompaktni widget za naslovnu — 3 najnovije prijave građana sa linkom na
-// punu listu i CTA za novu prijavu (vidi doc/design/prijava-problema.html).
-export function ProblemiWidget() {
+interface Props {
+  // 'recent' → najnovije prijave; 'votes' → najpopularnije (po glasovima).
+  sort?: 'recent' | 'votes';
+  kicker?: string;
+  title?: string;
+  // CTA "Prijavi novi problem" — prikazuje se samo na jednom widgetu kad ih ima
+  // dva jedan pored drugog, da se dugme ne duplira.
+  showCta?: boolean;
+}
+
+// Kompaktni widget za naslovnu — 3 prijave građana (najnovije ili najpopularnije)
+// sa linkom na punu listu (vidi doc/design/prijava-problema.html).
+export function ProblemiWidget({
+  sort = 'recent',
+  kicker = 'Grad na dlanu',
+  title = 'Najnovije prijave građana',
+  showCta = true,
+}: Props) {
   const navigate = useNavigate();
   const [items, setItems] = useState<Problem[] | null>(null);
 
   useEffect(() => {
     api
-      .listProblemi({ sort: 'recent', limit: 3 })
+      .listProblemi({ sort, limit: 3 })
       .then(setItems)
       .catch(() => setItems([]));
-  }, []);
+  }, [sort]);
 
   if (items !== null && items.length === 0) return null;
 
@@ -24,8 +39,8 @@ export function ProblemiWidget() {
     <div className="prb-widget">
       <div className="prb-widget-head">
         <div>
-          <div className="prb-widget-kicker">Grad na dlanu</div>
-          <div className="prb-widget-title">Najnovije prijave građana</div>
+          <div className="prb-widget-kicker">{kicker}</div>
+          <div className="prb-widget-title">{title}</div>
         </div>
         <Link to="/problemi" className="hp-link">
           Vidi sve →
@@ -49,9 +64,11 @@ export function ProblemiWidget() {
         ))}
         {items === null && <div className="home-skeleton-card" />}
       </div>
-      <Link to="/problemi/prijava" className="prb-widget-cta">
-        ＋ Prijavi novi problem
-      </Link>
+      {showCta && (
+        <Link to="/problemi/prijava" className="prb-widget-cta">
+          ＋ Prijavi novi problem
+        </Link>
+      )}
     </div>
   );
 }

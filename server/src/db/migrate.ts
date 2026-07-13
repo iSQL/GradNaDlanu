@@ -424,6 +424,43 @@ const statements = [
     created_at  TIMESTAMP NOT NULL DEFAULT NOW()
   )`,
   `CREATE INDEX IF NOT EXISTS problem_comments_problem_idx ON problem_comments(problem_id, created_at)`,
+  // --- "Zaboravljeni biseri" ---
+  // Stare fotografije na mapi sa pričom. village bez FK-a (app-layer validacija,
+  // lib/villages.ts). photo_media_id nullable: POST ga zahteva, ali seed primeri
+  // nemaju fajlove, a ON DELETE SET NULL čuva biser i kad media red nestane.
+  `CREATE TABLE IF NOT EXISTS biseri (
+    id                 SERIAL PRIMARY KEY,
+    user_id            INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    title              TEXT NOT NULL,
+    year               INTEGER NOT NULL,
+    village            TEXT NOT NULL,
+    story              TEXT NOT NULL,
+    lat                DOUBLE PRECISION NOT NULL,
+    lng                DOUBLE PRECISION NOT NULL,
+    photo_media_id     INTEGER REFERENCES media(id) ON DELETE SET NULL,
+    now_photo_media_id INTEGER REFERENCES media(id) ON DELETE SET NULL,
+    status             TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','published','rejected')),
+    decided_at         TIMESTAMP,
+    decided_by         INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at         TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at         TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS biseri_status_created_idx ON biseri(status, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS biseri_village_idx ON biseri(village)`,
+  `CREATE TABLE IF NOT EXISTS biser_likes (
+    biser_id    INTEGER NOT NULL REFERENCES biseri(id) ON DELETE CASCADE,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at  TIMESTAMP NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (biser_id, user_id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS biser_comments (
+    id          SERIAL PRIMARY KEY,
+    biser_id    INTEGER NOT NULL REFERENCES biseri(id) ON DELETE CASCADE,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    body        TEXT NOT NULL,
+    created_at  TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS biser_comments_biser_idx ON biser_comments(biser_id, created_at)`,
 ];
 
 // Reusable migration function — opens its own short-lived connection so callers

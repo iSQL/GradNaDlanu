@@ -39,6 +39,7 @@ const MENU: MenuItem[] = [
     submenu: [
       { to: '/objekti', label: 'Lista objekata', end: true },
       { to: '/mapa', label: 'Mapa' },
+      { to: '/biseri', label: 'Zaboravljeni biseri' },
     ],
   },
   { to: '/oglasi', label: 'Oglasi' },
@@ -52,7 +53,7 @@ const MENU: MenuItem[] = [
   },
   {
     to: '/problemi',
-    label: 'Problemi',
+    label: 'Prijave',
     submenu: [
       { to: '/problemi/prijava', label: 'Prijavi problem' },
       { to: '/problemi', label: 'Prijavljeni problemi', end: true },

@@ -5,9 +5,11 @@ import { api, type CuratorCommentRow } from '../lib/api';
 import { clearToken } from '../lib/auth';
 import { formatDateTime } from '../lib/format';
 import { PinGlyph } from '../components/PinGlyph';
-import type { CategoryId, Location } from '../types';
+import { AuthImage } from '../components/AuthImage';
+import { decadeLabel, decadeOf, storyParagraphs } from '../lib/biseri';
+import type { Biser, CategoryId, Location } from '../types';
 
-type Tab = 'objects' | 'comments' | 'create';
+type Tab = 'objects' | 'comments' | 'biseri' | 'create';
 
 export function CuratorDashboard() {
   const ctx = useOutletContext<AppContext>();
@@ -15,6 +17,7 @@ export function CuratorDashboard() {
   const [tab, setTab] = useState<Tab>('objects');
   const [objects, setObjects] = useState<Location[] | null>(null);
   const [comments, setComments] = useState<CuratorCommentRow[] | null>(null);
+  const [pendingBiseri, setPendingBiseri] = useState<Biser[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const reload = async () => {
@@ -22,6 +25,7 @@ export function CuratorDashboard() {
     try {
       setObjects(await api.curatorLocations());
       setComments(await api.curatorComments());
+      setPendingBiseri(await api.pendingBiseri());
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -63,6 +67,9 @@ export function CuratorDashboard() {
           <button className={`account-tab ${tab === 'comments' ? 'active' : ''}`} onClick={() => setTab('comments')}>
             Komentari {comments && `· ${comments.length}`}
           </button>
+          <button className={`account-tab ${tab === 'biseri' ? 'active' : ''}`} onClick={() => setTab('biseri')}>
+            Biseri {pendingBiseri && pendingBiseri.length > 0 && `· ${pendingBiseri.length}`}
+          </button>
           <button className={`account-tab ${tab === 'create' ? 'active' : ''}`} onClick={() => setTab('create')}>
             Novi objekat
           </button>
@@ -76,6 +83,10 @@ export function CuratorDashboard() {
 
         {tab === 'comments' && (
           <CommentsTab comments={comments} onChanged={reload} />
+        )}
+
+        {tab === 'biseri' && (
+          <BiseriTab pending={pendingBiseri} onChanged={reload} />
         )}
 
         {tab === 'create' && (
@@ -183,6 +194,78 @@ function CommentsTab({
               {c.status === 'visible' ? 'Sakrij' : 'Vrati u vidljivo'}
             </button>
             {c.status === 'hidden' && <span style={{ fontSize: 12, color: 'var(--ink-2)' }}>(sakriveno)</span>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Predlozi "Zaboravljenih bisera" na čekanju — kustos vidi samo svoja sela
+// (server filtrira), odobrava ili odbija. Fotke na čekanju nisu javne, pa idu
+// kroz AuthImage (Bearer fetch).
+function BiseriTab({
+  pending,
+  onChanged,
+}: { pending: Biser[] | null; onChanged: () => Promise<void> }) {
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  if (pending === null) return <div className="comments-empty">Učitavanje…</div>;
+  if (pending.length === 0) {
+    return <div className="comments-empty">Nema predloga na čekanju — sve je pregledano.</div>;
+  }
+
+  const moderate = async (id: number, status: 'published' | 'rejected') => {
+    setBusyId(id);
+    setError(null);
+    try {
+      await api.moderateBiser(id, status);
+      await onChanged();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {error && <div className="login-error">{error}</div>}
+      {pending.map((b) => (
+        <div className="biseri-pending-row" key={b.id}>
+          {b.photoMediaId && (
+            <AuthImage mediaId={b.photoMediaId} alt={b.title} className="biseri-pending-photo" />
+          )}
+          <div className="biseri-pending-main">
+            <div className="biseri-pending-title">{b.title}</div>
+            <div className="biseri-pending-meta">
+              {b.year}. ({decadeLabel(decadeOf(b.year))}) · {b.village}
+              {b.contributorName ? ` · predložio/la ${b.contributorName}` : ''} ·{' '}
+              {formatDateTime(b.createdAt)}
+              {b.nowPhotoMediaId ? ' · ima i današnji snimak' : ''}
+            </div>
+            <div className="biseri-pending-story">
+              {storyParagraphs(b.story).map((p, i) => (
+                <p key={i} style={{ margin: i === 0 ? 0 : '6px 0 0' }}>{p}</p>
+              ))}
+            </div>
+          </div>
+          <div className="biseri-pending-actions">
+            <button
+              className="btn-primary"
+              disabled={busyId === b.id}
+              onClick={() => moderate(b.id, 'published')}
+            >
+              Odobri
+            </button>
+            <button
+              className="btn-secondary"
+              disabled={busyId === b.id}
+              onClick={() => moderate(b.id, 'rejected')}
+            >
+              Odbij
+            </button>
           </div>
         </div>
       ))}

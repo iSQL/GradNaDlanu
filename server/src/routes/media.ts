@@ -6,13 +6,13 @@ import { randomUUID } from 'node:crypto';
 import { pipeline } from 'node:stream/promises';
 import { and, eq, inArray, lt, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { ads, alumni, majstorCategories, media, objectOwners, problems, serviceJobs, serviceRequests } from '../db/schema.js';
+import { ads, alumni, biseri, majstorCategories, media, objectOwners, problems, serviceJobs, serviceRequests, villageCurators } from '../db/schema.js';
 import { getOptionalUser, requireAuth } from '../lib/auth.js';
 import { env } from '../env.js';
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
-const ALLOWED_KINDS = new Set(['service_photo', 'alumni_photo', 'ad_photo', 'problem_photo']);
+const ALLOWED_KINDS = new Set(['service_photo', 'alumni_photo', 'ad_photo', 'problem_photo', 'biser_photo']);
 const SNIFF_BYTES = 12;
 
 // Read just the first SNIFF_BYTES of a file and infer its image type.
@@ -48,7 +48,7 @@ function extFor(mime: string): string {
 // Periodic GC: deletes media rows (and their files) older than ORPHAN_AGE_HOURS
 // that aren't referenced by any service_request.payload.photoIds array, a
 // service_job.payload.photoIds array, an alumni row, an ad's photo_media_id,
-// or a problem report's photo_media_id.
+// a problem report's photo_media_id, or a biser's photo/now_photo_media_id.
 const ORPHAN_AGE_HOURS = 24;
 const GC_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
@@ -94,12 +94,21 @@ async function gcOrphanMedia(uploadRoot: string, log: { info: (o: object, msg: s
       .from(media)
       .innerJoin(problems, eq(problems.photoMediaId, media.id))
       .where(inArray(media.id, ids));
+    const referencedFromBiseri = await db
+      .select({ id: media.id })
+      .from(media)
+      .innerJoin(
+        biseri,
+        sql`${biseri.photoMediaId} = ${media.id} OR ${biseri.nowPhotoMediaId} = ${media.id}`,
+      )
+      .where(inArray(media.id, ids));
     const refSet = new Set<number>();
     for (const r of referencedFromServiceRequests) refSet.add(r.id);
     for (const r of referencedFromServiceJobs) refSet.add(r.id);
     for (const r of referencedFromAlumni) refSet.add(r.id);
     for (const r of referencedFromAds) refSet.add(r.id);
     for (const r of referencedFromProblems) refSet.add(r.id);
+    for (const r of referencedFromBiseri) refSet.add(r.id);
     const orphans = candidates.filter((c) => !refSet.has(c.id));
     if (orphans.length === 0) return;
 
@@ -276,6 +285,22 @@ export async function mediaRoutes(app: FastifyInstance) {
         if (hit) allowed = true;
       }
 
+      // Biser photos (nekad + danas) are public iff referenced by a *published*
+      // biser. Pending/rejected fall through to owner/admin/curator-of-village.
+      if (!allowed && m.kind === 'biser_photo') {
+        const [hit] = await db
+          .select({ id: biseri.id })
+          .from(biseri)
+          .where(
+            and(
+              sql`(${biseri.photoMediaId} = ${id} OR ${biseri.nowPhotoMediaId} = ${id})`,
+              eq(biseri.status, 'published'),
+            ),
+          )
+          .limit(1);
+        if (hit) allowed = true;
+      }
+
       if (!allowed && m.kind === 'ad_photo') {
         const [hit] = await db
           .select({ id: ads.id })
@@ -334,6 +359,23 @@ export async function mediaRoutes(app: FastifyInstance) {
               .limit(1);
             if (hit) allowed = true;
           }
+          // Kustos: sme da vidi fotku bisera na čekanju ako je selo bisera u
+          // njegovim grantovima — pregled predloga pre odobrenja.
+          if (!allowed && m.kind === 'biser_photo' && user.role === 'curator') {
+            const [hit] = await db
+              .select({ id: biseri.id })
+              .from(biseri)
+              .innerJoin(
+                villageCurators,
+                and(
+                  eq(villageCurators.villageName, biseri.village),
+                  eq(villageCurators.userId, user.sub),
+                ),
+              )
+              .where(sql`${biseri.photoMediaId} = ${id} OR ${biseri.nowPhotoMediaId} = ${id}`)
+              .limit(1);
+            if (hit) allowed = true;
+          }
         }
         if (!allowed) return reply.code(403).send({ error: 'Forbidden' });
       }
@@ -347,7 +389,7 @@ export async function mediaRoutes(app: FastifyInstance) {
       reply.header('Content-Type', m.mimeType);
       reply.header(
         'Cache-Control',
-        m.kind === 'alumni_photo' || m.kind === 'ad_photo' || m.kind === 'problem_photo'
+        m.kind === 'alumni_photo' || m.kind === 'ad_photo' || m.kind === 'problem_photo' || m.kind === 'biser_photo'
           ? 'public, max-age=3600'
           : 'private, max-age=300',
       );

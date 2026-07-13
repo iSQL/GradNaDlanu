@@ -477,6 +477,57 @@ export const ALUMNI: SeedAlumnus[] = [
   { schoolSlug: 'os-dude-jovica', fullName: 'Aleksandar Vasić',  graduationYear: 2020, homeroomTeacher: 'Vesna Kostić',      motto: 'Učili smo i kad su škole bile zatvorene.' },
 ];
 
+// "Zaboravljeni biseri" — demo priče iz dizajn prototipa. Bez fotografija
+// (photo_media_id ostaje NULL, UI prikazuje sepija placeholder); contributorEmail
+// se mapira na demo naloge iz USERS pri seed-u. Pasusi priče idu kroz \n\n.
+export interface SeedBiser {
+  title: string;
+  year: number;
+  village: string;
+  story: string;
+  lat: number;
+  lng: number;
+  contributorEmail: string;
+}
+
+export const BISERI: SeedBiser[] = [
+  {
+    title: 'Pijaca na Trgu', year: 1963, village: 'Žabari', lat: 44.3572, lng: 21.2156,
+    contributorEmail: 'marko@example.com',
+    story: 'Sredom i subotom Trg bi se ispunio tezgama još pre svitanja — seljaci iz okolnih sela dolazili su zapregama natovarenim jajima, sirom i ranim voćem.\n\nNa ovom uglu, gde je danas parking, stajala je vaga opštinske pijace. Deca su se vrtela oko prodavca semenki, a stariji su uz kafu rešavali sve seoske teme.',
+  },
+  {
+    title: 'Stari most na Moravi', year: 1958, village: 'Žabari', lat: 44.3538, lng: 21.2204,
+    contributorEmail: 'jelena@example.com',
+    story: 'Drveni most je povezivao dve obale sve dok ga poplava 1962. nije odnela. Prelazilo se peške, biciklom i po kojim zaprežnim kolima.\n\nKažu da su se mladići nedeljom skupljali baš ovde, na ogradi mosta, i dobacivali devojkama koje su išle na korzo.',
+  },
+  {
+    title: 'Osnovna škola', year: 1971, village: 'Žabari', lat: 44.3559, lng: 21.2133,
+    contributorEmail: 'milos@example.com',
+    story: 'Prvi dan škole, generacija 1971. Uniforme su bile tegljene i ispeglane, a tašne od skaja mirisale na novo.\n\nIza dece se vidi stara zgrada škole sa drvenim prozorima — danas na tom mestu stoji novo krilo, ali lipa iz dvorišta i dalje raste.',
+  },
+  {
+    title: 'Železnička stanica', year: 1952, village: 'Žabari', lat: 44.3586, lng: 21.2188,
+    contributorEmail: 'ana@example.com',
+    story: 'Uzani kolosek prolazio je kroz opštinu, a stanica je bila prozor u svet — odavde se putovalo u Požarevac na pijacu i u vojsku.\n\nSkretničar Sava mahao je crvenom zastavicom svakog jutra u 6:40. Prugu su ukinuli sedamdesetih, ali peron se još nazire.',
+  },
+  {
+    title: 'Zadružni dom', year: 1975, village: 'Oreovica', lat: 44.3551, lng: 21.2116,
+    contributorEmail: 'marko@example.com',
+    story: 'Zadružni dom bio je srce sela — tu su se održavale igranke, projekcije filmova i seoske skupštine.\n\nNa fotografiji je proslava povodom otkupa pšenice; harmonika je svirala do zore.',
+  },
+  {
+    title: 'Vašar krajem leta', year: 1962, village: 'Žabari', lat: 44.3579, lng: 21.2171,
+    contributorEmail: 'jelena@example.com',
+    story: 'Jednom godišnje vašar bi pretvorio livadu u vrtešku boja — ringišpil, šećerna vuna i grnčarija iz cele okoline.\n\nDeca su štedela dinar po dinar ceo mesec za jednu vožnju na lančanoj vrtešci.',
+  },
+  {
+    title: 'Seoska slava', year: 1968, village: 'Simićevo', lat: 44.3565, lng: 21.2192,
+    contributorEmail: 'ana@example.com',
+    story: 'Cela ulica se skupljala za slavskom trpezom postavljenom ispred kuće domaćina.\n\nKolo se vodilo nasred sokaka, a slavski kolač lomio se uz pesmu koja se čula do kraja sela.',
+  },
+];
+
 export function buildModuleContent(slug: string, catId: CategoryId): unknown {
   if (catId === 'cafe') {
     const o = CAFE_OVERRIDES[slug] ?? {};

@@ -4,7 +4,6 @@ import type { AppContext } from '../App';
 import { api } from '../lib/api';
 import { formatDate, formatDateTime } from '../lib/format';
 import type { Ad, CityEvent, Location, NewsItem } from '../types';
-import { CATEGORY_LABELS } from '../types';
 import { SELA_ZABARI } from '../lib/villages';
 import { PinGlyph } from './PinGlyph';
 import { IconStar } from './Icons';
@@ -25,20 +24,6 @@ function objekataLabel(n: number): string {
   if (mod10 === 1 && mod100 !== 11) return `${n} objekat`;
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${n} objekta`;
   return `${n} objekata`;
-}
-
-// Brendirani placeholder za znamenitosti — lokacije još nemaju fotografije,
-// pa kartica dobija "sunrise" motiv iz brand marka (sunce + brdo + reka).
-function SunriseVisual() {
-  return (
-    <svg className="hp-lm-visual" viewBox="0 0 400 170" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-      <rect width="400" height="170" fill="var(--navy)" />
-      <circle cx="200" cy="150" r="72" fill="var(--gold)" opacity="0.9" />
-      <circle cx="200" cy="150" r="100" fill="var(--gold)" opacity="0.16" />
-      <path d="M-20 170 C 90 108 160 96 200 96 C 240 96 310 108 420 170 Z" fill="var(--navy-2)" />
-      <path d="M40 152 C 120 138 280 138 360 152" fill="none" stroke="var(--paper)" strokeWidth="2" opacity="0.5" />
-    </svg>
-  );
 }
 
 // Ikonice za "Zatražite uslugu" kartice (linijski stil iz mock-a).
@@ -180,13 +165,15 @@ export function HomePage() {
   const slides = useMemo<SpotlightSlide[]>(() => {
     const out: SpotlightSlide[] = [];
     if (featuredCafe) out.push({ tag: 'Kafić nedelje', loc: featuredCafe });
-    if (spotlightLandmark) out.push({ tag: 'Posetiti', loc: spotlightLandmark });
+    if (spotlightLandmark) out.push({ tag: 'Šta posetiti', loc: spotlightLandmark });
     return out;
   }, [featuredCafe, spotlightLandmark]);
 
   // Carousel: scroll-snap + tačkice; aktivni slajd pratimo preko scroll pozicije.
   const trackRef = useRef<HTMLDivElement>(null);
   const [activeSlide, setActiveSlide] = useState(0);
+  // Desni panel uz spotlight: dva taba — predstojeći događaji i novosti o objektima.
+  const [feedTab, setFeedTab] = useState<'events' | 'news'>('events');
   function onTrackScroll() {
     const el = trackRef.current;
     if (!el || el.clientWidth === 0) return;
@@ -426,80 +413,90 @@ export function HomePage() {
 
         <div className="hp-events">
           <div className="hp-events-head">
-            <h3>
-              Predstojeći
-              <br />
-              događaji
-            </h3>
+            <div className="hp-feed-tabs" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={feedTab === 'events'}
+                className={`hp-feed-tab ${feedTab === 'events' ? 'is-active' : ''}`}
+                onClick={() => setFeedTab('events')}
+              >
+                Događaji
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={feedTab === 'news'}
+                className={`hp-feed-tab ${feedTab === 'news' ? 'is-active' : ''}`}
+                onClick={() => setFeedTab('news')}
+              >
+                Novosti
+              </button>
+            </div>
             <Link to="/desavanja" className="hp-link">
               Sva dešavanja →
             </Link>
           </div>
-          <div className="hp-events-list">
-            {upcoming === null ? (
-              <>
-                <div className="home-skeleton-card" />
-                <div className="home-skeleton-card" />
-                <div className="home-skeleton-card" />
-              </>
-            ) : upcoming.length === 0 ? (
-              <div className="hp-empty">Trenutno nema najavljenih događaja.</div>
-            ) : (
-              upcoming.map((e) => {
-                const dm = calendarBlock(e.startsAt);
-                return (
-                  <Link key={e.id} to={`/dogadjaj/${e.id}`} className="hp-event-row">
-                    <span className="hp-event-date">
-                      <span className="hp-event-day">{dm.day}</span>
-                      <span className="hp-event-month">{dm.month}</span>
-                    </span>
-                    <span className="hp-event-body">
-                      <span className="hp-event-title">{e.title}</span>
-                      <span className="hp-event-place">
-                        {formatDateTime(e.startsAt)} · {e.locationName}
+
+          {feedTab === 'events' ? (
+            <div className="hp-events-list">
+              {upcoming === null ? (
+                <>
+                  <div className="home-skeleton-card" />
+                  <div className="home-skeleton-card" />
+                  <div className="home-skeleton-card" />
+                </>
+              ) : upcoming.length === 0 ? (
+                <div className="hp-empty">Trenutno nema najavljenih događaja.</div>
+              ) : (
+                upcoming.map((e) => {
+                  const dm = calendarBlock(e.startsAt);
+                  return (
+                    <Link key={e.id} to={`/dogadjaj/${e.id}`} className="hp-event-row">
+                      <span className="hp-event-date">
+                        <span className="hp-event-day">{dm.day}</span>
+                        <span className="hp-event-month">{dm.month}</span>
+                      </span>
+                      <span className="hp-event-body">
+                        <span className="hp-event-title">{e.title}</span>
+                        <span className="hp-event-place">
+                          {formatDateTime(e.startsAt)} · {e.locationName}
+                        </span>
+                      </span>
+                    </Link>
+                  );
+                })
+              )}
+            </div>
+          ) : (
+            <div className="hp-news-list hp-news-list-compact">
+              {news === null ? (
+                <>
+                  <div className="home-skeleton-card" />
+                  <div className="home-skeleton-card" />
+                </>
+              ) : news.length === 0 ? (
+                <div className="hp-empty">Još nema objavljenih novosti.</div>
+              ) : (
+                news.map((n) => (
+                  <Link key={n.id} to={`/obavestenje/${n.slug}`} className="hp-news-row">
+                    <span className="hp-news-pill">{n.locationName}</span>
+                    <span className="hp-news-main">
+                      <span className="hp-news-title">{truncate(n.title, 90)}</span>
+                      <span className="hp-news-date">
+                        {formatDate(n.publishedAt ?? n.createdAt)}
+                        {n.village ? ` · ${n.village}` : ''}
                       </span>
                     </span>
+                    <span className="hp-news-arrow" aria-hidden="true">
+                      →
+                    </span>
                   </Link>
-                );
-              })
-            )}
-          </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
-      </section>
-
-      {/* ===== Znamenitosti ===== */}
-      <section className="hp-section">
-        <div className="hp-head">
-          <div>
-            <h2>Znamenitosti i šetnja kroz grad</h2>
-            <div className="hp-head-sub">Crkve, spomenici i mesta vredna posete u opštini Žabari</div>
-          </div>
-          <Link to="/objekti" className="hp-link" onClick={() => setActiveFilter('landmark')}>
-            Sve znamenitosti →
-          </Link>
-        </div>
-        {landmarks === null ? (
-          <div className="hp-lm-grid">
-            <div className="home-skeleton-card" />
-            <div className="home-skeleton-card" />
-            <div className="home-skeleton-card" />
-          </div>
-        ) : landmarks.length === 0 ? (
-          <div className="hp-empty">Nema znamenitosti u bazi.</div>
-        ) : (
-          <div className="hp-lm-grid">
-            {landmarks.slice(0, 3).map((lm) => (
-              <Link key={lm.id} to={`/objekat/${lm.slug}`} className="hp-lm-card">
-                <SunriseVisual />
-                <div className="hp-lm-body">
-                  <div className="hp-lm-kind">{lm.village ?? CATEGORY_LABELS.landmark}</div>
-                  <div className="hp-lm-name">{lm.name}</div>
-                  <div className="hp-lm-desc">{lm.subtitle ?? lm.address}</div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
       </section>
 
       {/* ===== Oglasi ===== */}
@@ -575,45 +572,15 @@ export function HomePage() {
             Sve prijave →
           </Link>
         </div>
-        <ProblemiWidget />
-      </section>
-
-      {/* ===== Novosti o objektima ===== */}
-      <section className="hp-section">
-        <div className="hp-head">
-          <h2>Novosti o objektima</h2>
-          <Link to="/desavanja" className="hp-link">
-            Sve novosti →
-          </Link>
+        <div className="prb-widget-duo">
+          <ProblemiWidget sort="recent" kicker="Grad na dlanu" title="Najnovije prijave građana" />
+          <ProblemiWidget
+            sort="votes"
+            kicker="Po glasovima građana"
+            title="Najpopularnije prijave"
+            showCta={false}
+          />
         </div>
-        {news === null ? (
-          <div className="hp-news-list">
-            <div className="home-skeleton-card" />
-            <div className="home-skeleton-card" />
-          </div>
-        ) : news.length === 0 ? (
-          <div className="hp-empty">
-            Još nema objavljenih novosti. Vlasnici objekata mogu da objave prvo obaveštenje.
-          </div>
-        ) : (
-          <div className="hp-news-list">
-            {news.map((n) => (
-              <Link key={n.id} to={`/obavestenje/${n.slug}`} className="hp-news-row">
-                <span className="hp-news-pill">{n.locationName}</span>
-                <span className="hp-news-main">
-                  <span className="hp-news-title">{truncate(n.title, 90)}</span>
-                  <span className="hp-news-date">
-                    {formatDate(n.publishedAt ?? n.createdAt)}
-                    {n.village ? ` · ${n.village}` : ''}
-                  </span>
-                </span>
-                <span className="hp-news-arrow" aria-hidden="true">
-                  →
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
       </section>
 
       {/* ===== Naselja ===== */}

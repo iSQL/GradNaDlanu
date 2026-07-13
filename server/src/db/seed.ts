@@ -3,8 +3,8 @@ import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { eq, and } from 'drizzle-orm';
 import * as schema from './schema.js';
-import { alumni, comments, events, locations, majstorCategories, moduleContent, news, serviceJobs, serviceOffers, users, villages } from './schema.js';
-import { ALUMNI, CATEGORIES, COMMENTS, EVENTS, LOCATIONS, MAJSTORI, MAJSTOR_REVIEWS, NEWS, USERS, VILLAGES, buildModuleContent } from './seed-data.js';
+import { alumni, biseri, comments, events, locations, majstorCategories, moduleContent, news, serviceJobs, serviceOffers, users, villages } from './schema.js';
+import { ALUMNI, BISERI, CATEGORIES, COMMENTS, EVENTS, LOCATIONS, MAJSTORI, MAJSTOR_REVIEWS, NEWS, USERS, VILLAGES, buildModuleContent } from './seed-data.js';
 import { env } from '../env.js';
 
 export interface SeedResult {
@@ -19,6 +19,7 @@ export interface SeedResult {
   commentCount: number;
   alumniCount: number;
   villageCount: number;
+  biserCount: number;
   adminInserted: boolean;
   adminEmail: string;
 }
@@ -368,6 +369,31 @@ export async function runSeed(): Promise<SeedResult> {
       if (row) villageCount++;
     }
 
+    // Demo "Zaboravljeni biseri" — objavljene priče bez fotografija (UI ima
+    // placeholder). Idempotentno na (title, year) — nema unique constrainta,
+    // pa se postojanje proverava ručno.
+    let biserCount = 0;
+    for (const b of BISERI) {
+      const [existing] = await db
+        .select({ id: biseri.id })
+        .from(biseri)
+        .where(and(eq(biseri.title, b.title), eq(biseri.year, b.year)))
+        .limit(1);
+      if (existing) continue;
+      await db.insert(biseri).values({
+        userId: userIdByEmail.get(b.contributorEmail) ?? null,
+        title: b.title,
+        year: b.year,
+        village: b.village,
+        story: b.story,
+        lat: b.lat,
+        lng: b.lng,
+        status: 'published',
+        decidedAt: new Date(),
+      });
+      biserCount++;
+    }
+
     return {
       categoryCount: CATEGORIES.length,
       locationCount: locCount,
@@ -380,6 +406,7 @@ export async function runSeed(): Promise<SeedResult> {
       commentCount,
       alumniCount,
       villageCount,
+      biserCount,
       adminInserted: insertedUser.length > 0,
       adminEmail,
     };
@@ -395,7 +422,7 @@ if (isCli) {
   runSeed()
     .then((r) => {
       console.log(
-        `Seeded ${r.categoryCount} categories, ${r.locationCount} locations, ${r.moduleContentCount} module_content rows, ${r.eventCount} events, ${r.newsCount} news, ${r.userCount} demo users, ${r.majstorCount} demo majstora, ${r.majstorReviewCount} majstor reviews, ${r.commentCount} comments, ${r.alumniCount} alumni, ${r.villageCount} villages, ${r.adminInserted ? 1 : 0} admin user (email: ${r.adminEmail}).`,
+        `Seeded ${r.categoryCount} categories, ${r.locationCount} locations, ${r.moduleContentCount} module_content rows, ${r.eventCount} events, ${r.newsCount} news, ${r.userCount} demo users, ${r.majstorCount} demo majstora, ${r.majstorReviewCount} majstor reviews, ${r.commentCount} comments, ${r.alumniCount} alumni, ${r.villageCount} villages, ${r.biserCount} biseri, ${r.adminInserted ? 1 : 0} admin user (email: ${r.adminEmail}).`,
       );
       process.exit(0);
     })
