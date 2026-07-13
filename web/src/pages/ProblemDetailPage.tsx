@@ -176,13 +176,16 @@ export function ProblemDetailPage() {
                 className={`prb-vote-btn prb-vote-wide ${problem.voted ? 'is-voted' : ''}`}
                 onClick={vote}
               >
-                <svg width="17" height="17" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                  <path d="M3 9l4-4 4 4" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span className="prb-vote-wide-text">
+                <span className="prb-vote-tally">
                   <span className="prb-vote-count">{problem.votes}</span>
-                  <span className="prb-vote-label">
-                    {problem.voted ? 'glasali ste' : 'podržite prioritet'}
+                  <span className="prb-vote-unit">glasova</span>
+                </span>
+                <span className="prb-vote-action">
+                  <svg className="prb-vote-arrow" width="18" height="18" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                    <path d="M3 9l4-4 4 4" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span className="prb-vote-msg">
+                    {problem.voted ? 'Glasali ste' : 'Povećajte prioritet'}
                   </span>
                 </span>
               </button>

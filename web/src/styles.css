@@ -6919,10 +6919,44 @@ button { font-family: inherit; }
   border-radius: var(--radius);
   padding: 20px;
 }
-.prb-vote-wide { flex-direction: row; width: 100%; gap: 12px; padding: 14px 16px; border-radius: 10px; }
-.prb-vote-wide-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
-.prb-vote-wide .prb-vote-count { font-size: 22px; }
-.prb-vote-wide .prb-vote-label { font-size: 11px; letter-spacing: 0.06em; text-transform: none; opacity: 0.85; }
+/* Široki glasački element u bočnom panelu: dve kolone razdvojene linijom —
+   broj glasova levo (statistika), strelica + poruka desno (akcija). Ceo blok
+   je i dalje jedno dugme; overflow:hidden da unutrašnja linija poštuje radijus. */
+.prb-vote-wide {
+  flex-direction: row;
+  align-items: stretch;
+  width: 100%;
+  gap: 0;
+  padding: 0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.prb-vote-tally {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex-shrink: 0;
+  min-width: 88px;
+  padding: 14px 10px;
+  border-right: 1px solid rgba(29, 53, 87, 0.18);
+}
+.prb-vote-wide.is-voted .prb-vote-tally { border-right-color: rgba(245, 235, 224, 0.28); }
+.prb-vote-tally .prb-vote-count { font-size: 26px; line-height: 1; }
+.prb-vote-unit { font-size: 9px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.8; }
+.prb-vote-action {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 12px;
+  text-align: center;
+}
+.prb-vote-arrow { display: block; }
+.prb-vote-msg { font-size: 12.5px; letter-spacing: 0.02em; line-height: 1.25; }
 .prb-aside-divider { height: 1px; background: var(--line-2); margin: 16px 0; }
 .prb-aside-status-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
 .prb-aside-facts { display: grid; grid-template-columns: auto 1fr; gap: 12px 14px; font-size: 13px; margin: 0; padding-top: 6px; }
@@ -7025,5 +7059,5 @@ button { font-family: inherit; }
 @media (max-width: 760px) {
   .prb-card { flex-wrap: wrap; }
   .prb-card-side { flex-direction: row; align-items: center; width: 100%; justify-content: space-between; }
-  .prb-detail-aside { position: static; max-width: none; }
+  .prb-detail-aside { position: static; max-width: none; flex-basis: 100%; }
 }
