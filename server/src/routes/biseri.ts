@@ -176,9 +176,9 @@ export async function biseriRoutes(app: FastifyInstance) {
     if (!row) return reply.code(404).send({ error: 'Not found' });
 
     const moderator = await canModerate(user, row.village);
-    if (row.status !== 'published') {
-      const isContributor = user !== null && row.userId !== null && row.userId === user.sub;
-      if (!isContributor && !moderator) return reply.code(404).send({ error: 'Not found' });
+    const isContributor = user !== null && row.userId !== null && row.userId === user.sub;
+    if (row.status !== 'published' && !isContributor && !moderator) {
+      return reply.code(404).send({ error: 'Not found' });
     }
 
     const commentRows = await db
@@ -198,6 +198,8 @@ export async function biseriRoutes(app: FastifyInstance) {
     return {
       ...pub,
       canModerate: moderator,
+      // Naknadno dodavanje "Danas" fotke: autor ili moderator (admin/kustos sela).
+      canEdit: isContributor || moderator,
       comments: commentRows.map((c) => ({
         id: c.id,
         body: c.body,
@@ -321,24 +323,63 @@ export async function biseriRoutes(app: FastifyInstance) {
     },
   );
 
-  // Moderacija: odobri / odbij / vrati na čekanje — admin ili kustos sela.
-  app.patch<{ Params: { id: string }; Body: { status?: unknown } }>(
+  // Dve nezavisne PATCH operacije: moderacija statusa (admin/kustos sela) i
+  // naknadno dodavanje/uklanjanje "Danas" fotke (autor ili moderator) — telo
+  // nosi ILI `status` ILI `nowPhotoMediaId`, ne oba odjednom.
+  app.patch<{ Params: { id: string }; Body: { status?: unknown; nowPhotoMediaId?: unknown } }>(
     '/api/biseri/:id',
     { preHandler: requireAuth },
     async (req, reply) => {
       const id = Number(req.params.id);
       if (!Number.isInteger(id)) return reply.code(400).send({ error: 'Invalid id' });
-      const status = req.body?.status;
-      if (status !== 'published' && status !== 'rejected' && status !== 'pending') {
-        return reply.code(400).send({ error: 'status must be "published", "rejected" or "pending"' });
-      }
       const [b] = await db
-        .select({ id: biseri.id, village: biseri.village })
+        .select({
+          id: biseri.id,
+          userId: biseri.userId,
+          village: biseri.village,
+          photoMediaId: biseri.photoMediaId,
+        })
         .from(biseri)
         .where(eq(biseri.id, id))
         .limit(1);
       if (!b) return reply.code(404).send({ error: 'Not found' });
 
+      // Naknadni "Danas" snimak — autor ili moderator; null uklanja fotku
+      // (media red posle čisti gcOrphanMedia).
+      if ('nowPhotoMediaId' in (req.body ?? {})) {
+        const isContributor = b.userId !== null && b.userId === req.user.sub;
+        if (!isContributor && !(await canModerate(req.user, b.village))) {
+          return reply.code(403).send({ error: 'Forbidden' });
+        }
+        let nowPhotoMediaId: number | null = null;
+        if (req.body?.nowPhotoMediaId !== null) {
+          nowPhotoMediaId = Number(req.body?.nowPhotoMediaId);
+          if (!Number.isInteger(nowPhotoMediaId) || nowPhotoMediaId < 1) {
+            return reply.code(400).send({ error: 'Neispravna današnja fotografija.' });
+          }
+          if (nowPhotoMediaId === b.photoMediaId) {
+            return reply.code(400).send({ error: 'Nekad i danas ne mogu biti ista fotografija.' });
+          }
+          const photoErr = await checkPhoto(nowPhotoMediaId, req.user.sub);
+          if (photoErr) return reply.code(400).send({ error: photoErr });
+        }
+        const [row] = await db
+          .update(biseri)
+          .set({ nowPhotoMediaId, updatedAt: new Date() })
+          .where(eq(biseri.id, id))
+          .returning({ id: biseri.id, nowPhotoMediaId: biseri.nowPhotoMediaId });
+        req.log.info(
+          { biserId: id, nowPhotoMediaId, by: req.user.sub },
+          'biser now-photo updated',
+        );
+        return row;
+      }
+
+      // Moderacija: odobri / odbij / vrati na čekanje — admin ili kustos sela.
+      const status = req.body?.status;
+      if (status !== 'published' && status !== 'rejected' && status !== 'pending') {
+        return reply.code(400).send({ error: 'status must be "published", "rejected" or "pending"' });
+      }
       if (!(await canModerate(req.user, b.village))) {
         return reply.code(403).send({ error: 'Forbidden' });
       }

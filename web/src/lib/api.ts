@@ -729,6 +729,12 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ body }),
     }),
+  // Naknadno dodavanje/uklanjanje "Danas" fotke — autor ili moderator; null uklanja.
+  setBiserNowPhoto: (id: number, nowPhotoMediaId: number | null) =>
+    request<{ id: number; nowPhotoMediaId: number | null }>(`/api/biseri/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ nowPhotoMediaId }),
+    }),
   pendingBiseri: () => request<Biser[]>('/api/biseri/pending'),
   moderateBiser: (id: number, status: 'published' | 'rejected' | 'pending') =>
     request<{ id: number; status: string }>(`/api/biseri/${id}`, {

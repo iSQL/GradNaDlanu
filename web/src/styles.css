@@ -7592,3 +7592,25 @@ button { font-family: inherit; }
   .biseri-add-photos { grid-template-columns: 1fr; }
   .biseri-pending-row { flex-wrap: wrap; }
 }
+
+/* Naknadno dodavanje "Danas" snimka (autor / moderator) */
+.biseri-now-edit {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(11, 27, 43, 0.72);
+  color: var(--paper);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.biseri-now-edit:hover { background: var(--navy); }
+.biseri-now-edit:disabled { opacity: 0.6; cursor: default; }

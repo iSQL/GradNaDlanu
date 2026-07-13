@@ -300,6 +300,8 @@ function BiserDetailModal({
   const [thenNow, setThenNow] = useState<'then' | 'now'>('then');
   const [comment, setComment] = useState('');
   const [sending, setSending] = useState(false);
+  const [nowBusy, setNowBusy] = useState(false);
+  const nowFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setBiser(null);
@@ -334,6 +336,46 @@ function BiserDetailModal({
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setSending(false);
+    }
+  };
+
+  // Naknadni "Danas" snimak — dozvoljeno autoru i moderatoru (canEdit sa servera).
+  const onPickNowPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !biser) return;
+    if (file.size > MAX_PHOTO_BYTES) {
+      setError('Slika je veća od 5 MB.');
+      return;
+    }
+    setError(null);
+    setNowBusy(true);
+    try {
+      const up = await api.uploadBiserPhoto(file);
+      await api.setBiserNowPhoto(biser.id, up.id);
+      setBiser({ ...biser, nowPhotoMediaId: up.id });
+      setThenNow('now');
+      onChanged();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setNowBusy(false);
+    }
+  };
+
+  const removeNowPhoto = async () => {
+    if (!biser) return;
+    setError(null);
+    setNowBusy(true);
+    try {
+      await api.setBiserNowPhoto(biser.id, null);
+      setBiser({ ...biser, nowPhotoMediaId: null });
+      setThenNow('then');
+      onChanged();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setNowBusy(false);
     }
   };
 
@@ -381,6 +423,36 @@ function BiserDetailModal({
                     Danas
                   </button>
                 </div>
+              )}
+              {biser.canEdit && (
+                <>
+                  <input
+                    ref={nowFileRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={onPickNowPhoto}
+                    style={{ display: 'none' }}
+                  />
+                  {!hasNow ? (
+                    <button
+                      className="biseri-now-edit"
+                      disabled={nowBusy}
+                      onClick={() => nowFileRef.current?.click()}
+                      title="Dodajte fotografiju istog kadra iz današnjeg vremena"
+                    >
+                      <IconCamera /> {nowBusy ? 'Otpremanje…' : 'Dodaj današnji snimak'}
+                    </button>
+                  ) : (
+                    <button
+                      className="biseri-now-edit"
+                      disabled={nowBusy}
+                      onClick={removeNowPhoto}
+                      title="Ukloni današnji snimak"
+                    >
+                      {nowBusy ? 'Uklanjanje…' : 'Ukloni današnji'}
+                    </button>
+                  )}
+                </>
               )}
             </div>
             <div className="biseri-detail-body">

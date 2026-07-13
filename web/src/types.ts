@@ -540,6 +540,8 @@ export interface BiserCommentItem {
 export interface BiserDetail extends Biser {
   // Sme li trenutni korisnik da odobri/odbije (admin / kustos sela).
   canModerate: boolean;
+  // Sme li da naknadno doda/ukloni "Danas" fotku (autor ili moderator).
+  canEdit: boolean;
   comments: BiserCommentItem[];
 }
 
