@@ -383,6 +383,47 @@ const statements = [
      CHECK (rating_stars IS NULL OR rating_stars BETWEEN 1 AND 5)`,
   // Badge sidro za vlasnike: novi komentari na objektima u vlasništvu.
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS owner_comments_seen_at TIMESTAMP NOT NULL DEFAULT NOW()`,
+  // --- Prijava komunalnih problema ("Problemi") ---
+  // Anonimni upload fotografije prijave nema vlasnika — owner_user_id postaje
+  // nullable. Postojeći redovi zadržavaju vlasnika; pristup anonimnim fotkama
+  // se kontroliše preko referencirajućeg problems reda (vidi media.ts).
+  `ALTER TABLE media ALTER COLUMN owner_user_id DROP NOT NULL`,
+  // cat_id / village bez FK-a — app-layer validacija (lib/problemi.ts /
+  // lib/villages.ts), isti obrazac kao locations.village i service_jobs.category_id.
+  `CREATE TABLE IF NOT EXISTS problems (
+    id              SERIAL PRIMARY KEY,
+    user_id         INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    cat_id          TEXT NOT NULL,
+    title           TEXT NOT NULL,
+    description     TEXT NOT NULL,
+    village         TEXT NOT NULL,
+    address         TEXT,
+    lat             DOUBLE PRECISION NOT NULL,
+    lng             DOUBLE PRECISION NOT NULL,
+    photo_media_id  INTEGER REFERENCES media(id) ON DELETE SET NULL,
+    status          TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','solved')),
+    solved_at       TIMESTAMP,
+    solved_by       INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS problems_status_created_idx ON problems(status, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS problems_cat_status_idx ON problems(cat_id, status)`,
+  `CREATE INDEX IF NOT EXISTS problems_village_idx ON problems(village)`,
+  `CREATE TABLE IF NOT EXISTS problem_votes (
+    problem_id  INTEGER NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at  TIMESTAMP NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (problem_id, user_id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS problem_comments (
+    id          SERIAL PRIMARY KEY,
+    problem_id  INTEGER NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    body        TEXT NOT NULL,
+    created_at  TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS problem_comments_problem_idx ON problem_comments(problem_id, created_at)`,
 ];
 
 // Reusable migration function — opens its own short-lived connection so callers

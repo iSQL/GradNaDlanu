@@ -454,6 +454,57 @@ export const AD_CATEGORY_LABELS: Record<AdCategory, string> = {
   ostalo: 'Ostalo',
 };
 
+// --- Prijava komunalnih problema ("Problemi") ---
+
+export type ProblemStatus = 'open' | 'solved';
+
+export interface Problem {
+  id: number;
+  catId: string;
+  title: string;
+  description: string;
+  village: string;
+  address: string | null;
+  lat: number;
+  lng: number;
+  photoMediaId: number | null;
+  status: ProblemStatus;
+  solvedAt: string | null;
+  createdAt: string;
+  // Display ime ulogovanog prijavioca; null = anonimna prijava.
+  reporterName: string | null;
+  votes: number;
+  commentCount: number;
+  // Da li je trenutni (ulogovani) korisnik glasao — false za anonimne.
+  voted: boolean;
+}
+
+export interface ProblemCommentItem {
+  id: number;
+  body: string;
+  createdAt: string;
+  author: CommentAuthor;
+  // Komentar u ime opštine (autor je admin ili kustos).
+  official: boolean;
+}
+
+export interface ProblemDetail extends Problem {
+  // Sme li trenutni korisnik da menja status (admin / kustos sela / prijavilac).
+  canResolve: boolean;
+  comments: ProblemCommentItem[];
+}
+
+export interface ProblemInput {
+  catId: string;
+  title: string;
+  description: string;
+  village: string;
+  address?: string | null;
+  lat: number;
+  lng: number;
+  photoMediaId?: number | null;
+}
+
 // --- In-site messaging (poruke) ---
 
 export interface ConversationSummary {

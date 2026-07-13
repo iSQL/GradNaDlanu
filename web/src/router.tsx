@@ -26,6 +26,9 @@ import { NaseljaPage } from './pages/NaseljaPage';
 import { CuratorDashboard } from './pages/CuratorDashboard';
 import { CuratorLocationEdit } from './pages/CuratorLocationEdit';
 import { UslugePage } from './pages/UslugePage';
+import { ProblemiPage } from './pages/ProblemiPage';
+import { PrijaviProblemPage } from './pages/PrijaviProblemPage';
+import { ProblemDetailPage } from './pages/ProblemDetailPage';
 import { MajstoriPage } from './pages/MajstoriPage';
 import { MajstorDashboard } from './pages/MajstorDashboard';
 
@@ -42,6 +45,11 @@ export const router = createBrowserRouter([
       { path: 'oglasi/:id', element: <OglasDetailPage /> },
       { path: 'usluge', element: <UslugePage /> },
       { path: 'majstori', element: <MajstoriPage /> },
+      { path: 'problemi', element: <ProblemiPage view="list" /> },
+      { path: 'problemi/mapa', element: <ProblemiPage view="map" /> },
+      { path: 'problemi/arhiva', element: <ProblemiPage view="archive" /> },
+      { path: 'problemi/prijava', element: <PrijaviProblemPage /> },
+      { path: 'problemi/:id', element: <ProblemDetailPage /> },
       { path: 'desavanja', element: <DesavanjaPage /> },
       { path: 'obavestenje/:slug', element: <NewsDetailPage /> },
       { path: 'dogadjaj/:id', element: <EventDetailPage /> },

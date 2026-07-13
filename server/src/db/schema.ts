@@ -164,9 +164,9 @@ export const reservations = pgTable('reservations', {
 
 export const media = pgTable('media', {
   id: serial('id').primaryKey(),
-  ownerUserId: integer('owner_user_id')
-    .references(() => users.id, { onDelete: 'cascade' })
-    .notNull(),
+  // NULL za anonimne upload-e (prijava problema bez naloga) — pristup se tada
+  // kontroliše isključivo preko referencirajućeg reda (problems.photo_media_id).
+  ownerUserId: integer('owner_user_id').references(() => users.id, { onDelete: 'cascade' }),
   mimeType: text('mime_type').notNull(),
   sizeBytes: integer('size_bytes').notNull(),
   kind: text('kind').notNull(),
@@ -392,6 +392,62 @@ export const serviceOffers = pgTable(
   (t) => ({ uq: unique('service_offers_job_majstor_uq').on(t.jobId, t.majstorUserId) }),
 );
 
+// Prijava komunalnih problema ("Problemi") — rupa na putu, palo drvo, divlja
+// deponija… Prijava je ANONIMNA (userId NULL kada prijavljuje neulogovani
+// posetilac; SET NULL i kad se nalog obriše). catId se validira na app sloju
+// protiv PROBLEM_CATEGORIES (lib/problemi.ts, mirror u web/src/lib/problemi.ts),
+// village protiv SELA_ZABARI — kao i drugde, bez FK/CHECK u bazi.
+export const problems = pgTable('problems', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  catId: text('cat_id').notNull(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  village: text('village').notNull(),
+  address: text('address'),
+  lat: doublePrecision('lat').notNull(),
+  lng: doublePrecision('lng').notNull(),
+  photoMediaId: integer('photo_media_id').references(() => media.id, { onDelete: 'set null' }),
+  status: text('status', { enum: ['open', 'solved'] })
+    .default('open')
+    .notNull(),
+  // Rešavanje: admin, kustos sela problema, ili (ulogovani) prijavilac.
+  solvedAt: timestamp('solved_at'),
+  solvedBy: integer('solved_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Glasovi građana ("prioritizacija") — samo ulogovani, jedan glas po problemu,
+// ponovni klik ga povlači (toggle).
+export const problemVotes = pgTable(
+  'problem_votes',
+  {
+    problemId: integer('problem_id')
+      .references(() => problems.id, { onDelete: 'cascade' })
+      .notNull(),
+    userId: integer('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.problemId, t.userId] }) }),
+);
+
+// Komentari na prijave — samo ulogovani, ravna lista (bez replies/rating kao kod
+// objekata). "Opština" bedž se izvodi iz uloge autora (admin/curator) pri čitanju.
+export const problemComments = pgTable('problem_comments', {
+  id: serial('id').primaryKey(),
+  problemId: integer('problem_id')
+    .references(() => problems.id, { onDelete: 'cascade' })
+    .notNull(),
+  userId: integer('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  body: text('body').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Oglasna tabla — korisnik-postavljeni oglasi. Efemerni: traju 7 dana od
 // poslednjeg `last_refreshed_at`, koji se osvežava kad vlasnik poseti sajt
 // (vidi lib/oglasi-activity.ts). Posle 7 dana neaktivnosti sweep (lib/oglasi-
@@ -492,6 +548,10 @@ export type News = typeof news.$inferSelect;
 export type NewsStatus = News['status'];
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 export type Alumnus = typeof alumni.$inferSelect;
+export type Problem = typeof problems.$inferSelect;
+export type ProblemStatus = Problem['status'];
+export type ProblemVote = typeof problemVotes.$inferSelect;
+export type ProblemComment = typeof problemComments.$inferSelect;
 export type Ad = typeof ads.$inferSelect;
 export type AdStatus = Ad['status'];
 export type AdCategory = Ad['category'];

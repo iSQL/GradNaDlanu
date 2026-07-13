@@ -31,6 +31,10 @@ import type {
   OwnerNewsItem,
   OwnerReservation,
   OwnerServiceRequest,
+  Problem,
+  ProblemCommentItem,
+  ProblemDetail,
+  ProblemInput,
   RecentComment,
   ReservationPayload,
   ServiceRequestQuote,
@@ -654,6 +658,45 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ permanent }),
     }),
+
+  // Prijava komunalnih problema ("Problemi")
+  listProblemi: (
+    params: { cat?: string; status?: 'open' | 'solved'; village?: string; sort?: 'votes' | 'recent'; limit?: number; offset?: number } = {},
+  ) => {
+    const qs = new URLSearchParams();
+    if (params.cat) qs.set('cat', params.cat);
+    if (params.status) qs.set('status', params.status);
+    if (params.village) qs.set('village', params.village);
+    if (params.sort) qs.set('sort', params.sort);
+    if (params.limit !== undefined) qs.set('limit', String(params.limit));
+    if (params.offset !== undefined) qs.set('offset', String(params.offset));
+    const s = qs.toString();
+    return request<Problem[]>(`/api/problemi${s ? `?${s}` : ''}`);
+  },
+  getProblem: (id: number) => request<ProblemDetail>(`/api/problemi/${id}`),
+  createProblem: (body: ProblemInput) =>
+    request<{ id: number }>('/api/problemi', { method: 'POST', body: JSON.stringify(body) }),
+  // Anonimno dozvoljen upload — poseban endpoint sa IP rate limitom, kind je
+  // fiksiran server-side na 'problem_photo'.
+  uploadProblemPhoto: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file, file.name);
+    return uploadRequest<{ id: number }>('/api/uploads/problem', fd);
+  },
+  voteProblem: (id: number) =>
+    request<{ voted: boolean; votes: number }>(`/api/problemi/${id}/vote`, { method: 'POST' }),
+  commentProblem: (id: number, body: string) =>
+    request<ProblemCommentItem>(`/api/problemi/${id}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
+    }),
+  setProblemStatus: (id: number, status: 'solved' | 'open') =>
+    request<{ id: number; status: 'open' | 'solved'; solvedAt: string | null }>(
+      `/api/problemi/${id}`,
+      { method: 'PATCH', body: JSON.stringify({ status }) },
+    ),
+  adminDeleteProblem: (id: number) =>
+    request<{ ok: true }>(`/api/problemi/${id}`, { method: 'DELETE' }),
 
   // Poruke (conversations / messages)
   myConversations: () => request<ConversationSummary[]>('/api/me/conversations'),

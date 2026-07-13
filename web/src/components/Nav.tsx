@@ -50,6 +50,16 @@ const MENU: MenuItem[] = [
       { to: '/majstori', label: 'Majstori' },
     ],
   },
+  {
+    to: '/problemi',
+    label: 'Problemi',
+    submenu: [
+      { to: '/problemi/prijava', label: 'Prijavi problem' },
+      { to: '/problemi', label: 'Prijavljeni problemi', end: true },
+      { to: '/problemi/mapa', label: 'Mapa problema' },
+      { to: '/problemi/arhiva', label: 'Arhiva rešenih' },
+    ],
+  },
   { to: '/desavanja', label: 'Dešavanja' },
   { to: '/naselja', label: 'Naselja' },
 ];

@@ -9,6 +9,7 @@ import { SELA_ZABARI } from '../lib/villages';
 import { PinGlyph } from './PinGlyph';
 import { IconStar } from './Icons';
 import { AdCard } from './AdCard';
+import { ProblemiWidget } from './ProblemiWidget';
 
 const MONTHS_SHORT = ['JAN', 'FEB', 'MAR', 'APR', 'MAJ', 'JUN', 'JUL', 'AVG', 'SEP', 'OKT', 'NOV', 'DEC'];
 
@@ -559,6 +560,22 @@ export function HomePage() {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* ===== Prijave problema ===== */}
+      <section className="hp-section">
+        <div className="hp-head">
+          <div>
+            <h2>Problemi u opštini</h2>
+            <div className="hp-head-sub">
+              Rupa na putu, palo drvo, divlja deponija? Prijavite — opština i kustosi prate prijave.
+            </div>
+          </div>
+          <Link to="/problemi" className="hp-link">
+            Sve prijave →
+          </Link>
+        </div>
+        <ProblemiWidget />
       </section>
 
       {/* ===== Novosti o objektima ===== */}
