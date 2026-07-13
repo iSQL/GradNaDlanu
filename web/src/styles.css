@@ -7362,8 +7362,11 @@ button { font-family: inherit; }
 .biseri-detail {
   width: 100%;
   max-width: 920px;
-  max-height: 88vh;
-  overflow: auto;
+  /* FIKSNA visina (ne max-): da modal ne raste sa sadržajem, leva fotografija
+     zadržava iste proporcije, a desna kolona interno skroluje čim priča +
+     komentari preteknu. */
+  height: min(620px, 88vh);
+  overflow: hidden;
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -7403,7 +7406,13 @@ button { font-family: inherit; }
   color: rgba(245, 235, 224, 0.85);
 }
 .biseri-thennow-btn.is-active { background: var(--paper); color: var(--navy); }
-.biseri-detail-body { padding: 26px 28px 28px; display: flex; flex-direction: column; }
+.biseri-detail-body {
+  padding: 26px 28px 28px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  min-height: 0;
+}
 .biseri-detail-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .biseri-detail-kicker {
   font-size: 10px;
@@ -7587,8 +7596,11 @@ button { font-family: inherit; }
 @media (max-width: 760px) {
   .biseri-title { font-size: 34px; }
   .biseri-add-btn { margin-left: 0; width: 100%; }
-  .biseri-detail { grid-template-columns: 1fr; max-height: 92vh; }
-  .biseri-detail-photo { min-height: 260px; }
+  /* Mobil (jedna kolona): fotografija fiksnih 260px na vrhu, telo skroluje
+     u ostatku visine — isti princip kao dvokolonski desktop. */
+  .biseri-detail { grid-template-columns: 1fr; grid-template-rows: 260px minmax(0, 1fr); height: min(680px, 92vh); }
+  .biseri-detail-photo { min-height: 0; }
+  .biseri-detail-body { max-height: none; min-height: 0; }
   .biseri-add-photos { grid-template-columns: 1fr; }
   .biseri-pending-row { flex-wrap: wrap; }
 }

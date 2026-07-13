@@ -60,6 +60,17 @@ function IconHeart({ size = 14, filled = false }: { size?: number; filled?: bool
   );
 }
 
+// ESC zatvara modal — zajednički hook za detalj i formu.
+function useEscClose(onClose: () => void) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+}
+
 function IconLink({ size = 13 }: { size?: number }) {
   return (
     <svg
@@ -339,6 +350,7 @@ function BiserDetailModal({
   const [nowBusy, setNowBusy] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const nowFileRef = useRef<HTMLInputElement>(null);
+  useEscClose(onClose);
 
   // Deep-link ka ovoj priči — isti URL koji stranica čita iz ?biser=<id>.
   // Clipboard API postoji samo u secure context-u (HTTPS / localhost); preko
@@ -637,6 +649,7 @@ function AddBiserModal({
   const [submitting, setSubmitting] = useState(false);
   const photoRef = useRef<HTMLInputElement>(null);
   const nowRef = useRef<HTMLInputElement>(null);
+  useEscClose(onClose);
 
   useEffect(() => {
     return () => {
