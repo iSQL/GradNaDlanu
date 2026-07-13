@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { api, mediaUrl } from '../lib/api';
 import { SELA_ZABARI } from '../lib/villages';
@@ -60,6 +60,25 @@ function IconHeart({ size = 14, filled = false }: { size?: number; filled?: bool
   );
 }
 
+function IconLink({ size = 13 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+  );
+}
+
 function IconComment({ size = 14 }: { size?: number }) {
   return (
     <svg
@@ -85,9 +104,26 @@ export function BiseriPage() {
   const [biseri, setBiseri] = useState<Biser[] | null>(null);
   const [decade, setDecade] = useState<string>('all');
   const [village, setVillage] = useState<string>('');
-  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  // Deep-link: otvoreni biser živi u URL-u (?biser=<id>) umesto u state-u, pa
+  // link iz popup-a ("Kopiraj link"), sa početne ili nalepljen u chat otvara
+  // istu priču. Zatvaranje modala briše parametar (replace — bez istorije).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawBiser = Number(searchParams.get('biser'));
+  const selectedId = Number.isInteger(rawBiser) && rawBiser > 0 ? rawBiser : null;
+  const setSelectedId = (id: number | null) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (id === null) next.delete('biser');
+        else next.set('biser', String(id));
+        return next;
+      },
+      { replace: true },
+    );
+  };
 
   const reload = async () => {
     try {
@@ -301,7 +337,45 @@ function BiserDetailModal({
   const [comment, setComment] = useState('');
   const [sending, setSending] = useState(false);
   const [nowBusy, setNowBusy] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const nowFileRef = useRef<HTMLInputElement>(null);
+
+  // Deep-link ka ovoj priči — isti URL koji stranica čita iz ?biser=<id>.
+  // Clipboard API postoji samo u secure context-u (HTTPS / localhost); preko
+  // LAN adrese (http://192.168…) je undefined, pa tada kopiramo starim putem:
+  // skriveni textarea + execCommand('copy') — radi svuda, bez prompta.
+  const copyLink = async () => {
+    const url = `${window.location.origin}/biseri?biser=${id}`;
+    let ok = false;
+    if (navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(url);
+        ok = true;
+      } catch {
+        // npr. odbijena permisija — probaj legacy put ispod
+      }
+    }
+    if (!ok) {
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        ok = document.execCommand('copy');
+      } finally {
+        ta.remove();
+      }
+    }
+    if (ok) {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } else {
+      // Poslednja linija odbrane — ništa od kopiranja, pokaži URL ručno.
+      window.prompt('Kopirajte link:', url);
+    }
+  };
 
   useEffect(() => {
     setBiser(null);
@@ -460,9 +534,18 @@ function BiserDetailModal({
                 <span className="biseri-detail-kicker">
                   {decadeLabel(decadeOf(biser.year))} · {biser.village}
                 </span>
-                <button className="biseri-close" onClick={onClose} aria-label="Zatvori">
-                  ×
-                </button>
+                <div className="biseri-detail-tools">
+                  <button
+                    className={`biseri-copylink ${linkCopied ? 'is-copied' : ''}`}
+                    onClick={copyLink}
+                    title="Kopiraj link ka ovoj priči"
+                  >
+                    <IconLink /> {linkCopied ? 'Kopirano ✓' : 'Kopiraj link'}
+                  </button>
+                  <button className="biseri-close" onClick={onClose} aria-label="Zatvori">
+                    ×
+                  </button>
+                </div>
               </div>
               <h2 className="biseri-detail-title">{biser.title}</h2>
               <div className="biseri-detail-year">{biser.year}. godina</div>

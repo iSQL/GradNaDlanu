@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import type { AppContext } from '../App';
-import { api } from '../lib/api';
+import { api, mediaUrl } from '../lib/api';
+import { biserThumbGradient } from '../lib/biseri';
 import { formatDate, formatDateTime } from '../lib/format';
-import type { Ad, CityEvent, Location, NewsItem } from '../types';
+import type { Ad, Biser, CityEvent, Location, NewsItem } from '../types';
 import { SELA_ZABARI } from '../lib/villages';
 import { PinGlyph } from './PinGlyph';
 import { IconStar } from './Icons';
@@ -90,10 +91,11 @@ function truncate(s: string, max: number): string {
   return s.slice(0, max).trimEnd() + '…';
 }
 
-interface SpotlightSlide {
-  tag: string;
-  loc: Location;
-}
+// Slajd je ili izdvojeni objekat (kafić / znamenitost) ili "Biser dana" —
+// dnevna preporuka iz mape sećanja (/biseri).
+type SpotlightSlide =
+  | { kind: 'loc'; tag: string; loc: Location }
+  | { kind: 'biser'; tag: string; biser: Biser };
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -132,6 +134,7 @@ export function HomePage() {
   const [landmarks, setLandmarks] = useState<Location[] | null>(null);
   const [upcoming, setUpcoming] = useState<CityEvent[] | null>(null);
   const [ads, setAds] = useState<Ad[] | null>(null);
+  const [biseri, setBiseri] = useState<Biser[] | null>(null);
   const [heroQuery, setHeroQuery] = useState('');
 
   useEffect(() => {
@@ -142,13 +145,15 @@ export function HomePage() {
       api.listLocations({ cat: 'landmark', limit: 10 }).catch(() => [] as Location[]),
       api.listEvents({ limit: 3 }).catch(() => [] as CityEvent[]),
       api.listOglasi({ limit: 4 }).catch(() => [] as Ad[]),
-    ]).then(([n, cafes, lms, evs, ad]) => {
+      api.listBiseri().catch(() => [] as Biser[]),
+    ]).then(([n, cafes, lms, evs, ad, bis]) => {
       if (cancelled) return;
       setNews(n);
       setFeaturedCafe(cafes[0] ?? null);
       setLandmarks(lms);
       setUpcoming(evs);
       setAds(ad);
+      setBiseri(bis);
     });
     return () => {
       cancelled = true;
@@ -162,12 +167,21 @@ export function HomePage() {
     return landmarks[Math.floor(Math.random() * landmarks.length)];
   }, [landmarks?.length]);
 
+  // "Biser dana" — deterministički po danu (indeks iz broja dana od epohe), pa
+  // svi posetioci istog dana vide istu priču, a sutradan se menja sama.
+  const biserOfDay = useMemo<Biser | null>(() => {
+    if (!biseri || biseri.length === 0) return null;
+    const dayIndex = Math.floor(Date.now() / 86_400_000);
+    return biseri[dayIndex % biseri.length];
+  }, [biseri]);
+
   const slides = useMemo<SpotlightSlide[]>(() => {
     const out: SpotlightSlide[] = [];
-    if (featuredCafe) out.push({ tag: 'Kafić nedelje', loc: featuredCafe });
-    if (spotlightLandmark) out.push({ tag: 'Šta posetiti', loc: spotlightLandmark });
+    if (featuredCafe) out.push({ kind: 'loc', tag: 'Kafić nedelje', loc: featuredCafe });
+    if (spotlightLandmark) out.push({ kind: 'loc', tag: 'Šta posetiti', loc: spotlightLandmark });
+    if (biserOfDay) out.push({ kind: 'biser', tag: 'Biser dana', biser: biserOfDay });
     return out;
-  }, [featuredCafe, spotlightLandmark]);
+  }, [featuredCafe, spotlightLandmark, biserOfDay]);
 
   // Carousel: scroll-snap + tačkice; aktivni slajd pratimo preko scroll pozicije.
   const trackRef = useRef<HTMLDivElement>(null);
@@ -330,6 +344,37 @@ export function HomePage() {
                 )}
                 <div className="hp-spot-track" ref={trackRef} onScroll={onTrackScroll}>
                 {slides.map((s) => (
+                  s.kind === 'biser' ? (
+                    <div key={s.tag} className="hp-spot-card hp-spot-biser-card">
+                      <div className="hp-spot-biser-main">
+                        <div className="hp-spot-tag">{s.tag}</div>
+                        <h3 className="hp-spot-title">{s.biser.title}</h3>
+                        <p className="hp-spot-sub">
+                          {truncate(s.biser.story.replace(/\n+/g, ' '), 140)}
+                        </p>
+                        <div className="hp-spot-meta">
+                          <IconPin />
+                          {s.biser.village} · {s.biser.year}. godina
+                          {s.biser.contributorName ? ` · ${s.biser.contributorName}` : ''}
+                        </div>
+                        <Link to={`/biseri?biser=${s.biser.id}`} className="hp-spot-cta">
+                          Pročitaj priču →
+                        </Link>
+                      </div>
+                      <Link
+                        to={`/biseri?biser=${s.biser.id}`}
+                        className="hp-spot-biser-thumb"
+                        aria-label={`Otvori priču: ${s.biser.title}`}
+                        style={
+                          s.biser.photoMediaId
+                            ? { backgroundImage: `url('${mediaUrl(s.biser.photoMediaId)}')` }
+                            : { background: biserThumbGradient(s.biser) }
+                        }
+                      >
+                        <span className="hp-spot-biser-year">{s.biser.year}.</span>
+                      </Link>
+                    </div>
+                  ) : (
                   <div key={s.tag} className="hp-spot-card">
                     <div>
                       <div className="hp-spot-tag">{s.tag}</div>
@@ -381,6 +426,7 @@ export function HomePage() {
                       </Link>
                     )}
                   </div>
+                  )
                 ))}
                 </div>
                 {slides.length > 1 && (

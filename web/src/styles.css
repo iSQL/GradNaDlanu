@@ -7614,3 +7614,65 @@ button { font-family: inherit; }
 }
 .biseri-now-edit:hover { background: var(--navy); }
 .biseri-now-edit:disabled { opacity: 0.6; cursor: default; }
+
+/* "Biser dana" slajd u spotlight karuselu + alatke detalja bisera */
+.hp-spot-biser-card { flex-direction: row; gap: 24px; align-items: stretch; }
+.hp-spot-biser-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+.hp-spot-biser-thumb {
+  flex: 0 0 180px;
+  align-self: center;
+  height: 200px;
+  border-radius: 10px;
+  border: 4px solid var(--paper);
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  transform: rotate(2deg);
+  transition: transform 0.15s;
+}
+.hp-spot-biser-thumb:hover { transform: rotate(0deg) scale(1.02); }
+.hp-spot-biser-year {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(29, 53, 87, 0.9);
+  color: var(--paper);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-family: 'JetBrains Mono', monospace;
+  white-space: nowrap;
+}
+@media (max-width: 760px) {
+  .hp-spot-biser-card { flex-direction: column; }
+  .hp-spot-biser-thumb { flex-basis: auto; width: 150px; height: 150px; }
+}
+
+.biseri-detail-tools { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.biseri-copylink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.biseri-copylink:hover { border-color: var(--navy); color: var(--navy); }
+.biseri-copylink.is-copied { border-color: var(--moss); color: var(--moss); }
