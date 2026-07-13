@@ -1,6 +1,6 @@
-# zabari.net — Brand Guide
+# zabari.net - igra na klik — Brand Guide
 
-**Direction 03 · Sunrise Hill**
+**Sunrise Hill**
 
 A frog perched on a hill crest with the sun rising behind it — the chosen identity for **zabari.net**, the community network of Opština Žabari ("Žabari" sharing its root with *žaba*, frog). The mark reads as a new day breaking over the village: warmth, optimism, and a quiet sense of home.
 
