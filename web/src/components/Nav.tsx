@@ -39,15 +39,15 @@ const MENU: MenuItem[] = [
     submenu: [
       { to: '/objekti', label: 'Lista objekata', end: true },
       { to: '/mapa', label: 'Mapa' },
-      { to: '/biseri', label: 'Zaboravljeni biseri' },
+      { to: '/desavanja', label: 'Dešavanja' },
     ],
   },
-  { to: '/oglasi', label: 'Oglasi' },
   {
-    to: '/usluge',
-    label: 'Usluge',
+    to: '/oglasi',
+    label: 'Oglasi',
     submenu: [
-      { to: '/usluge', label: 'Zatraži uslugu', end: true },
+      { to: '/oglasi', label: 'Oglasi', end: true },
+      { to: '/usluge', label: 'Zatraži uslugu' },
       { to: '/majstori', label: 'Majstori' },
     ],
   },
@@ -61,8 +61,14 @@ const MENU: MenuItem[] = [
       { to: '/problemi/arhiva', label: 'Arhiva rešenih' },
     ],
   },
-  { to: '/desavanja', label: 'Dešavanja' },
-  { to: '/naselja', label: 'Naselja' },
+  {
+    to: '/naselja',
+    label: 'Naselja',
+    submenu: [
+      { to: '/naselja', label: 'Naselja', end: true },
+      { to: '/biseri', label: 'Zaboravljeni biseri' },
+    ],
+  },
 ];
 
 function IconCaret() {
