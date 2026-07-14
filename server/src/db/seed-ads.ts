@@ -46,7 +46,7 @@ const ADS: AdSeed[] = [
   { title: 'Golf 5, 1.9 TDI', description: 'Registrovan do kraja godine, prešao 230.000 km, klima radi.', category: 'prodajem', priceRsd: 380000, village: 'Simićevo', contactMethod: 'phone', contactValue: '+381 60 555 0099' },
   { title: 'Bukova drva za ogrev', description: 'Suva bukova drva, isečena i iscepana. Mogućnost dostave.', category: 'prodajem', priceRsd: 6500, village: 'Oreovica', contactMethod: 'phone', contactValue: '+381 65 410 2030' },
   { title: 'Traktor IMT 539', description: 'U dobrom stanju, redovno održavan, sve ispravno.', category: 'prodajem', priceRsd: 320000, village: 'Tićevac', contactMethod: 'phone', contactValue: '+381 64 777 8810' },
-  { title: 'Domaći med, bagrem i livada', description: 'Med iz sopstvenog pčelinjaka, tegla 1kg. Bagrem i livada.', category: 'prodajem', priceRsd: 1200, village: 'Vitežovo', contactMethod: 'message', contactValue: null },
+  { title: 'Domaći med, bagrem i livada', description: 'Med iz sopstvenog pčelinjaka, tegla 1kg. Bagrem i livada.', category: 'prodajem', priceRsd: 1200, village: 'Viteževo', contactMethod: 'message', contactValue: null },
   { title: 'Domaća rakija šljivovica', description: 'Prepečenica, jačina ~25 stepeni gradi. Probano, ima i kruškovača.', category: 'prodajem', priceRsd: 1500, village: 'Kočetin', contactMethod: 'phone', contactValue: '+381 62 300 4455' },
   { title: 'Štenci nemačkog ovčara', description: 'Tri muška, jedno žensko. Vakcinisani i očišćeni od parazita.', category: 'prodajem', priceRsd: 8000, village: 'Aleksandrovac', contactMethod: 'message', contactValue: null },
   { title: 'Polovan trosed na razvlačenje', description: 'Očuvan, bez oštećenja, pogodan za dnevnu sobu. Lično preuzimanje.', category: 'prodajem', priceRsd: 15000, village: 'Žabari', contactMethod: 'phone', contactValue: '+381 64 909 1212' },
@@ -72,7 +72,7 @@ const ADS: AdSeed[] = [
   { title: 'Popravka računara i laptopa', description: 'Čišćenje od virusa, reinstalacija, zamena delova. Dolazak na adresu.', category: 'usluge', priceRsd: null, village: 'Aleksandrovac', contactMethod: 'message', contactValue: null },
 
   // — poslovi —
-  { title: 'Potreban radnik za berbu', description: 'Sezonski posao, berba u voćnjaku. Plaćanje dnevno.', category: 'poslovi', priceRsd: null, village: 'Vitežovo', contactMethod: 'phone', contactValue: '+381 64 818 2727' },
+  { title: 'Potreban radnik za berbu', description: 'Sezonski posao, berba u voćnjaku. Plaćanje dnevno.', category: 'poslovi', priceRsd: null, village: 'Viteževo', contactMethod: 'phone', contactValue: '+381 64 818 2727' },
   { title: 'Traži se konobar/konobarica', description: 'Kafić u centru traži konobara. Prijatna atmosfera, stalan posao.', category: 'poslovi', priceRsd: null, village: 'Žabari', contactMethod: 'phone', contactValue: '+381 63 707 6161' },
   { title: 'Potrebna pomoć u domaćinstvu', description: 'Tražim osobu za povremenu pomoć starijem licu, par sati dnevno.', category: 'poslovi', priceRsd: null, village: 'Kočetin', contactMethod: 'message', contactValue: null },
   { title: 'Traži se vozač C kategorije', description: 'Firma iz Porodina traži vozača kamiona. Iskustvo poželjno.', category: 'poslovi', priceRsd: null, village: 'Porodin', contactMethod: 'email', contactValue: 'posao.transport@example.com' },
