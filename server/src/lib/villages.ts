@@ -5,7 +5,7 @@ export const SELA_ZABARI = [
   'Žabari',
   'Aleksandrovac',
   'Brzohode',
-  'Vitežovo',
+  'Viteževo',
   'Vlaški Do',
   'Kočetin',
   'Mirijevo',

@@ -223,7 +223,7 @@ export const VILLAGES: SeedVillage[] = [
   { name: 'Žabari',        populationCensus2002: 1442, populationCensus2022: null, areaKm2: 23.9, distanceKm:  0.0, direction: 'sever',         lat: 44.35657, lon: 21.21468, isSeat: true  },
   { name: 'Aleksandrovac', populationCensus2002: 1546, populationCensus2022: null, areaKm2: 20.0, distanceKm:  9.8, direction: 'sever',         lat: 44.44500, lon: 21.21167, isSeat: false },
   { name: 'Brzohode',      populationCensus2002:  825, populationCensus2022: null, areaKm2: 17.1, distanceKm:  5.1, direction: 'istok',         lat: 44.36694, lon: 21.27694, isSeat: false },
-  { name: 'Vitežovo',      populationCensus2002:  863, populationCensus2022: null, areaKm2: 34.9, distanceKm:  8.6, direction: 'jug',           lat: 44.28300, lon: 21.25000, isSeat: false },
+  { name: 'Viteževo',      populationCensus2002:  863, populationCensus2022: null, areaKm2: 34.9, distanceKm:  8.6, direction: 'jug',           lat: 44.28300, lon: 21.25000, isSeat: false },
   { name: 'Vlaški Do',     populationCensus2002: 1310, populationCensus2022: null, areaKm2: 11.4, distanceKm: 14.3, direction: 'sever',         lat: 44.48556, lon: 21.21222, isSeat: false },
   { name: 'Kočetin',       populationCensus2002:  404, populationCensus2022: null, areaKm2:  5.2, distanceKm:  8.2, direction: 'severoistok',   lat: 44.39889, lon: 21.29917, isSeat: false },
   { name: 'Mirijevo',      populationCensus2002:  474, populationCensus2022: null, areaKm2:  6.7, distanceKm:  9.8, direction: 'severoistok',   lat: 44.43528, lon: 21.27000, isSeat: false },
