@@ -8,6 +8,7 @@ function defaultRouteFor(role: Role): string {
   if (role === 'admin') return '/admin';
   if (role === 'business') return '/poslovni';
   if (role === 'curator') return '/kustos';
+  if (role === 'majstor') return '/majstor';
   return '/';
 }
 

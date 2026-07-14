@@ -22,6 +22,7 @@ import { objectMapsRoutes } from './routes/object-maps.js';
 import { mediaRoutes } from './routes/media.js';
 import { eventsRoutes } from './routes/events.js';
 import { serviceRequestsRoutes } from './routes/service-requests.js';
+import { uslugeRoutes } from './routes/usluge.js';
 import { settingsRoutes } from './routes/settings.js';
 import { newsRoutes } from './routes/news.js';
 import { newsletterRoutes } from './routes/newsletter.js';
@@ -29,6 +30,8 @@ import { alumniRoutes } from './routes/alumni.js';
 import { villagesRoutes } from './routes/villages.js';
 import { curatorRoutes } from './routes/curator.js';
 import { oglasiRoutes } from './routes/oglasi.js';
+import { problemiRoutes } from './routes/problemi.js';
+import { biseriRoutes } from './routes/biseri.js';
 import { conversationsRoutes } from './routes/conversations.js';
 import { notificationsRoutes } from './routes/notifications.js';
 import { startGuestCleanup } from './lib/guest-cleanup.js';
@@ -137,7 +140,13 @@ async function main() {
   // Index.html and everything else: leave headers alone, CDN/browser defaults apply.
   app.addHook('onSend', async (req, reply) => {
     if (req.url.startsWith('/api/')) {
-      reply.header('Cache-Control', 'no-store');
+      // /api/media/* sets its own Cache-Control per kind (public for ad/alumni
+      // photos, private for the rest) — onSend runs after the handler, so a
+      // blanket no-store here would clobber it and force every image to be
+      // re-downloaded on each page view.
+      if (!req.url.startsWith('/api/media/')) {
+        reply.header('Cache-Control', 'no-store');
+      }
     } else if (req.url.startsWith('/assets/')) {
       reply.header('Cache-Control', 'public, max-age=31536000, immutable');
     }
@@ -245,6 +254,7 @@ async function main() {
   await app.register(mediaRoutes);
   await app.register(eventsRoutes);
   await app.register(serviceRequestsRoutes);
+  await app.register(uslugeRoutes);
   await app.register(settingsRoutes);
   await app.register(newsRoutes);
   await app.register(newsletterRoutes);
@@ -252,6 +262,8 @@ async function main() {
   await app.register(villagesRoutes);
   await app.register(curatorRoutes);
   await app.register(oglasiRoutes);
+  await app.register(problemiRoutes);
+  await app.register(biseriRoutes);
   await app.register(conversationsRoutes);
   await app.register(notificationsRoutes);
 

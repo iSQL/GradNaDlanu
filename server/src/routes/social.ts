@@ -19,7 +19,7 @@ import { touchGuestActivity } from '../lib/guest-activity.js';
 interface CommentAuthor {
   id: number;
   displayName: string;
-  role: 'admin' | 'business' | 'user' | 'guest' | 'curator';
+  role: 'admin' | 'business' | 'user' | 'guest' | 'curator' | 'majstor';
 }
 
 interface CommentNode {
@@ -187,7 +187,10 @@ export async function socialRoutes(app: FastifyInstance) {
     Body: { body: string; rating?: number; parentId?: number };
   }>(
     '/api/locations/:slug/comments',
-    { preHandler: requireAuth },
+    {
+      preHandler: requireAuth,
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+    },
     async (req, reply) => {
       const { body, rating, parentId } = req.body ?? {};
       if (!body || typeof body !== 'string' || body.trim().length === 0) {
@@ -291,7 +294,10 @@ export async function socialRoutes(app: FastifyInstance) {
 
   app.post<{ Params: { slug: string } }>(
     '/api/locations/:slug/checkin',
-    { preHandler: requireAuth },
+    {
+      preHandler: requireAuth,
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+    },
     async (req, reply) => {
       const loc = await getLocationBySlug(req.params.slug);
       if (!loc) return reply.code(404).send({ error: 'Not found' });

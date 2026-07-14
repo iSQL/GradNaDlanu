@@ -29,5 +29,15 @@ export function RoleBadge({ role }: Props) {
       </span>
     );
   }
+  if (role === 'majstor') {
+    return (
+      <span
+        className="role-badge role-badge-curator"
+        title="Majstor — prima zahteve za usluge u svojim kategorijama"
+      >
+        majstor
+      </span>
+    );
+  }
   return null;
 }

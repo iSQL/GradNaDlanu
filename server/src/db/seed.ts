@@ -3,8 +3,8 @@ import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { eq, and } from 'drizzle-orm';
 import * as schema from './schema.js';
-import { alumni, comments, events, locations, moduleContent, news, users, villages } from './schema.js';
-import { ALUMNI, CATEGORIES, COMMENTS, EVENTS, LOCATIONS, NEWS, USERS, VILLAGES, buildModuleContent } from './seed-data.js';
+import { alumni, biseri, comments, events, locations, majstorCategories, moduleContent, news, serviceJobs, serviceOffers, users, villages } from './schema.js';
+import { ALUMNI, BISERI, CATEGORIES, COMMENTS, EVENTS, LOCATIONS, MAJSTORI, MAJSTOR_REVIEWS, NEWS, USERS, VILLAGES, buildModuleContent } from './seed-data.js';
 import { env } from '../env.js';
 
 export interface SeedResult {
@@ -14,9 +14,12 @@ export interface SeedResult {
   eventCount: number;
   newsCount: number;
   userCount: number;
+  majstorCount: number;
+  majstorReviewCount: number;
   commentCount: number;
   alumniCount: number;
   villageCount: number;
+  biserCount: number;
   adminInserted: boolean;
   adminEmail: string;
 }
@@ -183,6 +186,104 @@ export async function runSeed(): Promise<SeedResult> {
       }
     }
 
+    // Demo majstori za "Usluge": nalog sa rolom 'majstor' + grantovi kategorija.
+    // Idempotentno na (users.email) i PK (user_id, category_id).
+    let majstorCount = 0;
+    for (const m of MAJSTORI) {
+      let [row] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, m.email))
+        .limit(1);
+      if (!row) {
+        const passwordHash = await bcrypt.hash(m.password, 12);
+        [row] = await db
+          .insert(users)
+          .values({
+            email: m.email,
+            passwordHash,
+            displayName: m.displayName,
+            role: 'majstor',
+            emailVerifiedAt: new Date(),
+          })
+          .returning({ id: users.id });
+        if (row) majstorCount++;
+      }
+      if (!row) continue;
+      for (const categoryId of m.categories) {
+        await db
+          .insert(majstorCategories)
+          .values({ userId: row.id, categoryId })
+          .onConflictDoNothing();
+      }
+    }
+
+    // Demo ocene majstora: završen service_job + prihvaćena ocenjena ponuda po
+    // stavci — hrani metrike (avgRating/completedJobs/avgResponseMinutes) i
+    // recenzije na /majstori. Idempotentno na (naručilac, kategorija, opis
+    // kvara) — nema unique constrainta, pa se postojanje proverava ručno.
+    let majstorReviewCount = 0;
+    for (const r of MAJSTOR_REVIEWS) {
+      const reviewerId = userIdByEmail.get(r.reviewerEmail);
+      if (!reviewerId) continue;
+      const [majstor] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, r.majstorEmail))
+        .limit(1);
+      if (!majstor) continue;
+
+      const existing = await db
+        .select({ payload: serviceJobs.payload })
+        .from(serviceJobs)
+        .where(and(eq(serviceJobs.userId, reviewerId), eq(serviceJobs.categoryId, r.categoryId)));
+      if (existing.some((j) => (j.payload as { description?: string }).description === r.description)) {
+        continue;
+      }
+
+      // Vremena raspršena unazad: zahtev → ponuda (responseMinutes) → završeno
+      // sutradan → ocena par sati kasnije. Sve u prošlosti, deluje prirodno.
+      const createdAt = new Date(Date.now() - r.daysAgo * 86_400_000);
+      const offerAt = new Date(createdAt.getTime() + r.responseMinutes * 60_000);
+      const completedAt = new Date(createdAt.getTime() + 86_400_000);
+      const ratedAt = new Date(completedAt.getTime() + 3 * 3_600_000);
+
+      const [job] = await db
+        .insert(serviceJobs)
+        .values({
+          userId: reviewerId,
+          categoryId: r.categoryId,
+          payload: { description: r.description, photoIds: [] },
+          targetUserIds: null,
+          status: 'completed',
+          createdAt,
+          completedAt,
+          completedBy: majstor.id,
+        })
+        .returning({ id: serviceJobs.id });
+      if (!job) continue;
+      const [offer] = await db
+        .insert(serviceOffers)
+        .values({
+          jobId: job.id,
+          majstorUserId: majstor.id,
+          quote: { priceRsd: r.priceRsd, note: '', availableDate: offerAt.toISOString().slice(0, 10) },
+          status: 'accepted',
+          createdAt: offerAt,
+          updatedAt: completedAt,
+          ratingStars: r.stars,
+          ratingComment: r.comment,
+          ratedAt,
+        })
+        .returning({ id: serviceOffers.id });
+      if (!offer) continue;
+      await db
+        .update(serviceJobs)
+        .set({ acceptedOfferId: offer.id })
+        .where(eq(serviceJobs.id, job.id));
+      majstorReviewCount++;
+    }
+
     let commentCount = 0;
     for (const c of COMMENTS) {
       const userId = userIdByEmail.get(c.authorEmail);
@@ -268,6 +369,31 @@ export async function runSeed(): Promise<SeedResult> {
       if (row) villageCount++;
     }
 
+    // Demo "Zaboravljeni biseri" — objavljene priče bez fotografija (UI ima
+    // placeholder). Idempotentno na (title, year) — nema unique constrainta,
+    // pa se postojanje proverava ručno.
+    let biserCount = 0;
+    for (const b of BISERI) {
+      const [existing] = await db
+        .select({ id: biseri.id })
+        .from(biseri)
+        .where(and(eq(biseri.title, b.title), eq(biseri.year, b.year)))
+        .limit(1);
+      if (existing) continue;
+      await db.insert(biseri).values({
+        userId: userIdByEmail.get(b.contributorEmail) ?? null,
+        title: b.title,
+        year: b.year,
+        village: b.village,
+        story: b.story,
+        lat: b.lat,
+        lng: b.lng,
+        status: 'published',
+        decidedAt: new Date(),
+      });
+      biserCount++;
+    }
+
     return {
       categoryCount: CATEGORIES.length,
       locationCount: locCount,
@@ -275,9 +401,12 @@ export async function runSeed(): Promise<SeedResult> {
       eventCount,
       newsCount,
       userCount,
+      majstorCount,
+      majstorReviewCount,
       commentCount,
       alumniCount,
       villageCount,
+      biserCount,
       adminInserted: insertedUser.length > 0,
       adminEmail,
     };
@@ -293,7 +422,7 @@ if (isCli) {
   runSeed()
     .then((r) => {
       console.log(
-        `Seeded ${r.categoryCount} categories, ${r.locationCount} locations, ${r.moduleContentCount} module_content rows, ${r.eventCount} events, ${r.newsCount} news, ${r.userCount} demo users, ${r.commentCount} comments, ${r.alumniCount} alumni, ${r.villageCount} villages, ${r.adminInserted ? 1 : 0} admin user (email: ${r.adminEmail}).`,
+        `Seeded ${r.categoryCount} categories, ${r.locationCount} locations, ${r.moduleContentCount} module_content rows, ${r.eventCount} events, ${r.newsCount} news, ${r.userCount} demo users, ${r.majstorCount} demo majstora, ${r.majstorReviewCount} majstor reviews, ${r.commentCount} comments, ${r.alumniCount} alumni, ${r.villageCount} villages, ${r.biserCount} biseri, ${r.adminInserted ? 1 : 0} admin user (email: ${r.adminEmail}).`,
       );
       process.exit(0);
     })

@@ -98,7 +98,7 @@ export interface LocationWithContent extends Location {
 export interface CommentAuthor {
   id: number;
   displayName: string;
-  role: 'admin' | 'business' | 'user' | 'guest' | 'curator';
+  role: 'admin' | 'business' | 'user' | 'guest' | 'curator' | 'majstor';
 }
 
 export interface CommentNode {
@@ -190,10 +190,11 @@ export interface AdminUserRow {
   id: number;
   email: string;
   displayName: string;
-  role: 'admin' | 'business' | 'user' | 'curator';
+  role: 'admin' | 'business' | 'user' | 'curator' | 'majstor';
   createdAt: string;
   ownedLocations: { id: number; slug: string; name: string }[];
   curatedVillages: string[];
+  majstorCategories: string[];
 }
 
 export interface VillageInfo {
@@ -246,6 +247,102 @@ export interface OwnerServiceRequest extends MyServiceRequest {
   userId: number;
   userDisplayName: string;
   userEmail: string;
+}
+
+// --- Usluge (broadcast zahtevi za majstore po kategorijama) ---
+
+export type ServiceJobStatus = 'open' | 'accepted' | 'completed' | 'cancelled';
+export type ServiceOfferStatus = 'active' | 'accepted' | 'archived';
+
+export interface ServiceJobPayload {
+  description: string;
+  note?: string;
+  photoIds: number[];
+}
+
+export interface JobOffer {
+  id: number;
+  majstorUserId: number;
+  majstorDisplayName: string;
+  // Telefon majstora — server ga vraća samo na prihvaćenoj ponudi.
+  majstorPhone: string | null;
+  quote: ServiceRequestQuote;
+  status: ServiceOfferStatus;
+  createdAt: string;
+  updatedAt: string;
+  // Ocena naručioca — postoji samo na prihvaćenoj ponudi završenog posla.
+  ratingStars: number | null;
+  ratingComment: string | null;
+}
+
+export interface MyServiceJob {
+  id: number;
+  categoryId: string;
+  payload: ServiceJobPayload;
+  targetUserIds: number[] | null;
+  status: ServiceJobStatus;
+  acceptedOfferId: number | null;
+  createdAt: string;
+  completedAt: string | null;
+  completedBy: number | null;
+  offers: JobOffer[];
+}
+
+export interface MajstorJob {
+  id: number;
+  categoryId: string;
+  payload: ServiceJobPayload;
+  status: ServiceJobStatus;
+  createdAt: string;
+  completedAt: string | null;
+  requesterDisplayName: string;
+  // Otkrivaju se tek kada je MOJA ponuda prihvaćena.
+  requesterEmail: string | null;
+  requesterId: number | null;
+  myOffer: {
+    id: number;
+    quote: ServiceRequestQuote;
+    status: ServiceOfferStatus;
+    createdAt: string;
+    updatedAt: string;
+    ratingStars: number | null;
+    ratingComment: string | null;
+  } | null;
+  archivedReason: 'accepted_other' | 'cancelled' | null;
+}
+
+// Metrike majstora — prikazuju se u pickeru na /usluge i na /majstori.
+export interface MajstorStats {
+  avgRating: number | null;
+  ratingCount: number;
+  completedJobs: number;
+  avgResponseMinutes: number | null;
+}
+
+export interface MajstorPublic extends MajstorStats {
+  id: number;
+  displayName: string;
+}
+
+export interface MajstorReview {
+  stars: number;
+  comment: string | null;
+  ratedAt: string;
+  categoryId: string;
+  reviewerName: string;
+}
+
+// Red javnog imenika majstora (GET /api/majstori) — kategorije + zadnje ocene.
+export interface MajstorDirectoryEntry extends MajstorStats {
+  id: number;
+  displayName: string;
+  categories: string[];
+  reviews: MajstorReview[];
+}
+
+export interface UslugeStat {
+  categoryId: string;
+  majstorCount: number;
 }
 
 export type EventStatus = 'published' | 'cancelled';
@@ -357,6 +454,108 @@ export const AD_CATEGORY_LABELS: Record<AdCategory, string> = {
   ostalo: 'Ostalo',
 };
 
+// --- Prijava komunalnih problema ("Problemi") ---
+
+export type ProblemStatus = 'open' | 'solved';
+
+export interface Problem {
+  id: number;
+  catId: string;
+  title: string;
+  description: string;
+  village: string;
+  address: string | null;
+  lat: number;
+  lng: number;
+  photoMediaId: number | null;
+  status: ProblemStatus;
+  solvedAt: string | null;
+  createdAt: string;
+  // Display ime ulogovanog prijavioca; null = anonimna prijava.
+  reporterName: string | null;
+  votes: number;
+  commentCount: number;
+  // Da li je trenutni (ulogovani) korisnik glasao — false za anonimne.
+  voted: boolean;
+}
+
+export interface ProblemCommentItem {
+  id: number;
+  body: string;
+  createdAt: string;
+  author: CommentAuthor;
+  // Komentar u ime opštine (autor je admin ili kustos).
+  official: boolean;
+}
+
+export interface ProblemDetail extends Problem {
+  // Sme li trenutni korisnik da menja status (admin / kustos sela / prijavilac).
+  canResolve: boolean;
+  comments: ProblemCommentItem[];
+}
+
+export interface ProblemInput {
+  catId: string;
+  title: string;
+  description: string;
+  village: string;
+  address?: string | null;
+  lat: number;
+  lng: number;
+  photoMediaId?: number | null;
+}
+
+// --- "Zaboravljeni biseri" ---
+
+export type BiserStatus = 'pending' | 'published' | 'rejected';
+
+export interface Biser {
+  id: number;
+  title: string;
+  year: number;
+  village: string;
+  // Priča/anegdota — pasusi razdvojeni praznim redom, UI deli na \n\n.
+  story: string;
+  lat: number;
+  lng: number;
+  // NULL → UI prikazuje sepija placeholder (seed primeri / obrisan media red).
+  photoMediaId: number | null;
+  nowPhotoMediaId: number | null;
+  status: BiserStatus;
+  createdAt: string;
+  // Display ime autora; null kad je nalog obrisan.
+  contributorName: string | null;
+  likes: number;
+  commentCount: number;
+  liked: boolean;
+}
+
+export interface BiserCommentItem {
+  id: number;
+  body: string;
+  createdAt: string;
+  author: { id: number; displayName: string };
+}
+
+export interface BiserDetail extends Biser {
+  // Sme li trenutni korisnik da odobri/odbije (admin / kustos sela).
+  canModerate: boolean;
+  // Sme li da naknadno doda/ukloni "Danas" fotku (autor ili moderator).
+  canEdit: boolean;
+  comments: BiserCommentItem[];
+}
+
+export interface BiserInput {
+  title: string;
+  year: number;
+  village: string;
+  story: string;
+  lat: number;
+  lng: number;
+  photoMediaId: number;
+  nowPhotoMediaId?: number | null;
+}
+
 // --- In-site messaging (poruke) ---
 
 export interface ConversationSummary {
@@ -383,6 +582,9 @@ export interface Notifications {
   unreadMessages: number;
   reservationUpdates: number;
   followedUpdates: number;
+  uslugeUpdates: number;
+  majstorJobs: number;
+  ownerComments: number;
 }
 
 export interface ConversationDetail {

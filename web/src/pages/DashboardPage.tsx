@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import type { AppContext } from '../App';
 import { api } from '../lib/api';
 import { clearToken } from '../lib/auth';
@@ -9,12 +9,18 @@ import { IconStar } from '../components/Icons';
 import { RoleBadge } from '../components/RoleBadge';
 import { PorukeInbox } from '../components/PorukeInbox';
 import { NewsletterSettings } from '../components/NewsletterSettings';
+import { AuthImage } from '../components/AuthImage';
+import { StartChat } from '../components/StartChat';
+import { StarRatingInput, Stars } from '../components/MajstorStats';
+import { SERVICE_CATEGORY_LABELS, isServiceCategory } from '../lib/usluge';
 import type {
   CityEvent,
   ConversationSummary,
   FavoriteRow,
+  JobOffer,
   MyComment,
   MyReservation,
+  MyServiceJob,
   MyServiceRequest,
   NewsItem,
 } from '../types';
@@ -41,26 +47,114 @@ type FollowedCard =
   | { kind: 'news'; id: number; date: string; data: NewsItem }
   | { kind: 'event'; id: number; date: string; data: CityEvent };
 
-type Tab = 'pratim' | 'komentari' | 'rezervacije' | 'poruke' | 'bilten';
+type Tab = 'pratim' | 'komentari' | 'rezervacije' | 'usluge' | 'poruke' | 'bilten';
 
 const BASE_TABS: { key: Tab; label: string }[] = [
   { key: 'pratim', label: 'Pratim' },
   { key: 'komentari', label: 'Komentari' },
   { key: 'rezervacije', label: 'Rezervacije' },
+  { key: 'usluge', label: 'Usluge' },
   { key: 'poruke', label: 'Poruke' },
 ];
+
+const JOB_STATUS_LABELS: Record<MyServiceJob['status'], string> = {
+  open: 'otvoren',
+  accepted: 'majstor izabran',
+  completed: 'završen',
+  cancelled: 'otkazan',
+};
+
+// Ocena majstora na završenom poslu: zvezdice + kratak komentar (≤160).
+// Data ocena se prikazuje sažeto sa dugmetom "Izmeni" (overwrite je dozvoljen).
+function OfferRating({
+  jobId,
+  offer,
+  onSaved,
+}: {
+  jobId: number;
+  offer: JobOffer;
+  onSaved: () => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(offer.ratingStars === null);
+  const [stars, setStars] = useState(offer.ratingStars ?? 0);
+  const [comment, setComment] = useState(offer.ratingComment ?? '');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!editing) {
+    return (
+      <div className="usluge-rating">
+        <div className="usluge-rating-head">
+          <span className="usluge-offer-meta">Vaša ocena:</span>
+          <Stars value={offer.ratingStars ?? 0} />
+          <button className="row-action" type="button" onClick={() => setEditing(true)}>
+            Izmeni
+          </button>
+        </div>
+        {offer.ratingComment && <div className="usluge-offer-note">{offer.ratingComment}</div>}
+      </div>
+    );
+  }
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (stars < 1) {
+      setError('Izaberite broj zvezdica.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await api.rateServiceJob(jobId, stars, comment.trim() || undefined);
+      await onSaved();
+      setEditing(false);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form className="usluge-rating" onSubmit={submit}>
+      <div className="usluge-rating-head">
+        <span className="usluge-offer-meta">Ocenite majstora:</span>
+        <StarRatingInput value={stars} onChange={setStars} />
+      </div>
+      <input
+        type="text"
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        maxLength={160}
+        placeholder="Kratak utisak (opciono, do 160 karaktera)"
+      />
+      {error && <div className="login-error">{error}</div>}
+      <div>
+        <button className="row-action" type="submit" disabled={busy || stars < 1}>
+          {busy ? 'Čuvanje…' : 'Sačuvaj ocenu'}
+        </button>
+      </div>
+    </form>
+  );
+}
 
 export function DashboardPage() {
   const ctx = useOutletContext<AppContext>();
   const navigate = useNavigate();
 
-  const [tab, setTab] = useState<Tab>('pratim');
+  // ?tab= deep-link (npr. iz trake dobrodošlice na početnoj) bira početni tab.
+  const [searchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab');
+  const isTab = (v: string | null): v is Tab =>
+    v !== null && ['pratim', 'komentari', 'rezervacije', 'usluge', 'poruke', 'bilten'].includes(v);
+  const [tab, setTab] = useState<Tab>(isTab(requestedTab) ? requestedTab : 'pratim');
   const [favorites, setFavorites] = useState<FavoriteRow[] | null>(null);
   const [news, setNews] = useState<NewsItem[] | null>(null);
   const [events, setEvents] = useState<CityEvent[] | null>(null);
   const [comments, setComments] = useState<MyComment[] | null>(null);
   const [reservations, setReservations] = useState<MyReservation[] | null>(null);
   const [serviceRequests, setServiceRequests] = useState<MyServiceRequest[] | null>(null);
+  const [serviceJobs, setServiceJobs] = useState<MyServiceJob[] | null>(null);
   const [conversations, setConversations] = useState<ConversationSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,6 +170,7 @@ export function DashboardPage() {
     api.myComments().then(setComments).catch((e: Error) => setError(e.message));
     api.myReservations().then(setReservations).catch((e: Error) => setError(e.message));
     api.myServiceRequests().then(setServiceRequests).catch((e: Error) => setError(e.message));
+    api.myServiceJobs().then(setServiceJobs).catch((e: Error) => setError(e.message));
     api.myConversations().then(setConversations).catch((e: Error) => setError(e.message));
     api.listNews({ limit: 100 }).then(setNews).catch((e: Error) => setError(e.message));
     api
@@ -110,6 +205,8 @@ export function DashboardPage() {
       api.markSeen('reservations').then(() => reloadNotifications()).catch(() => {});
     } else if (tab === 'pratim') {
       api.markSeen('feed').then(() => reloadNotifications()).catch(() => {});
+    } else if (tab === 'usluge') {
+      api.markSeen('usluge').then(() => reloadNotifications()).catch(() => {});
     }
   }, [tab, ctx.currentUser, reloadNotifications]);
 
@@ -152,6 +249,40 @@ export function DashboardPage() {
     await api.cancelReservation(id);
     setReservations(await api.myReservations());
   };
+
+  const acceptOffer = async (jobId: number, offerId: number) => {
+    if (!window.confirm('Prihvatiti ovu ponudu? Ostale ponude za ovaj zahtev biće arhivirane.')) return;
+    try {
+      await api.acceptJobOffer(jobId, offerId);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+    setServiceJobs(await api.myServiceJobs());
+  };
+
+  const cancelJob = async (jobId: number) => {
+    if (!window.confirm('Otkazati ovaj zahtev za uslugu?')) return;
+    try {
+      await api.cancelServiceJob(jobId);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+    setServiceJobs(await api.myServiceJobs());
+  };
+
+  const completeJob = async (jobId: number) => {
+    if (!window.confirm('Označiti posao kao obavljen? Nakon toga možete oceniti majstora.')) return;
+    try {
+      await api.completeServiceJob(jobId);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+    setServiceJobs(await api.myServiceJobs());
+  };
+
+  const reloadServiceJobs = useCallback(async () => {
+    setServiceJobs(await api.myServiceJobs());
+  }, []);
 
   // Stable refs: PorukeInbox passes these into a useEffect dependency array, so a
   // fresh reference each render would re-fire the effect (markRead → reload →
@@ -276,6 +407,7 @@ export function DashboardPage() {
               t.key === 'pratim' ? favorites?.length
               : t.key === 'komentari' ? comments?.length
               : t.key === 'rezervacije' ? reservations?.length
+              : t.key === 'usluge' ? serviceJobs?.length
               : t.key === 'bilten' ? undefined
               : conversations === null && serviceRequests === null
                 ? undefined
@@ -498,6 +630,132 @@ export function DashboardPage() {
                           onClick={() => cancelReservation(r.id)}
                         >
                           Otkaži
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+        )}
+
+        {/* ── III-b. USLUGE (broadcast zahtevi + kontraponude majstora) ── */}
+        {tab === 'usluge' && (
+        <section className="ms-section">
+          <div className="ms-section-body">
+            <div className="ms-section-head">
+              <span className="ms-eyebrow">— odeljak —</span>
+              <h2 className="ms-section-title">Usluge</h2>
+              <span className="ms-section-meta">
+                {serviceJobs ? `${serviceJobs.length} zahteva` : '—'}
+              </span>
+            </div>
+
+            {serviceJobs === null ? (
+              <div className="ms-empty">Učitavanje…</div>
+            ) : serviceJobs.length === 0 ? (
+              <div className="ms-empty">
+                Niste još poslali nijedan zahtev za uslugu.{' '}
+                <Link to="/usluge"><strong>Zatražite uslugu</strong></Link> — majstori vam
+                odgovaraju ponudama sa cenom.
+              </div>
+            ) : (
+              <div>
+                {serviceJobs.map((j) => (
+                  <div className={`usluge-job ${j.status === 'cancelled' ? 'is-archived' : ''}`} key={j.id}>
+                    <div className="usluge-job-head">
+                      <span className="usluge-job-cat">
+                        {isServiceCategory(j.categoryId) ? SERVICE_CATEGORY_LABELS[j.categoryId] : j.categoryId}
+                      </span>
+                      <span className={`usluge-status is-${j.status}`}>
+                        {JOB_STATUS_LABELS[j.status]}
+                      </span>
+                      <span className="usluge-job-date">poslato {formatDate(j.createdAt)}</span>
+                    </div>
+                    <div className="usluge-job-desc">{j.payload.description}</div>
+                    {j.payload.note && (
+                      <div className="usluge-job-note">Napomena: {j.payload.note}</div>
+                    )}
+                    {j.payload.photoIds.length > 0 && (
+                      <div className="usluge-job-photos">
+                        {j.payload.photoIds.map((id) => (
+                          <AuthImage key={id} mediaId={id} alt={`slika kvara ${id}`} />
+                        ))}
+                      </div>
+                    )}
+
+                    {j.offers.length === 0 ? (
+                      j.status === 'open' && (
+                        <div className="usluge-archived-note">Još nema ponuda — majstori su obavešteni.</div>
+                      )
+                    ) : (
+                      j.offers.map((o) => (
+                        <div
+                          key={o.id}
+                          className={`usluge-offer ${o.status === 'accepted' ? 'is-accepted' : ''} ${o.status === 'archived' ? 'is-archived' : ''}`}
+                        >
+                          <div className="usluge-offer-body">
+                            <div className="usluge-offer-price">
+                              {o.quote.priceRsd.toLocaleString('sr-RS')} RSD
+                            </div>
+                            <div className="usluge-offer-meta">
+                              {o.majstorDisplayName} · termin {o.quote.availableDate}
+                              {o.status === 'accepted' && ' · prihvaćeno'}
+                              {o.status === 'archived' && ' · arhivirano'}
+                            </div>
+                            {o.quote.note && <div className="usluge-offer-note">{o.quote.note}</div>}
+                            {o.status === 'accepted' && j.status !== 'completed' && (
+                              <div className="usluge-contact">
+                                <span className="usluge-offer-meta">
+                                  Dogovorite se sa majstorom {o.majstorDisplayName}:
+                                </span>
+                                {o.majstorPhone && (
+                                  <a className="row-action" href={`tel:${o.majstorPhone}`}>
+                                    ☎ {o.majstorPhone}
+                                  </a>
+                                )}
+                                <StartChat
+                                  recipientId={o.majstorUserId}
+                                  recipientName={o.majstorDisplayName}
+                                  onSent={async () => {
+                                    await reloadConversations();
+                                    setTab('poruke');
+                                  }}
+                                />
+                              </div>
+                            )}
+                            {o.status === 'accepted' && j.status === 'completed' && (
+                              <OfferRating jobId={j.id} offer={o} onSaved={reloadServiceJobs} />
+                            )}
+                          </div>
+                          {j.status === 'open' && o.status === 'active' && (
+                            <button
+                              className="ms-btn ms-btn-primary ms-btn-sm"
+                              onClick={() => acceptOffer(j.id, o.id)}
+                            >
+                              Prihvati
+                            </button>
+                          )}
+                        </div>
+                      ))
+                    )}
+
+                    {j.status === 'open' && (
+                      <div className="ms-ticket-actions" style={{ marginTop: 12 }}>
+                        <button className="ms-btn ms-btn-danger ms-btn-sm" onClick={() => cancelJob(j.id)}>
+                          Otkaži zahtev
+                        </button>
+                      </div>
+                    )}
+                    {j.status === 'accepted' && (
+                      <div className="ms-ticket-actions" style={{ marginTop: 12 }}>
+                        <button
+                          className="ms-btn ms-btn-primary ms-btn-sm"
+                          onClick={() => completeJob(j.id)}
+                        >
+                          Posao je obavljen
                         </button>
                       </div>
                     )}

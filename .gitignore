@@ -9,3 +9,4 @@ build/
 coverage/
 .tmp/
 storage/
+server/uploads/

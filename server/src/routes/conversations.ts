@@ -22,7 +22,10 @@ export async function conversationsRoutes(app: FastifyInstance) {
   // post its first message. Guests may read threads but not start/post.
   app.post<{ Body: { recipientId?: number; adId?: number; body?: unknown } }>(
     '/api/conversations',
-    { preHandler: requireAuth },
+    {
+      preHandler: requireAuth,
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+    },
     async (req, reply) => {
       if (req.user.role === 'guest') {
         return reply.code(403).send({
@@ -200,7 +203,10 @@ export async function conversationsRoutes(app: FastifyInstance) {
   // Post a message to an existing conversation.
   app.post<{ Params: { id: string }; Body: { body?: unknown } }>(
     '/api/conversations/:id/messages',
-    { preHandler: requireAuth },
+    {
+      preHandler: requireAuth,
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+    },
     async (req, reply) => {
       if (req.user.role === 'guest') {
         return reply.code(403).send({

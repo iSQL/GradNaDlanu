@@ -28,12 +28,13 @@ function distanceText(v: VillageInfo): string {
 
 export function NaseljaPage() {
   const [villages, setVillages] = useState<VillageInfo[] | null>(null);
-  // `pinned` je trajno odabrano selo (klik). `hovered` je privremeni preview
-  // (mouseover) — kad miš ode sa mape vraćamo se na `pinned`.
+  // `pinned` je odabrano selo (klik) — jedino ono menja sadržaj sidebara.
+  // `hovered` služi samo za vizuelni highlight na mapi; NE menja sadržaj,
+  // jer bi promena visine sidebara pomerala tag ispod kursora i pravila glitch.
   const [pinned, setPinned] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const active = hovered ?? pinned;
+  const active = pinned;
 
   useEffect(() => {
     api.listVillages()
@@ -64,7 +65,7 @@ export function NaseljaPage() {
           <div className="naselja-kicker">Opština · 15 naselja</div>
           <h1>Naselja opštine Žabari</h1>
           <p className="naselja-sub">
-            Pređite mišem ili dodirnite naselje na mapi za osnovne podatke i listu kustosa
+            Kliknite na naselje na mapi ili u listi za osnovne podatke i listu kustosa
             koji brinu o sadržaju u tom selu.
           </p>
         </header>
@@ -136,7 +137,7 @@ export function NaseljaPage() {
 
           <aside className="naselja-panel">
             {activeInfo ? (
-              <VillagePanel info={activeInfo} maxPop={maxPop} previewing={hovered !== null && hovered !== pinned} />
+              <VillagePanel info={activeInfo} maxPop={maxPop} />
             ) : (
               <OverviewPanel total={villages?.length ?? 0} />
             )}
@@ -148,8 +149,6 @@ export function NaseljaPage() {
                   key={v.name}
                   type="button"
                   className={`naselja-chip ${pinned === v.name ? 'on' : ''}`}
-                  onMouseEnter={() => setHovered(v.name)}
-                  onMouseLeave={() => setHovered((cur) => (cur === v.name ? null : cur))}
                   onClick={() => setPinned(v.name)}
                 >
                   {v.name}
@@ -201,11 +200,9 @@ function OverviewPanel({ total }: { total: number }) {
 function VillagePanel({
   info,
   maxPop,
-  previewing,
 }: {
   info: VillageInfo;
   maxPop: number;
-  previewing: boolean;
 }) {
   const seatSuffix = info.isSeat ? ' ⋆' : '';
   const popBar = info.populationCensus2002
@@ -216,11 +213,6 @@ function VillagePanel({
     <div>
       <div className="naselja-pname">
         {info.name}{seatSuffix}
-        {previewing && (
-          <span className="naselja-preview-tag" title="Pregled — kliknite da fiksirate selo">
-            pregled
-          </span>
-        )}
       </div>
       <div className="naselja-ptag">
         {info.isSeat

@@ -1,12 +1,13 @@
 import type { FastifyInstance } from 'fastify';
 import { and, count, desc, eq, ilike, or } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { locations, objectOwners, users, villageCurators } from '../db/schema.js';
+import { locations, majstorCategories, objectOwners, users, villageCurators } from '../db/schema.js';
 import { bumpTokenVersion, requireRole } from '../lib/auth.js';
 import { escapeLikePattern } from '../lib/locations.js';
 import { isVillage } from '../lib/villages.js';
+import { isServiceCategory } from '../lib/usluge.js';
 
-const ROLES = ['admin', 'business', 'user', 'curator'] as const;
+const ROLES = ['admin', 'business', 'user', 'curator', 'majstor'] as const;
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
 
@@ -79,12 +80,23 @@ export async function adminUsersRoutes(app: FastifyInstance) {
         curatedByUser.set(c.userId, arr);
       }
 
+      const majstorRows = await db
+        .select({ userId: majstorCategories.userId, categoryId: majstorCategories.categoryId })
+        .from(majstorCategories);
+      const majstorByUser = new Map<number, string[]>();
+      for (const m of majstorRows) {
+        const arr = majstorByUser.get(m.userId) ?? [];
+        arr.push(m.categoryId);
+        majstorByUser.set(m.userId, arr);
+      }
+
       const [{ total }] = await db.select({ total: count() }).from(users).where(where);
       reply.header('X-Total-Count', String(total));
       return userRows.map((u) => ({
         ...u,
         ownedLocations: byUser.get(u.id) ?? [],
         curatedVillages: curatedByUser.get(u.id) ?? [],
+        majstorCategories: majstorByUser.get(u.id) ?? [],
       }));
     },
   );
@@ -205,6 +217,64 @@ export async function adminUsersRoutes(app: FastifyInstance) {
           .update(users)
           .set({ role: 'user' })
           .where(and(eq(users.id, userId), eq(users.role, 'curator')));
+      }
+      await bumpTokenVersion(userId);
+      return reply.send({ ok: true });
+    },
+  );
+
+  // Dodeli majstora za jednu kategoriju usluga. Auto-promoviše korisnika u rolu
+  // 'majstor' ako je trenutno 'user'. Admin/business/curator role se NE diraju
+  // (ista dokumentovana limitacija kao kod kustosa — takav korisnik dobija grant
+  // red, ali bez role 'majstor' ne vidi majstorski panel).
+  app.post<{ Params: { id: string }; Body: { category: string } }>(
+    '/api/admin/users/:id/grant-majstor',
+    { preHandler: requireRole('admin') },
+    async (req, reply) => {
+      const userId = Number(req.params.id);
+      const category = req.body?.category;
+      if (typeof category !== 'string' || !isServiceCategory(category)) {
+        return reply.code(400).send({ error: 'category mora biti jedna od kategorija usluga' });
+      }
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!user) return reply.code(404).send({ error: 'User not found' });
+
+      let promoted = false;
+      if (user.role === 'user') {
+        await db.update(users).set({ role: 'majstor' }).where(eq(users.id, userId));
+        promoted = true;
+      }
+
+      await db
+        .insert(majstorCategories)
+        .values({ userId, categoryId: category, grantedByAdminId: req.user.sub })
+        .onConflictDoNothing();
+      if (promoted) await bumpTokenVersion(userId);
+      return { ok: true, userId, category };
+    },
+  );
+
+  // Ukloni majstora za jednu kategoriju. Ako mu ostane nula kategorija i rola je
+  // 'majstor', demotuj nazad u 'user' (ostale role se ne diraju).
+  app.delete<{ Params: { id: string; category: string } }>(
+    '/api/admin/users/:id/grant-majstor/:category',
+    { preHandler: requireRole('admin') },
+    async (req, reply) => {
+      const userId = Number(req.params.id);
+      const category = decodeURIComponent(req.params.category);
+      await db
+        .delete(majstorCategories)
+        .where(and(eq(majstorCategories.userId, userId), eq(majstorCategories.categoryId, category)));
+
+      const [{ remaining }] = await db
+        .select({ remaining: count() })
+        .from(majstorCategories)
+        .where(eq(majstorCategories.userId, userId));
+      if (Number(remaining) === 0) {
+        await db
+          .update(users)
+          .set({ role: 'user' })
+          .where(and(eq(users.id, userId), eq(users.role, 'majstor')));
       }
       await bumpTokenVersion(userId);
       return reply.send({ ok: true });

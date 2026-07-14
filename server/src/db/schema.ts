@@ -9,6 +9,8 @@ import {
   primaryKey,
   numeric,
   boolean,
+  unique,
+  smallint,
 } from 'drizzle-orm/pg-core';
 
 export const categories = pgTable('categories', {
@@ -51,7 +53,10 @@ export const users = pgTable('users', {
   email: text('email'),
   passwordHash: text('password_hash'),
   displayName: text('display_name').notNull(),
-  role: text('role', { enum: ['admin', 'business', 'user', 'guest', 'curator'] })
+  // Kontakt telefon — unosi ga sam korisnik (praktično: majstor). Prikazuje se
+  // naručiocu usluge tek kada prihvati ponudu tog majstora.
+  phone: text('phone'),
+  role: text('role', { enum: ['admin', 'business', 'user', 'guest', 'curator', 'majstor'] })
     .default('user')
     .notNull(),
   // Bumped on role change / ownership revoke / forced logout so previously-issued
@@ -67,6 +72,12 @@ export const users = pgTable('users', {
   // newer than these. (Unread messages use the per-conversation read marks.)
   reservationsSeenAt: timestamp('reservations_seen_at').defaultNow().notNull(),
   feedSeenAt: timestamp('feed_seen_at').defaultNow().notNull(),
+  // "Usluge" broadcast zahtevi: uslugeSeenAt za korisnika-naručioca (nove
+  // kontraponude), majstorSeenAt za majstora (novi zahtevi u mojim kategorijama).
+  uslugeSeenAt: timestamp('usluge_seen_at').defaultNow().notNull(),
+  majstorSeenAt: timestamp('majstor_seen_at').defaultNow().notNull(),
+  // Vlasnici objekata: novi komentari na objektima u vlasništvu.
+  ownerCommentsSeenAt: timestamp('owner_comments_seen_at').defaultNow().notNull(),
 });
 
 export const objectOwners = pgTable(
@@ -153,9 +164,9 @@ export const reservations = pgTable('reservations', {
 
 export const media = pgTable('media', {
   id: serial('id').primaryKey(),
-  ownerUserId: integer('owner_user_id')
-    .references(() => users.id, { onDelete: 'cascade' })
-    .notNull(),
+  // NULL za anonimne upload-e (prijava problema bez naloga) — pristup se tada
+  // kontroliše isključivo preko referencirajućeg reda (problems.photo_media_id).
+  ownerUserId: integer('owner_user_id').references(() => users.id, { onDelete: 'cascade' }),
   mimeType: text('mime_type').notNull(),
   sizeBytes: integer('size_bytes').notNull(),
   kind: text('kind').notNull(),
@@ -310,6 +321,190 @@ export const serviceRequests = pgTable('service_requests', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Many-to-many: majstor (korisnik) dodeljen kategorijama usluga. Mirrors
+// `village_curators` obrazac (granted_by + granted_at audit). `categoryId` se
+// validira na app sloju protiv SERVICE_CATEGORIES (lib/usluge.ts) — nema FK ka
+// `categories` jer 'bela-tehnika' i 'majstor-za-sve' postoje samo kao usluge.
+export const majstorCategories = pgTable(
+  'majstor_categories',
+  {
+    userId: integer('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    categoryId: text('category_id').notNull(),
+    grantedByAdminId: integer('granted_by_admin_id').references(() => users.id),
+    grantedAt: timestamp('granted_at').defaultNow().notNull(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.userId, t.categoryId] }) }),
+);
+
+// Broadcast zahtev za uslugu ("Usluge"): jedan zahtev → svi majstori kategorije
+// (targetUserIds NULL) ili ručno izabrani podskup. Za razliku od 1-na-1
+// `service_requests` (vezan za objekat), cilja majstore-korisnike po kategoriji.
+export const serviceJobs = pgTable('service_jobs', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  categoryId: text('category_id').notNull(),
+  // { description, note?, photoIds } — vidi lib/usluge.ts ServiceJobPayload.
+  payload: jsonb('payload').notNull(),
+  // NULL = broadcast svim majstorima kategorije; inače niz user ID-eva.
+  targetUserIds: jsonb('target_user_ids').$type<number[] | null>(),
+  status: text('status', { enum: ['open', 'accepted', 'completed', 'cancelled'] })
+    .default('open')
+    .notNull(),
+  // Bez FK ka service_offers (cirkularna zavisnost) — postavlja se isključivo u
+  // accept transakciji koja proverava da ponuda pripada ovom job-u.
+  acceptedOfferId: integer('accepted_offer_id'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  // Završetak posla (accepted → completed) — sme da označi bilo koja strana,
+  // pa `completedBy` beleži ko je (naručilac ili majstor).
+  completedAt: timestamp('completed_at'),
+  completedBy: integer('completed_by').references(() => users.id),
+});
+
+// Kontraponuda majstora na service_job. Jedna ponuda po majstoru po job-u
+// (UNIQUE) — ponovno slanje menja postojeću (upsert). `quote` je isti oblik kao
+// kod 1-na-1 zahteva: { priceRsd, note, availableDate }.
+export const serviceOffers = pgTable(
+  'service_offers',
+  {
+    id: serial('id').primaryKey(),
+    jobId: integer('job_id')
+      .references(() => serviceJobs.id, { onDelete: 'cascade' })
+      .notNull(),
+    majstorUserId: integer('majstor_user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    quote: jsonb('quote').notNull(),
+    status: text('status', { enum: ['active', 'accepted', 'archived'] })
+      .default('active')
+      .notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    // Ocena naručioca — samo na prihvaćenoj ponudi završenog posla (completed).
+    // Zvezdice 1–5 (DB CHECK) + kratak komentar ≤160 karaktera (app validacija).
+    ratingStars: smallint('rating_stars'),
+    ratingComment: text('rating_comment'),
+    ratedAt: timestamp('rated_at'),
+  },
+  (t) => ({ uq: unique('service_offers_job_majstor_uq').on(t.jobId, t.majstorUserId) }),
+);
+
+// Prijava komunalnih problema ("Problemi") — rupa na putu, palo drvo, divlja
+// deponija… Prijava je ANONIMNA (userId NULL kada prijavljuje neulogovani
+// posetilac; SET NULL i kad se nalog obriše). catId se validira na app sloju
+// protiv PROBLEM_CATEGORIES (lib/problemi.ts, mirror u web/src/lib/problemi.ts),
+// village protiv SELA_ZABARI — kao i drugde, bez FK/CHECK u bazi.
+export const problems = pgTable('problems', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  catId: text('cat_id').notNull(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  village: text('village').notNull(),
+  address: text('address'),
+  lat: doublePrecision('lat').notNull(),
+  lng: doublePrecision('lng').notNull(),
+  photoMediaId: integer('photo_media_id').references(() => media.id, { onDelete: 'set null' }),
+  status: text('status', { enum: ['open', 'solved'] })
+    .default('open')
+    .notNull(),
+  // Rešavanje: admin, kustos sela problema, ili (ulogovani) prijavilac.
+  solvedAt: timestamp('solved_at'),
+  solvedBy: integer('solved_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Glasovi građana ("prioritizacija") — samo ulogovani, jedan glas po problemu,
+// ponovni klik ga povlači (toggle).
+export const problemVotes = pgTable(
+  'problem_votes',
+  {
+    problemId: integer('problem_id')
+      .references(() => problems.id, { onDelete: 'cascade' })
+      .notNull(),
+    userId: integer('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.problemId, t.userId] }) }),
+);
+
+// Komentari na prijave — samo ulogovani, ravna lista (bez replies/rating kao kod
+// objekata). "Opština" bedž se izvodi iz uloge autora (admin/curator) pri čitanju.
+export const problemComments = pgTable('problem_comments', {
+  id: serial('id').primaryKey(),
+  problemId: integer('problem_id')
+    .references(() => problems.id, { onDelete: 'cascade' })
+    .notNull(),
+  userId: integer('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  body: text('body').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// "Zaboravljeni biseri" — stare fotografije postavljene na tačno mesto snimka,
+// sa pričom/anegdotom. Doprinos traži nalog (autor je deo sadržaja); predlog ide
+// kustosu sela (ili adminu) na odobrenje: pending → published / rejected.
+// village se validira na app sloju protiv SELA_ZABARI, kao i drugde.
+export const biseri = pgTable('biseri', {
+  id: serial('id').primaryKey(),
+  // SET NULL kad se nalog obriše — biser (odobreni sadržaj) preživi autora.
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  title: text('title').notNull(),
+  year: integer('year').notNull(),
+  village: text('village').notNull(),
+  story: text('story').notNull(),
+  lat: doublePrecision('lat').notNull(),
+  lng: doublePrecision('lng').notNull(),
+  // Skenirana stara fotografija ("Nekad"). Obavezna pri POST-u, ali nullable u
+  // bazi (seed primeri bez fajlova; SET NULL ako se media red obriše) — UI tada
+  // prikazuje sepija placeholder.
+  photoMediaId: integer('photo_media_id').references(() => media.id, { onDelete: 'set null' }),
+  // Opcioni današnji snimak istog kadra ("Danas") — pokreće Nekad/Danas preklopnik.
+  nowPhotoMediaId: integer('now_photo_media_id').references(() => media.id, { onDelete: 'set null' }),
+  status: text('status', { enum: ['pending', 'published', 'rejected'] })
+    .default('pending')
+    .notNull(),
+  decidedAt: timestamp('decided_at'),
+  decidedBy: integer('decided_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Lajkovi ("srca") — samo ulogovani, jedan po biseru, ponovni klik povlači (toggle).
+export const biserLikes = pgTable(
+  'biser_likes',
+  {
+    biserId: integer('biser_id')
+      .references(() => biseri.id, { onDelete: 'cascade' })
+      .notNull(),
+    userId: integer('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.biserId, t.userId] }) }),
+);
+
+// Komentari na bisere — samo ulogovani, ravna lista (isti obrazac kao problem_comments).
+export const biserComments = pgTable('biser_comments', {
+  id: serial('id').primaryKey(),
+  biserId: integer('biser_id')
+    .references(() => biseri.id, { onDelete: 'cascade' })
+    .notNull(),
+  userId: integer('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  body: text('body').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Oglasna tabla — korisnik-postavljeni oglasi. Efemerni: traju 7 dana od
 // poslednjeg `last_refreshed_at`, koji se osvežava kad vlasnik poseti sajt
 // (vidi lib/oglasi-activity.ts). Posle 7 dana neaktivnosti sweep (lib/oglasi-
@@ -401,10 +596,23 @@ export type Village = typeof villages.$inferSelect;
 export type VillageCurator = typeof villageCurators.$inferSelect;
 export type ServiceRequest = typeof serviceRequests.$inferSelect;
 export type ServiceRequestStatus = ServiceRequest['status'];
+export type MajstorCategoryGrant = typeof majstorCategories.$inferSelect;
+export type ServiceJob = typeof serviceJobs.$inferSelect;
+export type ServiceJobStatus = ServiceJob['status'];
+export type ServiceOffer = typeof serviceOffers.$inferSelect;
+export type ServiceOfferStatus = ServiceOffer['status'];
 export type News = typeof news.$inferSelect;
 export type NewsStatus = News['status'];
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 export type Alumnus = typeof alumni.$inferSelect;
+export type Biser = typeof biseri.$inferSelect;
+export type BiserStatus = Biser['status'];
+export type BiserLike = typeof biserLikes.$inferSelect;
+export type BiserComment = typeof biserComments.$inferSelect;
+export type Problem = typeof problems.$inferSelect;
+export type ProblemStatus = Problem['status'];
+export type ProblemVote = typeof problemVotes.$inferSelect;
+export type ProblemComment = typeof problemComments.$inferSelect;
 export type Ad = typeof ads.$inferSelect;
 export type AdStatus = Ad['status'];
 export type AdCategory = Ad['category'];

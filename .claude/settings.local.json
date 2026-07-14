@@ -31,7 +31,8 @@
       "Read(//c//**)",
       "Bash(*)",
       "Bash(bash c:/Git/GradNaDlanu/.tmp/phase3-smoke.sh)",
-      "PowerShell(npm --workspace web run typecheck)"
+      "PowerShell(npm --workspace web run typecheck)",
+      "PowerShell(npm --workspace server run build 2>&1)"
     ]
   },
   "defaultMode": "bypassPermissions"

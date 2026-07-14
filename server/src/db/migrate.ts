@@ -136,7 +136,7 @@ const statements = [
   // version of Postgres / Drizzle initially created them, so we drop both.
   `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check`,
   `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_role_check`,
-  `ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin','business','user','guest','curator'))`,
+  `ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin','business','user','guest','curator','majstor'))`,
   // Allow null email / password_hash for guest rows. ALTER … DROP NOT NULL is
   // a no-op when the column is already nullable.
   `ALTER TABLE users ALTER COLUMN email DROP NOT NULL`,
@@ -323,6 +323,144 @@ const statements = [
      END IF;
    END $$`,
   `DROP TABLE IF EXISTS admin_users`,
+  // --- Usluge: majstori po kategorijama + broadcast zahtevi + kontraponude ---
+  // category_id nema FK ka categories: 'bela-tehnika' i 'majstor-za-sve' postoje
+  // samo kao kategorije usluga (SERVICE_CATEGORIES u lib/usluge.ts).
+  `CREATE TABLE IF NOT EXISTS majstor_categories (
+    user_id              INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    category_id          TEXT NOT NULL,
+    granted_by_admin_id  INTEGER REFERENCES users(id),
+    granted_at           TIMESTAMP NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, category_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS majstor_categories_category_idx ON majstor_categories(category_id)`,
+  `CREATE TABLE IF NOT EXISTS service_jobs (
+    id                 SERIAL PRIMARY KEY,
+    user_id            INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    category_id        TEXT NOT NULL,
+    payload            JSONB NOT NULL,
+    target_user_ids    JSONB,
+    status             TEXT NOT NULL DEFAULT 'open'
+      CHECK (status IN ('open','accepted','completed','cancelled')),
+    accepted_offer_id  INTEGER,
+    created_at         TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS service_jobs_cat_status_idx ON service_jobs(category_id, status)`,
+  `CREATE INDEX IF NOT EXISTS service_jobs_user_created_idx ON service_jobs(user_id, created_at DESC)`,
+  `CREATE TABLE IF NOT EXISTS service_offers (
+    id               SERIAL PRIMARY KEY,
+    job_id           INTEGER NOT NULL REFERENCES service_jobs(id) ON DELETE CASCADE,
+    majstor_user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    quote            JSONB NOT NULL,
+    status           TEXT NOT NULL DEFAULT 'active'
+      CHECK (status IN ('active','accepted','archived')),
+    created_at       TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMP NOT NULL DEFAULT NOW(),
+    CONSTRAINT service_offers_job_majstor_uq UNIQUE (job_id, majstor_user_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS service_offers_job_idx ON service_offers(job_id)`,
+  `CREATE INDEX IF NOT EXISTS service_offers_majstor_idx ON service_offers(majstor_user_id)`,
+  // Badge sidra za usluge (naručilac) i majstorski panel (majstor).
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS usluge_seen_at TIMESTAMP NOT NULL DEFAULT NOW()`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS majstor_seen_at TIMESTAMP NOT NULL DEFAULT NOW()`,
+  // Kontakt telefon (majstori) — otkriva se naručiocu tek posle prihvatanja ponude.
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT`,
+  // --- Usluge: završetak posla + ocenjivanje majstora ---
+  // Status 'completed' (accepted → completed, označava bilo koja strana). CHECK
+  // se menja drop+add obrascem (kao users_role_check) da uhvati postojeće baze.
+  `ALTER TABLE service_jobs DROP CONSTRAINT IF EXISTS service_jobs_status_check`,
+  `ALTER TABLE service_jobs ADD CONSTRAINT service_jobs_status_check
+     CHECK (status IN ('open','accepted','completed','cancelled'))`,
+  `ALTER TABLE service_jobs ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP`,
+  `ALTER TABLE service_jobs ADD COLUMN IF NOT EXISTS completed_by INTEGER REFERENCES users(id)`,
+  // Ocena visi o PRIHVAĆENOJ ponudi (1 prihvaćena ↔ 1 završen posao ↔ ≤1 ocena).
+  // Dužina komentara (≤160) se validira na app sloju, kao i kategorije.
+  `ALTER TABLE service_offers ADD COLUMN IF NOT EXISTS rating_stars SMALLINT`,
+  `ALTER TABLE service_offers ADD COLUMN IF NOT EXISTS rating_comment TEXT`,
+  `ALTER TABLE service_offers ADD COLUMN IF NOT EXISTS rated_at TIMESTAMP`,
+  `ALTER TABLE service_offers DROP CONSTRAINT IF EXISTS service_offers_rating_stars_check`,
+  `ALTER TABLE service_offers ADD CONSTRAINT service_offers_rating_stars_check
+     CHECK (rating_stars IS NULL OR rating_stars BETWEEN 1 AND 5)`,
+  // Badge sidro za vlasnike: novi komentari na objektima u vlasništvu.
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS owner_comments_seen_at TIMESTAMP NOT NULL DEFAULT NOW()`,
+  // --- Prijava komunalnih problema ("Problemi") ---
+  // Anonimni upload fotografije prijave nema vlasnika — owner_user_id postaje
+  // nullable. Postojeći redovi zadržavaju vlasnika; pristup anonimnim fotkama
+  // se kontroliše preko referencirajućeg problems reda (vidi media.ts).
+  `ALTER TABLE media ALTER COLUMN owner_user_id DROP NOT NULL`,
+  // cat_id / village bez FK-a — app-layer validacija (lib/problemi.ts /
+  // lib/villages.ts), isti obrazac kao locations.village i service_jobs.category_id.
+  `CREATE TABLE IF NOT EXISTS problems (
+    id              SERIAL PRIMARY KEY,
+    user_id         INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    cat_id          TEXT NOT NULL,
+    title           TEXT NOT NULL,
+    description     TEXT NOT NULL,
+    village         TEXT NOT NULL,
+    address         TEXT,
+    lat             DOUBLE PRECISION NOT NULL,
+    lng             DOUBLE PRECISION NOT NULL,
+    photo_media_id  INTEGER REFERENCES media(id) ON DELETE SET NULL,
+    status          TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','solved')),
+    solved_at       TIMESTAMP,
+    solved_by       INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS problems_status_created_idx ON problems(status, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS problems_cat_status_idx ON problems(cat_id, status)`,
+  `CREATE INDEX IF NOT EXISTS problems_village_idx ON problems(village)`,
+  `CREATE TABLE IF NOT EXISTS problem_votes (
+    problem_id  INTEGER NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at  TIMESTAMP NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (problem_id, user_id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS problem_comments (
+    id          SERIAL PRIMARY KEY,
+    problem_id  INTEGER NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    body        TEXT NOT NULL,
+    created_at  TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS problem_comments_problem_idx ON problem_comments(problem_id, created_at)`,
+  // --- "Zaboravljeni biseri" ---
+  // Stare fotografije na mapi sa pričom. village bez FK-a (app-layer validacija,
+  // lib/villages.ts). photo_media_id nullable: POST ga zahteva, ali seed primeri
+  // nemaju fajlove, a ON DELETE SET NULL čuva biser i kad media red nestane.
+  `CREATE TABLE IF NOT EXISTS biseri (
+    id                 SERIAL PRIMARY KEY,
+    user_id            INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    title              TEXT NOT NULL,
+    year               INTEGER NOT NULL,
+    village            TEXT NOT NULL,
+    story              TEXT NOT NULL,
+    lat                DOUBLE PRECISION NOT NULL,
+    lng                DOUBLE PRECISION NOT NULL,
+    photo_media_id     INTEGER REFERENCES media(id) ON DELETE SET NULL,
+    now_photo_media_id INTEGER REFERENCES media(id) ON DELETE SET NULL,
+    status             TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','published','rejected')),
+    decided_at         TIMESTAMP,
+    decided_by         INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at         TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at         TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS biseri_status_created_idx ON biseri(status, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS biseri_village_idx ON biseri(village)`,
+  `CREATE TABLE IF NOT EXISTS biser_likes (
+    biser_id    INTEGER NOT NULL REFERENCES biseri(id) ON DELETE CASCADE,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at  TIMESTAMP NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (biser_id, user_id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS biser_comments (
+    id          SERIAL PRIMARY KEY,
+    biser_id    INTEGER NOT NULL REFERENCES biseri(id) ON DELETE CASCADE,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    body        TEXT NOT NULL,
+    created_at  TIMESTAMP NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS biser_comments_biser_idx ON biser_comments(biser_id, created_at)`,
 ];
 
 // Reusable migration function — opens its own short-lived connection so callers

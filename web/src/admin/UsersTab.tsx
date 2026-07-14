@@ -4,6 +4,7 @@ import type { AppContext } from '../App';
 import { api } from '../lib/api';
 import { formatDate } from '../lib/format';
 import { SELA_ZABARI } from '../lib/villages';
+import { SERVICE_CATEGORIES, SERVICE_CATEGORY_LABELS, isServiceCategory } from '../lib/usluge';
 import type { AdminUserRow, Location } from '../types';
 import type { Role } from '../lib/auth';
 
@@ -13,7 +14,12 @@ const ROLE_LABELS: Record<Role, string> = {
   user: 'posetilac',
   guest: 'gost',
   curator: 'kustos',
+  majstor: 'majstor',
 };
+
+function serviceCatLabel(id: string): string {
+  return isServiceCategory(id) ? SERVICE_CATEGORY_LABELS[id] : id;
+}
 
 export function UsersTab() {
   const ctx = useOutletContext<AppContext>();
@@ -24,6 +30,7 @@ export function UsersTab() {
   const [allObjects, setAllObjects] = useState<Location[]>([]);
   const [grantPicker, setGrantPicker] = useState<{ userId: number; locationId: number } | null>(null);
   const [curatorPicker, setCuratorPicker] = useState<{ userId: number; village: string } | null>(null);
+  const [majstorPicker, setMajstorPicker] = useState<{ userId: number; category: string } | null>(null);
 
   const reload = async () => {
     setUsers(await api.adminListUsers(q || undefined));
@@ -128,6 +135,43 @@ export function UsersTab() {
     }
   };
 
+  const majstorOptions = useMemo(() => {
+    if (!majstorPicker) return [];
+    const already = new Set(
+      users.find((u) => u.id === majstorPicker.userId)?.majstorCategories ?? [],
+    );
+    return SERVICE_CATEGORIES.filter((c) => !already.has(c));
+  }, [majstorPicker, users]);
+
+  const grantMajstor = async (u: AdminUserRow, category: string) => {
+    setBusyId(u.id);
+    setError(null);
+    try {
+      await api.adminGrantMajstor(u.id, category);
+      setMajstorPicker(null);
+      await reload();
+      await ctx.reloadCurrentUser();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const revokeMajstor = async (u: AdminUserRow, category: string) => {
+    if (!window.confirm(`Ukinuti majstorska prava za "${serviceCatLabel(category)}"?`)) return;
+    setBusyId(u.id);
+    setError(null);
+    try {
+      await api.adminRevokeMajstor(u.id, category);
+      await reload();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <div className="users-tab">
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -169,6 +213,18 @@ export function UsersTab() {
                       {i > 0 && ', '}
                       <span>{v}</span>
                       <button className="user-owned-x" onClick={() => revokeCurator(u, v)} title="Ukini">×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              {u.majstorCategories.length > 0 && (
+                <div className="user-owned">
+                  Majstor:&nbsp;
+                  {u.majstorCategories.map((c, i) => (
+                    <span key={c}>
+                      {i > 0 && ', '}
+                      <span>{serviceCatLabel(c)}</span>
+                      <button className="user-owned-x" onClick={() => revokeMajstor(u, c)} title="Ukini">×</button>
                     </span>
                   ))}
                 </div>
@@ -228,6 +284,27 @@ export function UsersTab() {
                   </button>
                   <button className="row-action" onClick={() => setCuratorPicker(null)}>×</button>
                 </div>
+              ) : majstorPicker?.userId === u.id ? (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <select
+                    className="field-select"
+                    value={majstorPicker.category}
+                    onChange={(e) => setMajstorPicker({ userId: u.id, category: e.target.value })}
+                  >
+                    <option value="">— odaberi kategoriju —</option>
+                    {majstorOptions.map((c) => (
+                      <option key={c} value={c}>{SERVICE_CATEGORY_LABELS[c]}</option>
+                    ))}
+                  </select>
+                  <button
+                    className="row-action"
+                    disabled={!majstorPicker.category || busyId === u.id}
+                    onClick={() => grantMajstor(u, majstorPicker.category)}
+                  >
+                    OK
+                  </button>
+                  <button className="row-action" onClick={() => setMajstorPicker(null)}>×</button>
+                </div>
               ) : (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   <button className="row-action" onClick={() => setGrantPicker({ userId: u.id, locationId: 0 })}>
@@ -235,6 +312,9 @@ export function UsersTab() {
                   </button>
                   <button className="row-action" onClick={() => setCuratorPicker({ userId: u.id, village: '' })}>
                     + Dodeli selo
+                  </button>
+                  <button className="row-action" onClick={() => setMajstorPicker({ userId: u.id, category: '' })}>
+                    + Dodeli uslugu
                   </button>
                 </div>
               )}

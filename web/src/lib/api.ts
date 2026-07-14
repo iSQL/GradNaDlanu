@@ -4,6 +4,10 @@ import type {
   AdminUserRow,
   Alumnus,
   AvailabilityRow,
+  Biser,
+  BiserCommentItem,
+  BiserDetail,
+  BiserInput,
   Category,
   ConversationDetail,
   ConversationSummary,
@@ -18,8 +22,12 @@ import type {
   Location,
   LocationEvent,
   LocationWithContent,
+  MajstorDirectoryEntry,
+  MajstorJob,
+  MajstorPublic,
   MyComment,
   MyReservation,
+  MyServiceJob,
   MyServiceRequest,
   NewsItem,
   NewsStatus,
@@ -27,9 +35,14 @@ import type {
   OwnerNewsItem,
   OwnerReservation,
   OwnerServiceRequest,
+  Problem,
+  ProblemCommentItem,
+  ProblemDetail,
+  ProblemInput,
   RecentComment,
   ReservationPayload,
   ServiceRequestQuote,
+  UslugeStat,
   VillageInfo,
 } from '../types';
 import { getToken, type Role } from './auth';
@@ -41,8 +54,11 @@ export interface CurrentUser {
   displayName: string;
   role: Role;
   emailVerifiedAt: string | null;
+  // Kontakt telefon (unosi ga sam korisnik; koristi se za majstore).
+  phone: string | null;
   ownedLocationIds: number[];
   curatedVillages: string[];
+  majstorCategories: string[];
 }
 
 export type NewsletterCategory = 'desavanja' | 'poruke' | 'marketing';
@@ -194,8 +210,8 @@ export const api = {
       body: JSON.stringify({ email }),
     }),
   getMe: () => request<CurrentUser>('/api/me'),
-  updateMe: (patch: { displayName: string }) =>
-    request<{ id: number; email: string | null; displayName: string; role: Role }>('/api/me', {
+  updateMe: (patch: { displayName?: string; phone?: string | null }) =>
+    request<{ id: number; email: string | null; displayName: string; role: Role; phone: string | null }>('/api/me', {
       method: 'PATCH',
       body: JSON.stringify(patch),
     }),
@@ -347,6 +363,62 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ status: 'cancelled' }),
     }),
+
+  // Usluge — broadcast zahtevi za majstore po kategorijama
+  uslugeStats: () => request<UslugeStat[]>('/api/usluge/stats'),
+  uslugeMajstori: (cat: string) =>
+    request<MajstorPublic[]>(`/api/usluge/majstori?cat=${encodeURIComponent(cat)}`),
+  createServiceJob: (body: {
+    categoryId: string;
+    description: string;
+    note?: string;
+    photoIds: number[];
+    targetUserIds?: number[] | null;
+  }) => request<MyServiceJob>('/api/usluge/jobs', { method: 'POST', body: JSON.stringify(body) }),
+  myServiceJobs: () => request<MyServiceJob[]>('/api/me/usluge'),
+  acceptJobOffer: (jobId: number, offerId: number) =>
+    request<MyServiceJob>(`/api/me/usluge/${jobId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'accept', offerId }),
+    }),
+  cancelServiceJob: (jobId: number) =>
+    request<MyServiceJob>(`/api/me/usluge/${jobId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'cancel' }),
+    }),
+  // Završetak posla (accepted → completed) — naručilačka strana.
+  completeServiceJob: (jobId: number) =>
+    request<MyServiceJob>(`/api/me/usluge/${jobId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'complete' }),
+    }),
+  // Ocena majstora (zvezdice 1–5 + opcioni komentar ≤160) — posle završetka.
+  rateServiceJob: (jobId: number, stars: number, comment?: string) =>
+    request<MyServiceJob>(`/api/me/usluge/${jobId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'rate', stars, comment }),
+    }),
+  // Javni imenik majstora sa metrikama i zadnjim ocenama (/majstori).
+  listMajstori: () => request<MajstorDirectoryEntry[]>('/api/majstori'),
+  majstorJobs: () => request<MajstorJob[]>('/api/majstor/jobs'),
+  // Završetak posla — majstorska strana (samo nosilac prihvaćene ponude).
+  majstorCompleteJob: (jobId: number) =>
+    request<MajstorJob>(`/api/majstor/jobs/${jobId}/complete`, { method: 'POST' }),
+  submitJobOffer: (jobId: number, quote: ServiceRequestQuote) =>
+    request<{ id: number }>(`/api/majstor/jobs/${jobId}/offer`, {
+      method: 'POST',
+      body: JSON.stringify(quote),
+    }),
+  adminGrantMajstor: (userId: number, category: string) =>
+    request<{ ok: true; userId: number; category: string }>(
+      `/api/admin/users/${userId}/grant-majstor`,
+      { method: 'POST', body: JSON.stringify({ category }) },
+    ),
+  adminRevokeMajstor: (userId: number, category: string) =>
+    request<{ ok: true }>(
+      `/api/admin/users/${userId}/grant-majstor/${encodeURIComponent(category)}`,
+      { method: 'DELETE' },
+    ),
 
   // Service requests — owner side
   ownerServiceRequests: (params: { status?: string; locationId?: number } = {}) => {
@@ -591,6 +663,87 @@ export const api = {
       body: JSON.stringify({ permanent }),
     }),
 
+  // Prijava komunalnih problema ("Problemi")
+  listProblemi: (
+    params: { cat?: string; status?: 'open' | 'solved'; village?: string; sort?: 'votes' | 'recent'; limit?: number; offset?: number } = {},
+  ) => {
+    const qs = new URLSearchParams();
+    if (params.cat) qs.set('cat', params.cat);
+    if (params.status) qs.set('status', params.status);
+    if (params.village) qs.set('village', params.village);
+    if (params.sort) qs.set('sort', params.sort);
+    if (params.limit !== undefined) qs.set('limit', String(params.limit));
+    if (params.offset !== undefined) qs.set('offset', String(params.offset));
+    const s = qs.toString();
+    return request<Problem[]>(`/api/problemi${s ? `?${s}` : ''}`);
+  },
+  getProblem: (id: number) => request<ProblemDetail>(`/api/problemi/${id}`),
+  createProblem: (body: ProblemInput) =>
+    request<{ id: number }>('/api/problemi', { method: 'POST', body: JSON.stringify(body) }),
+  // Anonimno dozvoljen upload — poseban endpoint sa IP rate limitom, kind je
+  // fiksiran server-side na 'problem_photo'.
+  uploadProblemPhoto: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file, file.name);
+    return uploadRequest<{ id: number }>('/api/uploads/problem', fd);
+  },
+  voteProblem: (id: number) =>
+    request<{ voted: boolean; votes: number }>(`/api/problemi/${id}/vote`, { method: 'POST' }),
+  commentProblem: (id: number, body: string) =>
+    request<ProblemCommentItem>(`/api/problemi/${id}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
+    }),
+  setProblemStatus: (id: number, status: 'solved' | 'open') =>
+    request<{ id: number; status: 'open' | 'solved'; solvedAt: string | null }>(
+      `/api/problemi/${id}`,
+      { method: 'PATCH', body: JSON.stringify({ status }) },
+    ),
+  adminDeleteProblem: (id: number) =>
+    request<{ ok: true }>(`/api/problemi/${id}`, { method: 'DELETE' }),
+
+  // "Zaboravljeni biseri"
+  listBiseri: (params: { village?: string } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.village) qs.set('village', params.village);
+    const s = qs.toString();
+    return request<Biser[]>(`/api/biseri${s ? `?${s}` : ''}`);
+  },
+  getBiser: (id: number) => request<BiserDetail>(`/api/biseri/${id}`),
+  createBiser: (body: BiserInput) =>
+    request<{ id: number; status: string }>('/api/biseri', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  uploadBiserPhoto: (file: File) => {
+    const fd = new FormData();
+    // `kind` pre fajla — vidi komentar u uploadMedia.
+    fd.append('kind', 'biser_photo');
+    fd.append('file', file, file.name);
+    return uploadRequest<{ id: number }>('/api/uploads', fd);
+  },
+  likeBiser: (id: number) =>
+    request<{ liked: boolean; likes: number }>(`/api/biseri/${id}/like`, { method: 'POST' }),
+  commentBiser: (id: number, body: string) =>
+    request<BiserCommentItem>(`/api/biseri/${id}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
+    }),
+  // Naknadno dodavanje/uklanjanje "Danas" fotke — autor ili moderator; null uklanja.
+  setBiserNowPhoto: (id: number, nowPhotoMediaId: number | null) =>
+    request<{ id: number; nowPhotoMediaId: number | null }>(`/api/biseri/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ nowPhotoMediaId }),
+    }),
+  pendingBiseri: () => request<Biser[]>('/api/biseri/pending'),
+  moderateBiser: (id: number, status: 'published' | 'rejected' | 'pending') =>
+    request<{ id: number; status: string }>(`/api/biseri/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+  adminDeleteBiser: (id: number) =>
+    request<{ ok: true }>(`/api/biseri/${id}`, { method: 'DELETE' }),
+
   // Poruke (conversations / messages)
   myConversations: () => request<ConversationSummary[]>('/api/me/conversations'),
   getConversation: (id: number) => request<ConversationDetail>(`/api/conversations/${id}`),
@@ -608,6 +761,6 @@ export const api = {
 
   // Notifications (Moj prostor badge)
   getNotifications: () => request<Notifications>('/api/me/notifications'),
-  markSeen: (section: 'reservations' | 'feed') =>
+  markSeen: (section: 'reservations' | 'feed' | 'usluge' | 'majstor' | 'owner-comments') =>
     request<{ ok: true }>('/api/me/seen', { method: 'POST', body: JSON.stringify({ section }) }),
 };
