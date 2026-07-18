@@ -180,13 +180,18 @@ export function App() {
               <p className="foot-motto">Mreža naše varoši</p>
             </div>
             <div className="foot-col">
-              <h4>Istraži</h4>
+              <h4>Naši projekti</h4>
               <div className="foot-links">
-                <Link to="/objekti">Objekti</Link>
-                <Link to="/mapa">Mapa</Link>
-                <Link to="/desavanja">Dešavanja</Link>
-                <Link to="/naselja">Naselja</Link>
-                <Link to="/oglasi">Oglasna tabla</Link>
+                <a href="https://ink.zabari.net" target="_blank" rel="noopener noreferrer">
+                  🎮 Igra na klik - Kvizovi i ostale društvene igre za do 15 igrača
+                </a>
+                <a
+                  href="https://chat.whatsapp.com/EUYDXyfmJwPHilxI9NRFt1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  💬 WhatsApp Zajednica građana Žabara i okolnih naselja
+                </a>
               </div>
             </div>
             <div className="foot-col">
