@@ -82,9 +82,8 @@ const USLUGE = [
   { id: 'majstor-za-sve', label: 'Majstor za sve', sub: 'Sitne popravke u domaćinstvu', icon: <IconToolbox /> },
 ];
 
-// Statična hero pozadina — placeholder dok ne stigne prava fotografija.
-// Kada fotografija bude spremna, zameniti sa `url(/uploads/...)` ili fajlom iz web/public.
-const HERO_BG = 'url(https://picsum.photos/1600/600)';
+// Statična hero pozadina — istorijska fotografija Žabara (1904), iz web/public.
+const HERO_BG = 'url(/1904.jpg)';
 
 function truncate(s: string, max: number): string {
   if (s.length <= max) return s;
