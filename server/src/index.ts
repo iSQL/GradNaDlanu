@@ -221,6 +221,30 @@ async function main() {
       : false,
   });
 
+  // Design-prototype pages are self-unpacking bundles: an inline <script>
+  // gunzips a base64 payload into blob: URLs and Babel-compiles JSX in the
+  // browser. That needs inline script + eval + blob:, which the CSP above
+  // rightly forbids — without this override the page renders only its
+  // placeholder thumbnail. Relaxed for these exact static paths only; the SPA
+  // and the API keep the strict policy.
+  const CSP_RELAXED_PATHS = new Set(['/SkicaOdsustvaNastavnika.html']);
+  const PROTOTYPE_CSP = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://unpkg.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "img-src 'self' data: blob:",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "connect-src 'self' blob: data: https://unpkg.com",
+    "frame-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+  ].join('; ');
+  app.addHook('onSend', async (req, reply) => {
+    if (CSP_RELAXED_PATHS.has(req.url.split('?', 1)[0])) {
+      reply.header('content-security-policy', PROTOTYPE_CSP);
+    }
+  });
+
   // Global rate limit — cheap defense against floods. Per-route hooks below
   // tighten this further on auth and upload endpoints.
   await app.register(rateLimit, {
