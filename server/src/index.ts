@@ -40,6 +40,10 @@ import { startOglasiCleanup } from './lib/oglasi-cleanup.js';
 import { runMigrations } from './db/migrate.js';
 import { runSeed } from './db/seed.js';
 
+// Public WhatsApp community group — target of the /whatsapp vanity redirect.
+// Same link as the footer in web/src/App.tsx; update both together.
+const WHATSAPP_GROUP_URL = 'https://chat.whatsapp.com/EUYDXyfmJwPHilxI9NRFt1';
+
 // Resolve web/dist relative to this file at runtime.
 // Layout in the docker image: /app/web/dist + /app/server/dist/index.js
 // Layout in source dev:        web/dist (after `npm run build`) + server/src/index.ts
@@ -276,6 +280,14 @@ async function main() {
 
   // Daily sweep: soft-deletes (archives) ads not refreshed in >7 days.
   startOglasiCleanup(app);
+
+  // Vanity redirect: zabari.net/whatsapp → the public WhatsApp community group.
+  // Registered before the static/SPA fallback so it wins over index.html.
+  app.route({
+    method: ['GET', 'HEAD'],
+    url: '/whatsapp',
+    handler: (_req, reply) => reply.redirect(WHATSAPP_GROUP_URL, 302),
+  });
 
   // Static asset serving — production. In dev, the Vite dev server handles this on :5173
   // and proxies /api/* to us, so the directory simply won't exist and we skip registration.
