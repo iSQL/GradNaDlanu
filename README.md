@@ -77,6 +77,7 @@ The `/naselja` page renders the 15 villages of Opština Žabari as a Voronoi SVG
 ├── docker-compose.yml         # bundled postgres (dev profile) + app
 ├── .env.example
 ├── CLAUDE.md                  # guide for Claude Code agents
+├── LICENSE.md                 # AGPL-3.0 license notice
 ├── todo.md                    # ideas not yet built
 ├── web/                       # Vite + React + TS
 └── server/                    # Fastify + Drizzle + postgres-js
@@ -134,7 +135,7 @@ The same `docker-compose.yml` works on any Docker host. To run the bundled Postg
 
 ## Roadmap
 
-Open ideas live in [todo.md](todo.md) — image uploads, reservation notifications, an events calendar, owner analytics, comment moderation queue, cross-cutting tags. Implemented features (v1 + v2) match the design doc at [`~/.claude/plans/fetch-this-design-file-whimsical-quilt.md`](.).
+Open ideas live in [todo.md](todo.md) — image uploads, reservation notifications, an events calendar, owner analytics, comment moderation queue, cross-cutting tags.
 
 ## License
 
